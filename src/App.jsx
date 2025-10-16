@@ -1,8 +1,90 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Calendar, Trash2, Tag, Edit2, Save, X, Filter } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
+import { supabase } from './supabaseClient';
 
-const BudgetApp = () => {
+const BudgetApp = ({ session }) => {
+  // ========================================
+  // LOAD DATA FROM SUPABASE ON MOUNT
+  // ========================================
+  useEffect(() => {
+    loadDataFromSupabase();
+  }, []);
+
+  const loadDataFromSupabase = async () => {
+    try {
+      // Load transactions
+      const { data: transactionsData, error: transError } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: false });
+      
+      if (transError) throw transError;
+      if (transactionsData) {
+        const formattedTransactions = transactionsData.map(t => ({
+          id: t.id,
+          date: t.date,
+          description: t.description,
+          amount: parseFloat(t.amount),
+          category: t.category
+        }));
+        setTransactions(formattedTransactions);
+      }
+
+      // Load budgets
+      const { data: budgetsData, error: budgetError } = await supabase
+        .from('budgets')
+        .select('*');
+      
+      if (budgetError) throw budgetError;
+      if (budgetsData) {
+        const formattedBudgets = budgetsData.map(b => ({
+          id: b.id,
+          category: b.category,
+          limit: parseFloat(b.limit_amount),
+          spent: parseFloat(b.spent)
+        }));
+        setBudgets(formattedBudgets);
+      }
+
+      // Load categories
+      const { data: categoriesData, error: catError } = await supabase
+        .from('categories')
+        .select('*');
+      
+      if (catError) throw catError;
+      if (categoriesData) {
+        const categoryNames = categoriesData.map(c => c.name);
+        setCategories(categoryNames);
+      }
+
+      // Load recurring rules
+      const { data: recurringData, error: recurError } = await supabase
+        .from('recurring_rules')
+        .select('*');
+      
+      if (recurError) throw recurError;
+      if (recurringData) {
+        const formattedRules = recurringData.map(r => ({
+          id: r.id,
+          description: r.description,
+          amount: parseFloat(r.amount),
+          category: r.category,
+          frequency: r.frequency,
+          dayOfMonth: r.day_of_month,
+          startDate: r.start_date,
+          lastGenerated: r.last_generated,
+          active: r.active
+        }));
+        setRecurringRules(formattedRules);
+      }
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+      alert('Failed to load data from database');
+    }
+  };
+
   // ========================================
   // CENTRALIZED THEME - Change colors here to update entire app!
   // ========================================
@@ -25,49 +107,11 @@ const BudgetApp = () => {
 
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Mock data
-  const [transactions, setTransactions] = useState([
-    { id: 1, date: '2025-10-14', description: 'Grocery Store', amount: -85.50, category: 'Food' },
-    { id: 2, date: '2025-10-13', description: 'Salary', amount: 3000, category: 'Income' },
-    { id: 3, date: '2025-10-12', description: 'Gas Station', amount: -45.00, category: 'Transportation' },
-    { id: 4, date: '2025-10-10', description: 'Netflix', amount: -15.99, category: 'Entertainment' },
-    { id: 5, date: '2025-10-08', description: 'Restaurant', amount: -67.30, category: 'Food' },
-  ]);
-
-  const [budgets, setBudgets] = useState([
-    { id: 1, category: 'Food', limit: 400, spent: 152.80 },
-    { id: 2, category: 'Transportation', limit: 200, spent: 45.00 },
-    { id: 3, category: 'Entertainment', limit: 100, spent: 15.99 },
-    { id: 4, category: 'Shopping', limit: 300, spent: 0 },
-  ]);
-
-  const [recurringRules, setRecurringRules] = useState([
-    { 
-      id: 1, 
-      description: 'Monthly Salary', 
-      amount: 3000, 
-      category: 'Income', 
-      frequency: 'monthly',
-      dayOfMonth: 1,
-      startDate: '2025-01-01',
-      lastGenerated: '2025-10-01',
-      active: true
-    },
-    { 
-      id: 2, 
-      description: 'Netflix Subscription', 
-      amount: -15.99, 
-      category: 'Entertainment', 
-      frequency: 'monthly',
-      dayOfMonth: 10,
-      startDate: '2025-01-10',
-      lastGenerated: '2025-10-10',
-      active: true
-    },
-  ]);
-
+  const [transactions, setTransactions] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [recurringRules, setRecurringRules] = useState([]);
   const [categories, setCategories] = useState(['Food', 'Transportation', 'Entertainment', 'Shopping', 'Income', 'Other']);
-  
+
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddRecurring, setShowAddRecurring] = useState(false);
@@ -172,24 +216,50 @@ const BudgetApp = () => {
 
   const monthlyData = getMonthlyData();
 
-  const handleAddTransaction = () => {
-    if (newTransaction.description && newTransaction.amount) {
-      const transaction = {
-        id: Date.now(),
-        date: newTransaction.date,
-        description: newTransaction.description,
-        amount: parseFloat(newTransaction.amount),
-        category: newTransaction.category,
+  const handleAddTransaction = async () => {
+  if (newTransaction.description && newTransaction.amount) {
+    const transaction = {
+      user_id: session.user.id,
+      date: newTransaction.date,
+      description: newTransaction.description,
+      amount: parseFloat(newTransaction.amount),
+      category: newTransaction.category,
+    };
+    
+    try {
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([transaction])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add to local state
+      const newTrans = {
+        id: data.id,
+        date: data.date,
+        description: data.description,
+        amount: parseFloat(data.amount),
+        category: data.category
       };
+      setTransactions([newTrans, ...transactions]);
       
-      setTransactions([transaction, ...transactions]);
-      
-      if (transaction.amount < 0) {
-        setBudgets(budgets.map(b => 
-          b.category === transaction.category 
-            ? { ...b, spent: b.spent + Math.abs(transaction.amount) }
-            : b
-        ));
+      // Update budget spent if expense
+      if (newTrans.amount < 0) {
+        const budget = budgets.find(b => b.category === newTrans.category);
+        if (budget) {
+          const newSpent = budget.spent + Math.abs(newTrans.amount);
+          await supabase
+            .from('budgets')
+            .update({ spent: newSpent })
+            .eq('id', budget.id);
+          
+          setBudgets(budgets.map(b => 
+            b.id === budget.id ? { ...b, spent: newSpent } : b
+          ));
+        }
       }
       
       setNewTransaction({
@@ -199,59 +269,140 @@ const BudgetApp = () => {
         category: 'Food',
       });
       setShowAddTransaction(false);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      alert('Failed to add transaction');
     }
-  };
+  }
+};
 
-  const handleDeleteTransaction = (id) => {
-    const transaction = transactions.find(t => t.id === id);
-    
+  const handleDeleteTransaction = async (id) => {
+  const transaction = transactions.find(t => t.id === id);
+  
+  try {
+    // Delete from Supabase
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    // Update budget spent if expense
     if (transaction.amount < 0) {
-      setBudgets(budgets.map(b => 
-        b.category === transaction.category 
-          ? { ...b, spent: Math.max(0, b.spent - Math.abs(transaction.amount)) }
-          : b
-      ));
+      const budget = budgets.find(b => b.category === transaction.category);
+      if (budget) {
+        const newSpent = Math.max(0, budget.spent - Math.abs(transaction.amount));
+        await supabase
+          .from('budgets')
+          .update({ spent: newSpent })
+          .eq('id', budget.id);
+        
+        setBudgets(budgets.map(b => 
+          b.id === budget.id ? { ...b, spent: newSpent } : b
+        ));
+      }
     }
     
+    // Remove from local state
     setTransactions(transactions.filter(t => t.id !== id));
-  };
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    alert('Failed to delete transaction');
+  }
+};
 
-  const handleAddCategory = () => {
-    if (newCategoryName && newCategoryLimit) {
+  const handleAddCategory = async () => {
+  if (newCategoryName && newCategoryLimit) {
+    try {
+      // Add category to categories table
+      const { error: catError } = await supabase
+        .from('categories')
+        .insert([{ user_id: session.user.id, name: newCategoryName }]);
+
+      if (catError) throw catError;
+
+      // Add budget
+      const { data: budgetData, error: budgetError } = await supabase
+        .from('budgets')
+        .insert([{
+          user_id: session.user.id,
+          category: newCategoryName,
+          limit_amount: parseFloat(newCategoryLimit),
+          spent: 0
+        }])
+        .select()
+        .single();
+
+      if (budgetError) throw budgetError;
+
       const newBudget = {
-        id: Date.now(),
+        id: budgetData.id,
         category: newCategoryName,
         limit: parseFloat(newCategoryLimit),
         spent: 0
       };
+
       setBudgets([...budgets, newBudget]);
       setCategories([...categories, newCategoryName]);
       setNewCategoryName('');
       setNewCategoryLimit('');
       setShowAddCategory(false);
+    } catch (error) {
+      console.error('Error adding category:', error);
+      alert('Failed to add category');
     }
-  };
+  }
+};
 
-  const handleUpdateCategory = (id, newName, newLimit) => {
-    const oldBudget = budgets.find(b => b.id === id);
-    const oldName = oldBudget.category;
+  const handleUpdateCategory = async (id, newName, newLimit) => {
+  const oldBudget = budgets.find(b => b.id === id);
+  const oldName = oldBudget.category;
+  
+  try {
+    // Update budget
+    const { error: budgetError } = await supabase
+      .from('budgets')
+      .update({ 
+        category: newName, 
+        limit_amount: parseFloat(newLimit) 
+      })
+      .eq('id', id);
+
+    if (budgetError) throw budgetError;
+
+    // If name changed, update category and transactions
+    if (oldName !== newName) {
+      await supabase
+        .from('categories')
+        .update({ name: newName })
+        .eq('name', oldName)
+        .eq('user_id', session.user.id);
+
+      await supabase
+        .from('transactions')
+        .update({ category: newName })
+        .eq('category', oldName)
+        .eq('user_id', session.user.id);
+
+      setTransactions(transactions.map(t => 
+        t.category === oldName ? { ...t, category: newName } : t
+      ));
+      setCategories(categories.map(c => c === oldName ? newName : c));
+    }
     
     setBudgets(budgets.map(b => 
       b.id === id ? { ...b, category: newName, limit: parseFloat(newLimit) } : b
     ));
     
-    setCategories(categories.map(c => c === oldName ? newName : c));
-    
-    if (oldName !== newName) {
-      setTransactions(transactions.map(t => 
-        t.category === oldName ? { ...t, category: newName } : t
-      ));
-    }
-    
     setEditingCategory(null);
     setEditingCategoryName('');
     setEditingCategoryLimit('');
-  };
+  } catch (error) {
+    console.error('Error updating category:', error);
+    alert('Failed to update category');
+  }
+};
 
   const startEditingCategory = (budget) => {
     setEditingCategory(budget.id);
@@ -265,16 +416,35 @@ const BudgetApp = () => {
     setEditingCategoryLimit('');
   };
 
-  const handleDeleteCategory = (categoryName) => {
-    const hasTransactions = transactions.some(t => t.category === categoryName);
-    if (hasTransactions) {
-      alert('Cannot delete category with existing transactions. Please reassign or delete those transactions first.');
-      return;
-    }
-    
+  const handleDeleteCategory = async (categoryName) => {
+  const hasTransactions = transactions.some(t => t.category === categoryName);
+  if (hasTransactions) {
+    alert('Cannot delete category with existing transactions. Please reassign or delete those transactions first.');
+    return;
+  }
+  
+  try {
+    // Delete budget
+    await supabase
+      .from('budgets')
+      .delete()
+      .eq('category', categoryName)
+      .eq('user_id', session.user.id);
+
+    // Delete category
+    await supabase
+      .from('categories')
+      .delete()
+      .eq('name', categoryName)
+      .eq('user_id', session.user.id);
+
     setBudgets(budgets.filter(b => b.category !== categoryName));
     setCategories(categories.filter(c => c !== categoryName));
-  };
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    alert('Failed to delete category');
+  }
+};
 
   // Recurring transaction functions
   const calculateNextOccurrence = (rule) => {
@@ -351,20 +521,42 @@ const BudgetApp = () => {
     }
   };
 
-  const handleAddRecurring = () => {
-    if (newRecurring.description && newRecurring.amount) {
-      const rule = {
-        id: Date.now(),
-        description: newRecurring.description,
-        amount: parseFloat(newRecurring.amount),
-        category: newRecurring.category,
-        frequency: newRecurring.frequency,
-        dayOfMonth: parseInt(newRecurring.dayOfMonth),
-        startDate: newRecurring.startDate,
-        lastGenerated: null,
-        active: true,
+  const handleAddRecurring = async () => {
+  if (newRecurring.description && newRecurring.amount) {
+    const rule = {
+      user_id: session.user.id,
+      description: newRecurring.description,
+      amount: parseFloat(newRecurring.amount),
+      category: newRecurring.category,
+      frequency: newRecurring.frequency,
+      day_of_month: parseInt(newRecurring.dayOfMonth),
+      start_date: newRecurring.startDate,
+      last_generated: null,
+      active: true,
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('recurring_rules')
+        .insert([rule])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const formattedRule = {
+        id: data.id,
+        description: data.description,
+        amount: parseFloat(data.amount),
+        category: data.category,
+        frequency: data.frequency,
+        dayOfMonth: data.day_of_month,
+        startDate: data.start_date,
+        lastGenerated: data.last_generated,
+        active: data.active
       };
-      setRecurringRules([...recurringRules, rule]);
+
+      setRecurringRules([...recurringRules, formattedRule]);
       setNewRecurring({
         description: '',
         amount: '',
@@ -374,18 +566,48 @@ const BudgetApp = () => {
         startDate: new Date().toISOString().split('T')[0],
       });
       setShowAddRecurring(false);
+    } catch (error) {
+      console.error('Error adding recurring rule:', error);
+      alert('Failed to add recurring rule');
     }
-  };
+  }
+};
 
-  const handleToggleRecurring = (id) => {
+  const handleToggleRecurring = async (id) => {
+  const rule = recurringRules.find(r => r.id === id);
+  
+  try {
+    const { error } = await supabase
+      .from('recurring_rules')
+      .update({ active: !rule.active })
+      .eq('id', id);
+
+    if (error) throw error;
+
     setRecurringRules(recurringRules.map(r => 
       r.id === id ? { ...r, active: !r.active } : r
     ));
-  };
+  } catch (error) {
+    console.error('Error toggling recurring rule:', error);
+    alert('Failed to toggle recurring rule');
+  }
+};
 
-  const handleDeleteRecurring = (id) => {
+  const handleDeleteRecurring = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('recurring_rules')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
     setRecurringRules(recurringRules.filter(r => r.id !== id));
-  };
+  } catch (error) {
+    console.error('Error deleting recurring rule:', error);
+    alert('Failed to delete recurring rule');
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -1394,4 +1616,8 @@ const BudgetApp = () => {
   );
 };
 
-export default BudgetApp;
+const AppWrapper = ({ session }) => {
+  return <BudgetApp session={session} />;
+};
+
+export default AppWrapper;
