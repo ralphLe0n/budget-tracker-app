@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Calendar, Trash2, Tag, Edit2, Save, X, Filter } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Calendar, Trash2, Tag, Edit2, Save, X, Filter, LogOut, LayoutDashboard, Repeat, Wallet, CreditCard } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { supabase } from './supabaseClient';
 
@@ -12,13 +12,16 @@ const BudgetApp = ({ session }) => {
   }, []);
 
   const loadDataFromSupabase = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       // Load transactions
       const { data: transactionsData, error: transError } = await supabase
         .from('transactions')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('date', { ascending: false });
-      
+
       if (transError) throw transError;
       if (transactionsData) {
         const formattedTransactions = transactionsData.map(t => ({
@@ -34,8 +37,9 @@ const BudgetApp = ({ session }) => {
       // Load budgets
       const { data: budgetsData, error: budgetError } = await supabase
         .from('budgets')
-        .select('*');
-      
+        .select('*')
+        .eq('user_id', session.user.id);
+
       if (budgetError) throw budgetError;
       if (budgetsData) {
         const formattedBudgets = budgetsData.map(b => ({
@@ -50,8 +54,9 @@ const BudgetApp = ({ session }) => {
       // Load categories
       const { data: categoriesData, error: catError } = await supabase
         .from('categories')
-        .select('*');
-      
+        .select('*')
+        .eq('user_id', session.user.id);
+
       if (catError) throw catError;
       if (categoriesData) {
         const categoryNames = categoriesData.map(c => c.name);
@@ -61,8 +66,9 @@ const BudgetApp = ({ session }) => {
       // Load recurring rules
       const { data: recurringData, error: recurError } = await supabase
         .from('recurring_rules')
-        .select('*');
-      
+        .select('*')
+        .eq('user_id', session.user.id);
+
       if (recurError) throw recurError;
       if (recurringData) {
         const formattedRules = recurringData.map(r => ({
@@ -79,9 +85,41 @@ const BudgetApp = ({ session }) => {
         setRecurringRules(formattedRules);
       }
 
+      // Load accounts
+      const { data: accountsData, error: accountsError } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: true });
+
+      if (accountsError) throw accountsError;
+      if (accountsData) {
+        const formattedAccounts = accountsData.map(a => ({
+          id: a.id,
+          name: a.name,
+          type: a.type,
+          balance: parseFloat(a.balance),
+          starting_balance: parseFloat(a.starting_balance)
+        }));
+        setAccounts(formattedAccounts);
+      }
+
     } catch (error) {
       console.error('Error loading data:', error);
-      alert('Failed to load data from database');
+      setError('Failed to load data from database: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Logout handler
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error signing out:', error);
+      alert('Failed to sign out: ' + error.message);
     }
   };
 
@@ -106,26 +144,39 @@ const BudgetApp = ({ session }) => {
   };
 
   const [activeTab, setActiveTab] = useState('dashboard');
-  
+
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [recurringRules, setRecurringRules] = useState([]);
-  const [categories, setCategories] = useState(['Food', 'Transportation', 'Entertainment', 'Shopping', 'Income', 'Other']);
+  const [categories, setCategories] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddRecurring, setShowAddRecurring] = useState(false);
+  const [showAddAccount, setShowAddAccount] = useState(false);
+  const [showAddBudget, setShowAddBudget] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
   const [editingCategoryLimit, setEditingCategoryLimit] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryLimit, setNewCategoryLimit] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: null, id: null, name: '' });
   
   const [newTransaction, setNewTransaction] = useState({
     date: new Date().toISOString().split('T')[0],
     description: '',
     amount: '',
-    category: 'Food',
+    category: '',
+    account_id: '',
+  });
+
+  const [newAccount, setNewAccount] = useState({
+    name: '',
+    type: 'wallet',
+    starting_balance: '',
   });
 
   const [newRecurring, setNewRecurring] = useState({
@@ -160,40 +211,56 @@ const BudgetApp = ({ session }) => {
 
   const hasActiveFilters = filterStartDate || filterEndDate || selectedCategories.length > 0;
 
-  // Apply filters to transactions
-  const filteredTransactions = transactions.filter(t => {
-    if (filterStartDate && t.date < filterStartDate) return false;
-    if (filterEndDate && t.date > filterEndDate) return false;
-    if (selectedCategories.length > 0 && !selectedCategories.includes(t.category)) return false;
-    return true;
-  });
+  // Apply filters to transactions (optimized with useMemo)
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
+      if (filterStartDate && t.date < filterStartDate) return false;
+      if (filterEndDate && t.date > filterEndDate) return false;
+      if (selectedCategories.length > 0 && !selectedCategories.includes(t.category)) return false;
+      return true;
+    });
+  }, [transactions, filterStartDate, filterEndDate, selectedCategories]);
 
-  const totalIncome = filteredTransactions
-    .filter(t => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0);
+  const totalIncome = useMemo(() => {
+    return filteredTransactions
+      .filter(t => t.amount > 0)
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [filteredTransactions]);
 
-  const totalExpenses = filteredTransactions
-    .filter(t => t.amount < 0)
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const totalExpenses = useMemo(() => {
+    return filteredTransactions
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [filteredTransactions]);
 
-  const balance = totalIncome - totalExpenses;
+  const balance = useMemo(() => totalIncome - totalExpenses, [totalIncome, totalExpenses]);
 
   // Chart data preparation
   const COLORS = THEME.chartColors;
 
-  const categorySpendingData = categories
-    .map(category => {
-      const spent = filteredTransactions
-        .filter(t => t.category === category && t.amount < 0)
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-      return { name: category, value: spent };
-    })
-    .filter(item => item.value > 0)
-    .sort((a, b) => b.value - a.value);
+  // Pre-calculate spending by category for performance (used in multiple places)
+  const spendingByCategory = useMemo(() => {
+    return filteredTransactions.reduce((acc, t) => {
+      if (t.amount < 0) {
+        acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
+      }
+      return acc;
+    }, {});
+  }, [filteredTransactions]);
 
-  const getMonthlyData = () => {
+  const categorySpendingData = useMemo(() => {
+    return categories
+      .map(category => ({
+        name: category,
+        value: spendingByCategory[category] || 0
+      }))
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [categories, spendingByCategory]);
+
+  const monthlyData = useMemo(() => {
     const monthlyMap = {};
-    
+
     filteredTransactions.forEach(t => {
       const month = t.date.substring(0, 7);
       if (!monthlyMap[month]) {
@@ -212,148 +279,203 @@ const BudgetApp = ({ session }) => {
         ...item,
         balance: item.income - item.expenses
       }));
-  };
-
-  const monthlyData = getMonthlyData();
+  }, [filteredTransactions]);
 
   const handleAddTransaction = async () => {
-  if (newTransaction.description && newTransaction.amount) {
-    const transaction = {
-      user_id: session.user.id,
-      date: newTransaction.date,
-      description: newTransaction.description,
-      amount: parseFloat(newTransaction.amount),
-      category: newTransaction.category,
-    };
-    
+    if (newTransaction.description && newTransaction.amount && newTransaction.account_id) {
+      const transaction = {
+        user_id: session.user.id,
+        date: newTransaction.date,
+        description: newTransaction.description,
+        amount: parseFloat(newTransaction.amount),
+        category: newTransaction.category,
+        account_id: newTransaction.account_id,
+      };
+
+      try {
+        setIsLoading(true);
+        // Insert into Supabase
+        const { data, error } = await supabase
+          .from('transactions')
+          .insert([transaction])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Add to local state
+        const newTrans = {
+          id: data.id,
+          date: data.date,
+          description: data.description,
+          amount: parseFloat(data.amount),
+          category: data.category,
+          account_id: data.account_id
+        };
+        setTransactions([newTrans, ...transactions]);
+
+        // Update account balance
+        const account = accounts.find(a => a.id === newTrans.account_id);
+        if (account) {
+          const newBalance = account.balance + newTrans.amount;
+          await supabase
+            .from('accounts')
+            .update({ balance: newBalance })
+            .eq('id', account.id);
+
+          setAccounts(accounts.map(a =>
+            a.id === account.id ? { ...a, balance: newBalance } : a
+          ));
+        }
+
+        // Update budget spent if expense and category exists
+        if (newTrans.amount < 0 && newTrans.category) {
+          const budget = budgets.find(b => b.category === newTrans.category);
+          if (budget) {
+            const newSpent = budget.spent + Math.abs(newTrans.amount);
+            await supabase
+              .from('budgets')
+              .update({ spent: newSpent })
+              .eq('id', budget.id);
+
+            setBudgets(budgets.map(b =>
+              b.id === budget.id ? { ...b, spent: newSpent } : b
+            ));
+          }
+        }
+
+        setNewTransaction({
+          date: new Date().toISOString().split('T')[0],
+          description: '',
+          amount: '',
+          category: '',
+          account_id: '',
+        });
+        setShowAddTransaction(false);
+      } catch (error) {
+        console.error('Error adding transaction:', error);
+        alert('Failed to add transaction: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleDeleteTransaction = async (id) => {
+    const transaction = transactions.find(t => t.id === id);
+
     try {
-      // Insert into Supabase
-      const { data, error } = await supabase
+      setIsLoading(true);
+      // Delete from Supabase
+      const { error } = await supabase
         .from('transactions')
-        .insert([transaction])
-        .select()
-        .single();
+        .delete()
+        .eq('id', id)
+        .eq('user_id', session.user.id);
 
       if (error) throw error;
 
-      // Add to local state
-      const newTrans = {
-        id: data.id,
-        date: data.date,
-        description: data.description,
-        amount: parseFloat(data.amount),
-        category: data.category
-      };
-      setTransactions([newTrans, ...transactions]);
-      
-      // Update budget spent if expense
-      if (newTrans.amount < 0) {
-        const budget = budgets.find(b => b.category === newTrans.category);
+      // Update account balance (reverse the transaction)
+      const account = accounts.find(a => a.id === transaction.account_id);
+      if (account) {
+        const newBalance = account.balance - transaction.amount;
+        await supabase
+          .from('accounts')
+          .update({ balance: newBalance })
+          .eq('id', account.id);
+
+        setAccounts(accounts.map(a =>
+          a.id === account.id ? { ...a, balance: newBalance } : a
+        ));
+      }
+
+      // Update budget spent if expense and has category
+      if (transaction.amount < 0 && transaction.category) {
+        const budget = budgets.find(b => b.category === transaction.category);
         if (budget) {
-          const newSpent = budget.spent + Math.abs(newTrans.amount);
+          const newSpent = Math.max(0, budget.spent - Math.abs(transaction.amount));
           await supabase
             .from('budgets')
             .update({ spent: newSpent })
             .eq('id', budget.id);
-          
-          setBudgets(budgets.map(b => 
+
+          setBudgets(budgets.map(b =>
             b.id === budget.id ? { ...b, spent: newSpent } : b
           ));
         }
       }
-      
-      setNewTransaction({
-        date: new Date().toISOString().split('T')[0],
-        description: '',
-        amount: '',
-        category: 'Food',
-      });
-      setShowAddTransaction(false);
+
+      // Remove from local state
+      setTransactions(transactions.filter(t => t.id !== id));
+      setDeleteConfirm({ show: false, type: null, id: null, name: '' });
     } catch (error) {
-      console.error('Error adding transaction:', error);
-      alert('Failed to add transaction');
+      console.error('Error deleting transaction:', error);
+      alert('Failed to delete transaction: ' + error.message);
+    } finally {
+      setIsLoading(false);
     }
-  }
-};
-
-  const handleDeleteTransaction = async (id) => {
-  const transaction = transactions.find(t => t.id === id);
-  
-  try {
-    // Delete from Supabase
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-
-    // Update budget spent if expense
-    if (transaction.amount < 0) {
-      const budget = budgets.find(b => b.category === transaction.category);
-      if (budget) {
-        const newSpent = Math.max(0, budget.spent - Math.abs(transaction.amount));
-        await supabase
-          .from('budgets')
-          .update({ spent: newSpent })
-          .eq('id', budget.id);
-        
-        setBudgets(budgets.map(b => 
-          b.id === budget.id ? { ...b, spent: newSpent } : b
-        ));
-      }
-    }
-    
-    // Remove from local state
-    setTransactions(transactions.filter(t => t.id !== id));
-  } catch (error) {
-    console.error('Error deleting transaction:', error);
-    alert('Failed to delete transaction');
-  }
-};
+  };
 
   const handleAddCategory = async () => {
-  if (newCategoryName && newCategoryLimit) {
-    try {
-      // Add category to categories table
-      const { error: catError } = await supabase
-        .from('categories')
-        .insert([{ user_id: session.user.id, name: newCategoryName }]);
+    if (newCategoryName) {
+      try {
+        setIsLoading(true);
+        // Add category to categories table
+        const { error: catError } = await supabase
+          .from('categories')
+          .insert([{ user_id: session.user.id, name: newCategoryName }]);
 
-      if (catError) throw catError;
+        if (catError) throw catError;
 
-      // Add budget
-      const { data: budgetData, error: budgetError } = await supabase
-        .from('budgets')
-        .insert([{
-          user_id: session.user.id,
-          category: newCategoryName,
-          limit_amount: parseFloat(newCategoryLimit),
-          spent: 0
-        }])
-        .select()
-        .single();
-
-      if (budgetError) throw budgetError;
-
-      const newBudget = {
-        id: budgetData.id,
-        category: newCategoryName,
-        limit: parseFloat(newCategoryLimit),
-        spent: 0
-      };
-
-      setBudgets([...budgets, newBudget]);
-      setCategories([...categories, newCategoryName]);
-      setNewCategoryName('');
-      setNewCategoryLimit('');
-      setShowAddCategory(false);
-    } catch (error) {
-      console.error('Error adding category:', error);
-      alert('Failed to add category');
+        setCategories([...categories, newCategoryName]);
+        setNewCategoryName('');
+        setShowAddCategory(false);
+      } catch (error) {
+        console.error('Error adding category:', error);
+        alert('Failed to add category: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }
-};
+  };
+
+  const handleAddBudget = async () => {
+    if (newCategoryName && newCategoryLimit) {
+      try {
+        setIsLoading(true);
+        // Add budget
+        const { data: budgetData, error: budgetError } = await supabase
+          .from('budgets')
+          .insert([{
+            user_id: session.user.id,
+            category: newCategoryName,
+            limit_amount: parseFloat(newCategoryLimit),
+            spent: 0
+          }])
+          .select()
+          .single();
+
+        if (budgetError) throw budgetError;
+
+        const newBudget = {
+          id: budgetData.id,
+          category: newCategoryName,
+          limit: parseFloat(newCategoryLimit),
+          spent: 0
+        };
+
+        setBudgets([...budgets, newBudget]);
+        setNewCategoryName('');
+        setNewCategoryLimit('');
+        setShowAddBudget(false);
+      } catch (error) {
+        console.error('Error adding budget:', error);
+        alert('Failed to add budget: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const handleUpdateCategory = async (id, newName, newLimit) => {
   const oldBudget = budgets.find(b => b.id === id);
@@ -417,34 +539,64 @@ const BudgetApp = ({ session }) => {
   };
 
   const handleDeleteCategory = async (categoryName) => {
-  const hasTransactions = transactions.some(t => t.category === categoryName);
-  if (hasTransactions) {
-    alert('Cannot delete category with existing transactions. Please reassign or delete those transactions first.');
-    return;
-  }
-  
-  try {
-    // Delete budget
-    await supabase
-      .from('budgets')
-      .delete()
-      .eq('category', categoryName)
-      .eq('user_id', session.user.id);
+    const hasTransactions = transactions.some(t => t.category === categoryName);
+    if (hasTransactions) {
+      alert('Cannot delete category with existing transactions. Please reassign or delete those transactions first.');
+      return;
+    }
 
-    // Delete category
-    await supabase
-      .from('categories')
-      .delete()
-      .eq('name', categoryName)
-      .eq('user_id', session.user.id);
+    try {
+      setIsLoading(true);
+      // Delete budget
+      await supabase
+        .from('budgets')
+        .delete()
+        .eq('category', categoryName)
+        .eq('user_id', session.user.id);
 
-    setBudgets(budgets.filter(b => b.category !== categoryName));
-    setCategories(categories.filter(c => c !== categoryName));
-  } catch (error) {
-    console.error('Error deleting category:', error);
-    alert('Failed to delete category');
-  }
-};
+      // Delete category
+      await supabase
+        .from('categories')
+        .delete()
+        .eq('name', categoryName)
+        .eq('user_id', session.user.id);
+
+      setBudgets(budgets.filter(b => b.category !== categoryName));
+      setCategories(categories.filter(c => c !== categoryName));
+      setDeleteConfirm({ show: false, type: null, id: null, name: '' });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Failed to delete category: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteCategoryOnly = async (categoryName) => {
+    const hasTransactions = transactions.some(t => t.category === categoryName);
+    if (hasTransactions) {
+      alert('Cannot delete category with existing transactions. Please reassign or delete those transactions first.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      // Delete category
+      await supabase
+        .from('categories')
+        .delete()
+        .eq('name', categoryName)
+        .eq('user_id', session.user.id);
+
+      setCategories(categories.filter(c => c !== categoryName));
+      setDeleteConfirm({ show: false, type: null, id: null, name: '' });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Failed to delete category: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Recurring transaction functions
   const calculateNextOccurrence = (rule) => {
@@ -468,19 +620,18 @@ const BudgetApp = ({ session }) => {
     return null;
   };
 
-  const generateTransactionsFromRules = () => {
+  const generateTransactionsFromRules = async () => {
     const today = new Date();
-    let newTransactions = [];
-    let updatedRules = [...recurringRules];
+    let transactionsToCreate = [];
+    let rulesToUpdate = [];
 
-    recurringRules.forEach((rule, index) => {
-      if (!rule.active) return;
+    for (const rule of recurringRules) {
+      if (!rule.active) continue;
 
-      const nextOccurrence = new Date(calculateNextOccurrence(rule));
       const lastGen = rule.lastGenerated ? new Date(rule.lastGenerated) : new Date(rule.startDate);
-      
       let currentDate = new Date(lastGen);
-      
+
+      // Generate all pending transactions for this rule
       while (currentDate < today) {
         if (rule.frequency === 'monthly') {
           currentDate.setMonth(currentDate.getMonth() + 1);
@@ -492,32 +643,67 @@ const BudgetApp = ({ session }) => {
         }
 
         if (currentDate <= today) {
-          const newTransaction = {
-            id: Date.now() + Math.random(),
-            date: currentDate.toISOString().split('T')[0],
+          const transactionDate = currentDate.toISOString().split('T')[0];
+          transactionsToCreate.push({
+            user_id: session.user.id,
+            date: transactionDate,
             description: rule.description + ' (Auto)',
             amount: rule.amount,
             category: rule.category,
-          };
-          newTransactions.push(newTransaction);
-          updatedRules[index] = { ...rule, lastGenerated: newTransaction.date };
+          });
+
+          // Update this rule's last generated date
+          rulesToUpdate.push({
+            id: rule.id,
+            lastGenerated: transactionDate
+          });
         }
       }
-    });
+    }
 
-    if (newTransactions.length > 0) {
-      setTransactions([...newTransactions, ...transactions]);
-      setRecurringRules(updatedRules);
-      
-      newTransactions.forEach(t => {
-        if (t.amount < 0) {
-          setBudgets(budgets.map(b => 
-            b.category === t.category 
-              ? { ...b, spent: b.spent + Math.abs(t.amount) }
-              : b
-          ));
+    if (transactionsToCreate.length === 0) {
+      alert('No pending transactions to generate');
+      return;
+    }
+
+    try {
+      // Insert all transactions at once
+      const { data: insertedTransactions, error: transError } = await supabase
+        .from('transactions')
+        .insert(transactionsToCreate)
+        .select();
+
+      if (transError) throw transError;
+
+      // Update all recurring rules with new last_generated dates
+      for (const ruleUpdate of rulesToUpdate) {
+        await supabase
+          .from('recurring_rules')
+          .update({ last_generated: ruleUpdate.lastGenerated })
+          .eq('id', ruleUpdate.id);
+      }
+
+      // Update budgets for expenses
+      for (const trans of insertedTransactions) {
+        if (trans.amount < 0) {
+          const budget = budgets.find(b => b.category === trans.category);
+          if (budget) {
+            const newSpent = budget.spent + Math.abs(trans.amount);
+            await supabase
+              .from('budgets')
+              .update({ spent: newSpent })
+              .eq('id', budget.id);
+          }
         }
-      });
+      }
+
+      // Reload all data to sync state
+      await loadDataFromSupabase();
+
+      alert(`Successfully generated ${insertedTransactions.length} transaction(s)`);
+    } catch (error) {
+      console.error('Error generating transactions:', error);
+      alert('Failed to generate recurring transactions: ' + error.message);
     }
   };
 
@@ -594,74 +780,185 @@ const BudgetApp = ({ session }) => {
 };
 
   const handleDeleteRecurring = async (id) => {
-  try {
-    const { error } = await supabase
-      .from('recurring_rules')
-      .delete()
-      .eq('id', id);
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('recurring_rules')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', session.user.id);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    setRecurringRules(recurringRules.filter(r => r.id !== id));
-  } catch (error) {
-    console.error('Error deleting recurring rule:', error);
-    alert('Failed to delete recurring rule');
-  }
-};
+      setRecurringRules(recurringRules.filter(r => r.id !== id));
+      setDeleteConfirm({ show: false, type: null, id: null, name: '' });
+    } catch (error) {
+      console.error('Error deleting recurring rule:', error);
+      alert('Failed to delete recurring rule: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Account handlers
+  const handleAddAccount = async () => {
+    if (newAccount.name && newAccount.starting_balance !== '') {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('accounts')
+          .insert([{
+            user_id: session.user.id,
+            name: newAccount.name,
+            type: newAccount.type,
+            balance: parseFloat(newAccount.starting_balance),
+            starting_balance: parseFloat(newAccount.starting_balance)
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const formattedAccount = {
+          id: data.id,
+          name: data.name,
+          type: data.type,
+          balance: parseFloat(data.balance),
+          starting_balance: parseFloat(data.starting_balance)
+        };
+
+        setAccounts([...accounts, formattedAccount]);
+        setNewAccount({ name: '', type: 'wallet', starting_balance: '' });
+        setShowAddAccount(false);
+      } catch (error) {
+        console.error('Error adding account:', error);
+        alert('Failed to add account: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleDeleteAccount = async (id) => {
+    const hasTransactions = transactions.some(t => t.account_id === id);
+    if (hasTransactions) {
+      alert('Cannot delete account with existing transactions. Please delete or reassign those transactions first.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('accounts')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', session.user.id);
+
+      if (error) throw error;
+
+      setAccounts(accounts.filter(a => a.id !== id));
+      setDeleteConfirm({ show: false, type: null, id: null, name: '' });
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Failed to delete account: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-7xl mx-auto p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+      {/* Left Sidebar */}
+      <div className="w-64 bg-white shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Budget Tracker</h1>
-          <p className="text-gray-600">Manage your finances with ease</p>
+        <div className="p-6 border-b border-gray-200">
+          <h1 className="text-2xl font-bold text-gray-800">Budget Tracker</h1>
+          <p className="text-xs text-gray-500 mt-1">Manage your finances</p>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-lg mb-8 p-2">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              style={{
-                backgroundColor: activeTab === 'dashboard' ? THEME.primary : 'transparent',
-                color: activeTab === 'dashboard' ? 'white' : '#4b5563'
-              }}
-              className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
-                activeTab === 'dashboard' ? 'shadow-md' : 'hover:bg-gray-100'
-              }`}
-            >
-              Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('categories')}
-              style={{
-                backgroundColor: activeTab === 'categories' ? THEME.primary : 'transparent',
-                color: activeTab === 'categories' ? 'white' : '#4b5563'
-              }}
-              className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-                activeTab === 'categories' ? 'shadow-md' : 'hover:bg-gray-100'
-              }`}
-            >
-              <Tag size={20} />
-              Categories
-            </button>
-            <button
-              onClick={() => setActiveTab('recurring')}
-              style={{
-                backgroundColor: activeTab === 'recurring' ? THEME.primary : 'transparent',
-                color: activeTab === 'recurring' ? 'white' : '#4b5563'
-              }}
-              className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-                activeTab === 'recurring' ? 'shadow-md' : 'hover:bg-gray-100'
-              }`}
-            >
-              <Calendar size={20} />
-              Recurring
-            </button>
-          </div>
-        </div>
+        {/* Navigation */}
+        <nav className="flex-1 p-4">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            style={{
+              backgroundColor: activeTab === 'dashboard' ? THEME.primaryLight : 'transparent',
+              color: activeTab === 'dashboard' ? THEME.primary : '#4b5563'
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
+              activeTab === 'dashboard' ? 'shadow-sm' : 'hover:bg-gray-100'
+            }`}
+          >
+            <LayoutDashboard size={20} />
+            Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('accounts')}
+            style={{
+              backgroundColor: activeTab === 'accounts' ? THEME.primaryLight : 'transparent',
+              color: activeTab === 'accounts' ? THEME.primary : '#4b5563'
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
+              activeTab === 'accounts' ? 'shadow-sm' : 'hover:bg-gray-100'
+            }`}
+          >
+            <Wallet size={20} />
+            Accounts
+          </button>
+          <button
+            onClick={() => setActiveTab('categories')}
+            style={{
+              backgroundColor: activeTab === 'categories' ? THEME.primaryLight : 'transparent',
+              color: activeTab === 'categories' ? THEME.primary : '#4b5563'
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
+              activeTab === 'categories' ? 'shadow-sm' : 'hover:bg-gray-100'
+            }`}
+          >
+            <Tag size={20} />
+            Categories
+          </button>
+          <button
+            onClick={() => setActiveTab('budgets')}
+            style={{
+              backgroundColor: activeTab === 'budgets' ? THEME.primaryLight : 'transparent',
+              color: activeTab === 'budgets' ? THEME.primary : '#4b5563'
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
+              activeTab === 'budgets' ? 'shadow-sm' : 'hover:bg-gray-100'
+            }`}
+          >
+            <DollarSign size={20} />
+            Budgets
+          </button>
+          <button
+            onClick={() => setActiveTab('recurring')}
+            style={{
+              backgroundColor: activeTab === 'recurring' ? THEME.primaryLight : 'transparent',
+              color: activeTab === 'recurring' ? THEME.primary : '#4b5563'
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
+              activeTab === 'recurring' ? 'shadow-sm' : 'hover:bg-gray-100'
+            }`}
+          >
+            <Repeat size={20} />
+            Recurring
+          </button>
+        </nav>
 
+        {/* Logout Button */}
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium text-gray-700 hover:bg-gray-100"
+          >
+            <LogOut size={20} />
+            Logout
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 p-4 md:p-8 overflow-y-auto">
         {activeTab === 'dashboard' ? (
           <>
             {/* Summary Cards */}
@@ -897,10 +1194,8 @@ const BudgetApp = ({ session }) => {
                 {budgets
                   .filter(budget => selectedCategories.length === 0 || selectedCategories.includes(budget.category))
                   .map((budget) => {
-                  const actualSpent = filteredTransactions
-                    .filter(t => t.category === budget.category && t.amount < 0)
-                    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-                  
+                  const actualSpent = spendingByCategory[budget.category] || 0;
+
                   const percentage = (actualSpent / budget.limit) * 100;
                   const isOverBudget = percentage > 100;
                   return (
@@ -914,7 +1209,7 @@ const BudgetApp = ({ session }) => {
                       <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-300"
-                          style={{ 
+                          style={{
                             width: `${Math.min(percentage, 100)}%`,
                             backgroundColor: isOverBudget ? THEME.danger : percentage > 80 ? THEME.warning : THEME.success
                           }}
@@ -1036,13 +1331,11 @@ const BudgetApp = ({ session }) => {
               </h3>
               {categorySpendingData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={400}>
-                  <BarChart 
+                  <BarChart
                     data={budgets
                       .filter(budget => selectedCategories.length === 0 || selectedCategories.includes(budget.category))
                       .map(budget => {
-                        const actualSpent = filteredTransactions
-                          .filter(t => t.category === budget.category && t.amount < 0)
-                          .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+                        const actualSpent = spendingByCategory[budget.category] || 0;
                         const remaining = budget.limit - actualSpent;
                         return {
                           category: budget.category,
@@ -1103,12 +1396,29 @@ const BudgetApp = ({ session }) => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Account *</label>
+                      <select
+                        value={newTransaction.account_id}
+                        onChange={(e) => setNewTransaction({ ...newTransaction, account_id: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                        required
+                      >
+                        <option value="">Select Account</option>
+                        {accounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.name} (${account.balance.toFixed(2)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Category (Optional)</label>
                       <select
                         value={newTransaction.category}
                         onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                       >
+                        <option value="">No Category</option>
                         {categories.map((cat) => (
                           <option key={cat} value={cat}>
                             {cat}
@@ -1205,7 +1515,7 @@ const BudgetApp = ({ session }) => {
                         {transaction.amount > 0 ? '+' : ''}${transaction.amount.toFixed(2)}
                       </span>
                       <button
-                        onClick={() => handleDeleteTransaction(transaction.id)}
+                        onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
                         className="transition-colors p-2"
                         style={{ color: THEME.danger }}
                         onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
@@ -1240,28 +1550,15 @@ const BudgetApp = ({ session }) => {
             {showAddCategory && (
               <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
                 <h3 className="font-semibold text-gray-800 mb-4">New Category</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
-                    <input
-                      type="text"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="e.g., Healthcare, Utilities"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Budget Limit</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={newCategoryLimit}
-                      onChange={(e) => setNewCategoryLimit(e.target.value)}
-                      placeholder="500.00"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="e.g., Healthcare, Utilities, Groceries"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  />
                 </div>
                 <div className="flex gap-3 mt-4">
                   <button
@@ -1285,7 +1582,123 @@ const BudgetApp = ({ session }) => {
 
             {/* Category List */}
             <div className="space-y-3">
-              {budgets.map((budget) => (
+              {categories.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Tag size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No categories yet</p>
+                  <p className="text-sm">Create categories to organize your transactions</p>
+                </div>
+              ) : (
+                categories.map((category) => (
+                  <div
+                    key={category}
+                    className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: THEME.primaryLight }}>
+                        <Tag style={{ color: THEME.primary }} size={20} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-800 text-lg">{category}</p>
+                        <p className="text-sm text-gray-600">
+                          {transactions.filter(t => t.category === category).length} transaction(s)
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setDeleteConfirm({ show: true, type: 'category-only', id: category, name: category })}
+                      className="transition-colors p-2"
+                      style={{ color: THEME.danger }}
+                      onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
+                      onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
+                      title="Delete category"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ) : activeTab === 'budgets' ? (
+          /* Budgets Management Tab */
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Manage Budgets</h2>
+              <button
+                onClick={() => setShowAddBudget(!showAddBudget)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+                style={{ backgroundColor: THEME.primary }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+              >
+                <PlusCircle size={20} />
+                Add Budget
+              </button>
+            </div>
+
+            {/* Add Budget Form */}
+            {showAddBudget && (
+              <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
+                <h3 className="font-semibold text-gray-800 mb-4">New Budget</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    >
+                      <option value="">Select Category</option>
+                      {categories.filter(cat => !budgets.find(b => b.category === cat)).map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Budget Limit</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newCategoryLimit}
+                      onChange={(e) => setNewCategoryLimit(e.target.value)}
+                      placeholder="500.00"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={handleAddBudget}
+                    className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+                    style={{ backgroundColor: THEME.primary }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+                  >
+                    Save Budget
+                  </button>
+                  <button
+                    onClick={() => setShowAddBudget(false)}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Budget List */}
+            <div className="space-y-3">
+              {budgets.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <DollarSign size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No budgets yet</p>
+                  <p className="text-sm">Set spending limits for your categories</p>
+                </div>
+              ) : (
+                budgets.map((budget) => (
                 <div
                   key={budget.id}
                   className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
@@ -1370,7 +1783,7 @@ const BudgetApp = ({ session }) => {
                           <Edit2 size={18} />
                         </button>
                         <button
-                          onClick={() => handleDeleteCategory(budget.category)}
+                          onClick={() => setDeleteConfirm({ show: true, type: 'category', id: budget.category, name: budget.category })}
                           className="transition-colors p-2"
                           style={{ color: THEME.danger }}
                           onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
@@ -1383,7 +1796,135 @@ const BudgetApp = ({ session }) => {
                     </div>
                   )}
                 </div>
-              ))}
+                ))
+              )}
+            </div>
+          </div>
+        ) : activeTab === 'accounts' ? (
+          /* Accounts Management Tab */
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Manage Accounts</h2>
+              <button
+                onClick={() => setShowAddAccount(!showAddAccount)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+                style={{ backgroundColor: THEME.primary }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+              >
+                <PlusCircle size={20} />
+                Add Account
+              </button>
+            </div>
+
+            {/* Add Account Form */}
+            {showAddAccount && (
+              <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
+                <h3 className="font-semibold text-gray-800 mb-4">New Account</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
+                    <input
+                      type="text"
+                      value={newAccount.name}
+                      onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
+                      placeholder="e.g., Main Wallet, Savings Account"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+                    <select
+                      value={newAccount.type}
+                      onChange={(e) => setNewAccount({ ...newAccount, type: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    >
+                      <option value="wallet">Wallet</option>
+                      <option value="current">Current Account</option>
+                      <option value="savings">Savings Account</option>
+                      <option value="credit">Credit Card</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Starting Balance</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newAccount.starting_balance}
+                      onChange={(e) => setNewAccount({ ...newAccount, starting_balance: e.target.value })}
+                      placeholder="1000.00"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={handleAddAccount}
+                    className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+                    style={{ backgroundColor: THEME.primary }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+                  >
+                    Save Account
+                  </button>
+                  <button
+                    onClick={() => setShowAddAccount(false)}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Account List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {accounts.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-gray-500">
+                  <Wallet size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No accounts yet</p>
+                  <p className="text-sm">Create accounts to track your money</p>
+                </div>
+              ) : (
+                accounts.map((account) => {
+                  const accountIcon = account.type === 'wallet' ? Wallet : account.type === 'credit' ? CreditCard : DollarSign;
+                  const IconComponent = accountIcon;
+
+                  return (
+                    <div
+                      key={account.id}
+                      className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow border border-blue-100"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: THEME.primary }}>
+                          <IconComponent style={{ color: 'white' }} size={24} />
+                        </div>
+                        <button
+                          onClick={() => setDeleteConfirm({ show: true, type: 'account', id: account.id, name: account.name })}
+                          className="transition-colors p-2"
+                          style={{ color: THEME.danger }}
+                          onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
+                          onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
+                          title="Delete account"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-800 mb-1">{account.name}</h3>
+                      <p className="text-xs text-gray-600 mb-3 capitalize">{account.type}</p>
+                      <div className="border-t border-blue-200 pt-3">
+                        <p className="text-xs text-gray-600 mb-1">Current Balance</p>
+                        <p className="text-2xl font-bold" style={{ color: account.balance >= 0 ? THEME.success : THEME.danger }}>
+                          ${account.balance.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Started with: ${account.starting_balance.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         ) : (
@@ -1588,7 +2129,7 @@ const BudgetApp = ({ session }) => {
                         {rule.active ? 'Pause' : 'Resume'}
                       </button>
                       <button
-                        onClick={() => handleDeleteRecurring(rule.id)}
+                        onClick={() => setDeleteConfirm({ show: true, type: 'recurring', id: rule.id, name: rule.description })}
                         className="transition-colors p-2"
                         style={{ color: THEME.danger }}
                         onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
@@ -1609,6 +2150,84 @@ const BudgetApp = ({ session }) => {
                 <p className="text-sm">Create a rule to automatically generate transactions</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Confirmation Dialog */}
+        {deleteConfirm.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Confirm Delete</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete {deleteConfirm.type} "{deleteConfirm.name}"?
+                {deleteConfirm.type === 'transaction' && ' This action cannot be undone.'}
+                {deleteConfirm.type === 'category' && ' This will also delete the associated budget.'}
+                {deleteConfirm.type === 'category-only' && ' This category will be removed.'}
+                {deleteConfirm.type === 'account' && ' This account and its balance information will be deleted.'}
+                {deleteConfirm.type === 'recurring' && ' This will stop future automatic transactions.'}
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setDeleteConfirm({ show: false, type: null, id: null, name: '' })}
+                  className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium transition-colors"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (deleteConfirm.type === 'transaction') {
+                      handleDeleteTransaction(deleteConfirm.id);
+                    } else if (deleteConfirm.type === 'category') {
+                      handleDeleteCategory(deleteConfirm.id);
+                    } else if (deleteConfirm.type === 'category-only') {
+                      handleDeleteCategoryOnly(deleteConfirm.id);
+                    } else if (deleteConfirm.type === 'account') {
+                      handleDeleteAccount(deleteConfirm.id);
+                    } else if (deleteConfirm.type === 'recurring') {
+                      handleDeleteRecurring(deleteConfirm.id);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg font-medium text-white transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: THEME.danger }}
+                  onMouseOver={(e) => !isLoading && (e.currentTarget.style.backgroundColor = THEME.dangerHover)}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.danger}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-40">
+            <div className="bg-white rounded-2xl shadow-2xl p-6">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: THEME.primary }}></div>
+                <span className="text-gray-700 font-medium">Loading...</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <div className="fixed bottom-4 right-4 bg-red-100 border-2 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-lg max-w-md z-50">
+            <div className="flex items-start gap-3">
+              <span className="font-bold">Error:</span>
+              <div className="flex-1">
+                <p>{error}</p>
+                <button
+                  onClick={() => setError(null)}
+                  className="mt-2 text-sm underline hover:no-underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
