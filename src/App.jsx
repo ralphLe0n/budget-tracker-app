@@ -29,7 +29,8 @@ const BudgetApp = ({ session }) => {
           date: t.date,
           description: t.description,
           amount: parseFloat(t.amount),
-          category: t.category
+          category: t.category,
+          account_id: t.account_id
         }));
         setTransactions(formattedTransactions);
       }
@@ -80,7 +81,8 @@ const BudgetApp = ({ session }) => {
           dayOfMonth: r.day_of_month,
           startDate: r.start_date,
           lastGenerated: r.last_generated,
-          active: r.active
+          active: r.active,
+          account_id: r.account_id
         }));
         setRecurringRules(formattedRules);
       }
@@ -187,6 +189,7 @@ const BudgetApp = ({ session }) => {
     frequency: 'monthly',
     dayOfMonth: 1,
     startDate: new Date().toISOString().split('T')[0],
+    account_id: '',
   });
 
   // Filter state
@@ -696,6 +699,7 @@ const BudgetApp = ({ session }) => {
             description: rule.description + ' (Auto)',
             amount: rule.amount,
             category: rule.category,
+            account_id: rule.account_id,
           });
 
           // Update this rule's last generated date
@@ -729,6 +733,26 @@ const BudgetApp = ({ session }) => {
           .eq('id', ruleUpdate.id);
       }
 
+      // Update account balances
+      const accountBalanceUpdates = {};
+      for (const trans of insertedTransactions) {
+        if (!accountBalanceUpdates[trans.account_id]) {
+          accountBalanceUpdates[trans.account_id] = 0;
+        }
+        accountBalanceUpdates[trans.account_id] += trans.amount;
+      }
+
+      for (const [accountId, amountChange] of Object.entries(accountBalanceUpdates)) {
+        const account = accounts.find(a => a.id === accountId);
+        if (account) {
+          const newBalance = account.balance + amountChange;
+          await supabase
+            .from('accounts')
+            .update({ balance: newBalance })
+            .eq('id', accountId);
+        }
+      }
+
       // Update budgets for expenses
       for (const trans of insertedTransactions) {
         if (trans.amount < 0) {
@@ -754,7 +778,7 @@ const BudgetApp = ({ session }) => {
   };
 
   const handleAddRecurring = async () => {
-  if (newRecurring.description && newRecurring.amount) {
+  if (newRecurring.description && newRecurring.amount && newRecurring.account_id) {
     const rule = {
       user_id: session.user.id,
       description: newRecurring.description,
@@ -765,6 +789,7 @@ const BudgetApp = ({ session }) => {
       start_date: newRecurring.startDate,
       last_generated: null,
       active: true,
+      account_id: newRecurring.account_id,
     };
 
     try {
@@ -785,7 +810,8 @@ const BudgetApp = ({ session }) => {
         dayOfMonth: data.day_of_month,
         startDate: data.start_date,
         lastGenerated: data.last_generated,
-        active: data.active
+        active: data.active,
+        account_id: data.account_id
       };
 
       setRecurringRules([...recurringRules, formattedRule]);
@@ -796,6 +822,7 @@ const BudgetApp = ({ session }) => {
         frequency: 'monthly',
         dayOfMonth: 1,
         startDate: new Date().toISOString().split('T')[0],
+        account_id: '',
       });
       setShowAddRecurring(false);
     } catch (error) {
@@ -2109,6 +2136,22 @@ const BudgetApp = ({ session }) => {
                       placeholder="Monthly rent, salary, etc."
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Account *</label>
+                    <select
+                      value={newRecurring.account_id}
+                      onChange={(e) => setNewRecurring({ ...newRecurring, account_id: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select Account</option>
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} (${account.balance.toFixed(2)})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
