@@ -625,17 +625,18 @@ const BudgetApp = ({ session }) => {
 
   const generateTransactionsFromRules = async () => {
     const today = new Date();
+    today.setHours(23, 59, 59, 999); // Set to end of day for comparison
     let transactionsToCreate = [];
     let rulesToUpdate = [];
 
     for (const rule of recurringRules) {
       if (!rule.active) continue;
 
-      const lastGen = rule.lastGenerated ? new Date(rule.lastGenerated) : new Date(rule.startDate);
-      let currentDate = new Date(lastGen);
-
-      // Generate all pending transactions for this rule
-      while (currentDate < today) {
+      // Determine the next date to generate
+      let currentDate;
+      if (rule.lastGenerated) {
+        // If we've generated before, start from the NEXT occurrence after lastGenerated
+        currentDate = new Date(rule.lastGenerated);
         if (rule.frequency === 'monthly') {
           currentDate.setMonth(currentDate.getMonth() + 1);
           currentDate.setDate(rule.dayOfMonth);
@@ -644,23 +645,37 @@ const BudgetApp = ({ session }) => {
         } else if (rule.frequency === 'yearly') {
           currentDate.setFullYear(currentDate.getFullYear() + 1);
         }
+      } else {
+        // First time generating - start from the start date
+        currentDate = new Date(rule.startDate);
+      }
 
-        if (currentDate <= today) {
-          const transactionDate = currentDate.toISOString().split('T')[0];
-          transactionsToCreate.push({
-            user_id: session.user.id,
-            date: transactionDate,
-            description: rule.description + ' (Auto)',
-            amount: rule.amount,
-            category: rule.category,
-            account_id: rule.account_id,
-          });
+      // Generate all pending transactions for this rule
+      while (currentDate <= today) {
+        const transactionDate = currentDate.toISOString().split('T')[0];
+        transactionsToCreate.push({
+          user_id: session.user.id,
+          date: transactionDate,
+          description: rule.description + ' (Auto)',
+          amount: rule.amount,
+          category: rule.category,
+          account_id: rule.account_id,
+        });
 
-          // Update this rule's last generated date
-          rulesToUpdate.push({
-            id: rule.id,
-            lastGenerated: transactionDate
-          });
+        // Update this rule's last generated date
+        rulesToUpdate.push({
+          id: rule.id,
+          lastGenerated: transactionDate
+        });
+
+        // Move to next occurrence
+        if (rule.frequency === 'monthly') {
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          currentDate.setDate(rule.dayOfMonth);
+        } else if (rule.frequency === 'weekly') {
+          currentDate.setDate(currentDate.getDate() + 7);
+        } else if (rule.frequency === 'yearly') {
+          currentDate.setFullYear(currentDate.getFullYear() + 1);
         }
       }
     }
