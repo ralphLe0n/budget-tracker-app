@@ -18,51 +18,8 @@ import RecurringTab from './components/tabs/RecurringTab';
 
 const BudgetApp = ({ session }) => {
   // ========================================
-  // LOAD DATA FROM SUPABASE ON MOUNT
+  // STATE DECLARATIONS
   // ========================================
-  useEffect(() => {
-    loadDataFromSupabase();
-  }, []);
-
-  // Update newRecurring category when categories are loaded
-  useEffect(() => {
-    if (categories.length > 0 && !newRecurring.category) {
-      setNewRecurring(prev => ({
-        ...prev,
-        category: categories[0]
-      }));
-    }
-  }, [categories]);
-
-  const loadDataFromSupabase = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await dataService.loadAllData(session.user.id);
-      setTransactions(data.transactions);
-      setBudgets(data.budgets);
-      setCategories(data.categories);
-      setRecurringRules(data.recurringRules);
-      setAccounts(data.accounts);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      setError('Failed to load data from database: ' + error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Logout handler
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error signing out:', error);
-      alert('Failed to sign out: ' + error.message);
-    }
-  };
-
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const [transactions, setTransactions] = useState([]);
@@ -121,7 +78,7 @@ const BudgetApp = ({ session }) => {
   const [newRecurring, setNewRecurring] = useState({
     description: '',
     amount: '',
-    category: categories[0] || '',
+    category: '',
     frequency: 'monthly',
     dayOfMonth: 1,
     startDate: new Date().toISOString().split('T')[0],
@@ -134,6 +91,58 @@ const BudgetApp = ({ session }) => {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [filterDescription, setFilterDescription] = useState('');
+
+  // ========================================
+  // EFFECTS
+  // ========================================
+
+  // Load data from Supabase on mount
+  useEffect(() => {
+    loadDataFromSupabase();
+  }, []);
+
+  // Update newRecurring category when categories are loaded
+  useEffect(() => {
+    if (categories.length > 0 && !newRecurring.category) {
+      setNewRecurring(prev => ({
+        ...prev,
+        category: categories[0]
+      }));
+    }
+  }, [categories, newRecurring.category]);
+
+  // ========================================
+  // FUNCTIONS
+  // ========================================
+
+  const loadDataFromSupabase = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await dataService.loadAllData(session.user.id);
+      setTransactions(data.transactions);
+      setBudgets(data.budgets);
+      setCategories(data.categories);
+      setRecurringRules(data.recurringRules);
+      setAccounts(data.accounts);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setError('Failed to load data from database: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Logout handler
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error signing out:', error);
+      alert('Failed to sign out: ' + error.message);
+    }
+  };
 
   // Filter functions
   const toggleCategoryFilter = (category) => {
@@ -667,7 +676,7 @@ const BudgetApp = ({ session }) => {
       setNewRecurring({
         description: '',
         amount: '',
-        category: categories[0] || '',
+        category: categories.length > 0 ? categories[0] : '',
         frequency: 'monthly',
         dayOfMonth: 1,
         startDate: new Date().toISOString().split('T')[0],
