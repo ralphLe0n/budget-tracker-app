@@ -671,17 +671,34 @@ const BudgetApp = ({ session }) => {
 
   const generateTransactionsFromRules = async () => {
     const today = new Date();
+    today.setHours(23, 59, 59, 999); // Set to end of day for comparison
     let transactionsToCreate = [];
     let rulesToUpdate = [];
 
+    console.log('🔍 Generate Now Debug Info:');
+    console.log('Total recurring rules:', recurringRules.length);
+    console.log('Today (end of day):', today);
+    console.log('Recurring rules:', recurringRules);
+
     for (const rule of recurringRules) {
-      if (!rule.active) continue;
+      console.log('\n📋 Processing rule:', rule.description);
+      console.log('  - Active:', rule.active);
+      console.log('  - Account ID:', rule.account_id);
+      console.log('  - Start Date:', rule.startDate);
+      console.log('  - Last Generated:', rule.lastGenerated);
+      console.log('  - Frequency:', rule.frequency);
 
-      const lastGen = rule.lastGenerated ? new Date(rule.lastGenerated) : new Date(rule.startDate);
-      let currentDate = new Date(lastGen);
+      if (!rule.active) {
+        console.log('  ❌ Skipping - rule is not active');
+        continue;
+      }
 
-      // Generate all pending transactions for this rule
-      while (currentDate < today) {
+      // Determine the next date to generate
+      let currentDate;
+      if (rule.lastGenerated) {
+        // If we've generated before, start from the NEXT occurrence after lastGenerated
+        currentDate = new Date(rule.lastGenerated);
+        console.log('  - Starting from last generated:', currentDate);
         if (rule.frequency === 'monthly') {
           currentDate.setMonth(currentDate.getMonth() + 1);
           currentDate.setDate(rule.dayOfMonth);
@@ -690,28 +707,56 @@ const BudgetApp = ({ session }) => {
         } else if (rule.frequency === 'yearly') {
           currentDate.setFullYear(currentDate.getFullYear() + 1);
         }
+        console.log('  - Next occurrence:', currentDate);
+      } else {
+        // First time generating - start from the start date
+        currentDate = new Date(rule.startDate);
+        console.log('  - First time generation, starting from:', currentDate);
+      }
 
-        if (currentDate <= today) {
-          const transactionDate = currentDate.toISOString().split('T')[0];
-          transactionsToCreate.push({
-            user_id: session.user.id,
-            date: transactionDate,
-            description: rule.description + ' (Auto)',
-            amount: rule.amount,
-            category: rule.category,
-            account_id: rule.account_id,
-          });
+      console.log('  - Checking condition: currentDate <= today?', currentDate, '<=', today, '=', currentDate <= today);
 
-          // Update this rule's last generated date
-          rulesToUpdate.push({
-            id: rule.id,
-            lastGenerated: transactionDate
-          });
+      // Generate all pending transactions for this rule
+      let generatedCount = 0;
+      while (currentDate <= today) {
+        const transactionDate = currentDate.toISOString().split('T')[0];
+        generatedCount++;
+        console.log('  ✅ Generating transaction for:', transactionDate);
+
+        transactionsToCreate.push({
+          user_id: session.user.id,
+          date: transactionDate,
+          description: rule.description + ' (Auto)',
+          amount: rule.amount,
+          category: rule.category,
+          account_id: rule.account_id,
+        });
+
+        // Update this rule's last generated date
+        rulesToUpdate.push({
+          id: rule.id,
+          lastGenerated: transactionDate
+        });
+
+        // Move to next occurrence
+        if (rule.frequency === 'monthly') {
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          currentDate.setDate(rule.dayOfMonth);
+        } else if (rule.frequency === 'weekly') {
+          currentDate.setDate(currentDate.getDate() + 7);
+        } else if (rule.frequency === 'yearly') {
+          currentDate.setFullYear(currentDate.getFullYear() + 1);
         }
       }
+      console.log('  - Generated', generatedCount, 'transaction(s) for this rule');
     }
 
+    console.log('\n📊 Summary:');
+    console.log('Total transactions to create:', transactionsToCreate.length);
+    console.log('Transactions:', transactionsToCreate);
+
     if (transactionsToCreate.length === 0) {
+      console.log('❌ No pending transactions to generate');
       alert('No pending transactions to generate');
       return;
     }
