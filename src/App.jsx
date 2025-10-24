@@ -165,6 +165,7 @@ const BudgetApp = ({ session }) => {
   const [editingCategoryLimit, setEditingCategoryLimit] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryLimit, setNewCategoryLimit] = useState('');
+  const [addBudgetWithCategory, setAddBudgetWithCategory] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: null, id: null, name: '' });
   
   const [newTransaction, setNewTransaction] = useState({
@@ -256,6 +257,23 @@ const BudgetApp = ({ session }) => {
   }, [filteredTransactions]);
 
   const balance = useMemo(() => totalIncome - totalExpenses, [totalIncome, totalExpenses]);
+
+  // Calculate total account balances
+  const totalAccountBalance = useMemo(() => {
+    return accounts
+      .filter(a => a.type !== 'savings')
+      .reduce((sum, account) => sum + account.balance, 0);
+  }, [accounts]);
+
+  const totalSavings = useMemo(() => {
+    return accounts
+      .filter(a => a.type === 'savings')
+      .reduce((sum, account) => sum + account.balance, 0);
+  }, [accounts]);
+
+  const savingsAccounts = useMemo(() => {
+    return accounts.filter(a => a.type === 'savings');
+  }, [accounts]);
 
   // Chart data preparation
   const COLORS = THEME.chartColors;
@@ -450,7 +468,35 @@ const BudgetApp = ({ session }) => {
         if (catError) throw catError;
 
         setCategories([...categories, newCategoryName]);
+
+        // Optionally add budget if checkbox is checked and limit is provided
+        if (addBudgetWithCategory && newCategoryLimit) {
+          const { data: budgetData, error: budgetError } = await supabase
+            .from('budgets')
+            .insert([{
+              user_id: session.user.id,
+              category: newCategoryName,
+              limit_amount: parseFloat(newCategoryLimit),
+              spent: 0
+            }])
+            .select()
+            .single();
+
+          if (budgetError) throw budgetError;
+
+          const newBudget = {
+            id: budgetData.id,
+            category: newCategoryName,
+            limit: parseFloat(newCategoryLimit),
+            spent: 0
+          };
+
+          setBudgets([...budgets, newBudget]);
+        }
+
         setNewCategoryName('');
+        setNewCategoryLimit('');
+        setAddBudgetWithCategory(false);
         setShowAddCategory(false);
       } catch (error) {
         console.error('Error adding category:', error);
@@ -1152,8 +1198,8 @@ const BudgetApp = ({ session }) => {
         {activeTab === 'dashboard' ? (
           <>
             {/* Summary Cards */}
-            <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
-              <div className="bg-white rounded-2xl shadow-lg p-6 min-w-[280px] flex-1" style={{ borderLeft: `4px solid ${THEME.success}` }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.success}` }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-600 text-sm font-medium">
                     Total Income {hasActiveFilters && <span className="text-xs">(Filtered)</span>}
@@ -1168,7 +1214,7 @@ const BudgetApp = ({ session }) => {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-6 min-w-[280px] flex-1" style={{ borderLeft: `4px solid ${THEME.danger}` }}>
+              <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.danger}` }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-600 text-sm font-medium">
                     Total Expenses {hasActiveFilters && <span className="text-xs">(Filtered)</span>}
@@ -1183,23 +1229,70 @@ const BudgetApp = ({ session }) => {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-6 min-w-[280px] flex-1" style={{ borderLeft: `4px solid ${THEME.primary}` }}>
+              <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.primary}` }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-600 text-sm font-medium">
-                    Balance {hasActiveFilters && <span className="text-xs">(Filtered)</span>}
+                    Account Balance
                   </span>
-                  <DollarSign style={{ color: THEME.primary }} size={24} />
+                  <Wallet style={{ color: THEME.primary }} size={24} />
                 </div>
-                <p className="text-3xl font-bold" style={{ color: balance >= 0 ? THEME.success : THEME.danger }}>
-                  {formatCurrency(balance)}
+                <p className="text-3xl font-bold" style={{ color: totalAccountBalance >= 0 ? THEME.success : THEME.danger }}>
+                  {formatCurrency(totalAccountBalance)}
                 </p>
-                {hasActiveFilters && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {filteredTransactions.length} total transaction(s)
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  {accounts.filter(a => a.type !== 'savings').length} account(s)
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 border-2 border-green-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-700 text-sm font-medium">
+                    Total Savings
+                  </span>
+                  <DollarSign style={{ color: THEME.success }} size={24} />
+                </div>
+                <p className="text-3xl font-bold" style={{ color: THEME.success }}>
+                  {formatCurrency(totalSavings)}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  {savingsAccounts.length} savings account(s)
+                </p>
+                </p>
               </div>
             </div>
+
+            {/* Savings Accounts Detail Widget */}
+            {savingsAccounts.length > 0 && (
+              <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl shadow-lg p-6 mb-8 border border-green-200">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <DollarSign style={{ color: THEME.success }} size={24} />
+                  Savings Accounts
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {savingsAccounts.map((account) => (
+                    <div key={account.id} className="bg-white rounded-xl p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-800">{account.name}</h4>
+                        <Wallet style={{ color: THEME.success }} size={20} />
+                      </div>
+                      <p className="text-2xl font-bold mb-1" style={{ color: THEME.success }}>
+                        {formatCurrency(account.balance)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Started with {formatCurrency(account.starting_balance)}
+                      </p>
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <p className="text-xs text-gray-600">
+                          Growth: <span className="font-semibold" style={{ color: account.balance >= account.starting_balance ? THEME.success : THEME.danger }}>
+                            {formatCurrency(account.balance - account.starting_balance)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Filters Section */}
             <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
@@ -1553,7 +1646,7 @@ const BudgetApp = ({ session }) => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" />
                     <YAxis dataKey="category" type="category" width={100} />
-                    <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
                     <Legend />
                     <Bar dataKey="spent" stackId="a" fill={THEME.primary} name="Spent" />
                     <Bar dataKey="remaining" stackId="a" fill={THEME.success} name="Remaining" radius={[0, 8, 8, 0]} />
@@ -1752,15 +1845,45 @@ const BudgetApp = ({ session }) => {
             {showAddCategory && (
               <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
                 <h3 className="font-semibold text-gray-800 mb-4">New Category</h3>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
-                  <input
-                    type="text"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder="e.g., Healthcare, Utilities, Groceries"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="e.g., Healthcare, Utilities, Groceries"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="addBudgetCheckbox"
+                      checked={addBudgetWithCategory}
+                      onChange={(e) => setAddBudgetWithCategory(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300"
+                      style={{ accentColor: THEME.primary }}
+                    />
+                    <label htmlFor="addBudgetCheckbox" className="text-sm font-medium text-gray-700 cursor-pointer">
+                      Also create a budget for this category
+                    </label>
+                  </div>
+
+                  {addBudgetWithCategory && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Budget Limit</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newCategoryLimit}
+                        onChange={(e) => setNewCategoryLimit(e.target.value)}
+                        placeholder="500.00"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-3 mt-4">
                   <button
@@ -1773,7 +1896,11 @@ const BudgetApp = ({ session }) => {
                     Save Category
                   </button>
                   <button
-                    onClick={() => setShowAddCategory(false)}
+                    onClick={() => {
+                      setShowAddCategory(false);
+                      setAddBudgetWithCategory(false);
+                      setNewCategoryLimit('');
+                    }}
                     className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
                   >
                     Cancel
@@ -2290,7 +2417,7 @@ const BudgetApp = ({ session }) => {
                       <option value="">Select Account</option>
                       {accounts.map((account) => (
                         <option key={account.id} value={account.id}>
-                          {account.name} (${account.balance.toFixed(2)})
+                          {account.name} ({formatCurrency(account.balance)})
                         </option>
                       ))}
                     </select>
