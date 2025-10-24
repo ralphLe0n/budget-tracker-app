@@ -2,6 +2,14 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Calendar, Trash2, Tag, Edit2, Save, X, Filter, LogOut, LayoutDashboard, Repeat, Wallet, CreditCard, ArrowLeftRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { supabase } from './supabaseClient';
+import { THEME } from './config/theme';
+import { formatCurrency } from './utils/formatters';
+import Sidebar from './components/layout/Sidebar';
+import ConfirmationDialog from './components/ui/ConfirmationDialog';
+import LoadingOverlay from './components/ui/LoadingOverlay';
+import ErrorDisplay from './components/ui/ErrorDisplay';
+import * as dataService from './services/dataService';
+import * as recurringService from './services/recurringService';
 
 const BudgetApp = ({ session }) => {
   // ========================================
@@ -15,97 +23,12 @@ const BudgetApp = ({ session }) => {
     setIsLoading(true);
     setError(null);
     try {
-      // Load transactions
-      const { data: transactionsData, error: transError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: false });
-
-      if (transError) throw transError;
-      if (transactionsData) {
-        const formattedTransactions = transactionsData.map(t => ({
-          id: t.id,
-          date: t.date,
-          description: t.description,
-          amount: parseFloat(t.amount),
-          category: t.category,
-          account_id: t.account_id
-        }));
-        setTransactions(formattedTransactions);
-      }
-
-      // Load budgets
-      const { data: budgetsData, error: budgetError } = await supabase
-        .from('budgets')
-        .select('*')
-        .eq('user_id', session.user.id);
-
-      if (budgetError) throw budgetError;
-      if (budgetsData) {
-        const formattedBudgets = budgetsData.map(b => ({
-          id: b.id,
-          category: b.category,
-          limit: parseFloat(b.limit_amount),
-          spent: parseFloat(b.spent)
-        }));
-        setBudgets(formattedBudgets);
-      }
-
-      // Load categories
-      const { data: categoriesData, error: catError } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('user_id', session.user.id);
-
-      if (catError) throw catError;
-      if (categoriesData) {
-        const categoryNames = categoriesData.map(c => c.name);
-        setCategories(categoryNames);
-      }
-
-      // Load recurring rules
-      const { data: recurringData, error: recurError } = await supabase
-        .from('recurring_rules')
-        .select('*')
-        .eq('user_id', session.user.id);
-
-      if (recurError) throw recurError;
-      if (recurringData) {
-        const formattedRules = recurringData.map(r => ({
-          id: r.id,
-          description: r.description,
-          amount: parseFloat(r.amount),
-          category: r.category,
-          frequency: r.frequency,
-          dayOfMonth: r.day_of_month,
-          startDate: r.start_date,
-          lastGenerated: r.last_generated,
-          active: r.active,
-          account_id: r.account_id
-        }));
-        setRecurringRules(formattedRules);
-      }
-
-      // Load accounts
-      const { data: accountsData, error: accountsError } = await supabase
-        .from('accounts')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: true });
-
-      if (accountsError) throw accountsError;
-      if (accountsData) {
-        const formattedAccounts = accountsData.map(a => ({
-          id: a.id,
-          name: a.name,
-          type: a.type,
-          balance: parseFloat(a.balance),
-          starting_balance: parseFloat(a.starting_balance)
-        }));
-        setAccounts(formattedAccounts);
-      }
-
+      const data = await dataService.loadAllData(session.user.id);
+      setTransactions(data.transactions);
+      setBudgets(data.budgets);
+      setCategories(data.categories);
+      setRecurringRules(data.recurringRules);
+      setAccounts(data.accounts);
     } catch (error) {
       console.error('Error loading data:', error);
       setError('Failed to load data from database: ' + error.message);
@@ -123,26 +46,6 @@ const BudgetApp = ({ session }) => {
       console.error('Error signing out:', error);
       alert('Failed to sign out: ' + error.message);
     }
-  };
-
-  // ========================================
-  // CENTRALIZED THEME - Change colors here to update entire app!
-  // ========================================
-  const THEME = {
-    primary: '#3b82f6',        // Blue - primary buttons, tabs, balance
-    primaryHover: '#2563eb',   // Darker blue for hover
-    primaryLight: '#dbeafe',   // Light blue for backgrounds
-    success: '#10b981',        // Green - income, success, remaining budget
-    successHover: '#059669',   // Darker green for hover
-    successLight: '#d1fae5',   // Light green for backgrounds
-    danger: '#ef4444',         // Red - expenses, over budget, delete
-    dangerHover: '#dc2626',    // Darker red for hover
-    dangerLight: '#fee2e2',    // Light red for backgrounds
-    warning: '#f59e0b',        // Orange - warnings, 80% budget
-    warningHover: '#d97706',   // Darker orange for hover
-    info: '#8b5cf6',           // Purple - info, accents
-    // Chart colors array
-    chartColors: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
   };
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -224,14 +127,6 @@ const BudgetApp = ({ session }) => {
   };
 
   const hasActiveFilters = filterStartDate || filterEndDate || selectedCategories.length > 0 || filterDescription;
-
-  // Currency formatter for PLN
-  const formatCurrency = (amount) => {
-    if (amount < 0) {
-      return `- ${Math.abs(amount).toFixed(2)} PLN`;
-    }
-    return `${amount.toFixed(2)} PLN`;
-  };
 
   // Apply filters to transactions (optimized with useMemo)
   const filteredTransactions = useMemo(() => {
@@ -689,152 +584,15 @@ const BudgetApp = ({ session }) => {
   };
 
   const generateTransactionsFromRules = async () => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // Set to end of day for comparison
-    let transactionsToCreate = [];
-    let rulesToUpdate = [];
-
-    console.log('🔍 Generate Now Debug Info:');
-    console.log('Total recurring rules:', recurringRules.length);
-    console.log('Today (end of day):', today);
-    console.log('Recurring rules:', recurringRules);
-
-    for (const rule of recurringRules) {
-      console.log('\n📋 Processing rule:', rule.description);
-      console.log('  - Active:', rule.active);
-      console.log('  - Account ID:', rule.account_id);
-      console.log('  - Start Date:', rule.startDate);
-      console.log('  - Last Generated:', rule.lastGenerated);
-      console.log('  - Frequency:', rule.frequency);
-
-      if (!rule.active) {
-        console.log('  ❌ Skipping - rule is not active');
-        continue;
-      }
-
-      // Determine the next date to generate
-      let currentDate;
-      if (rule.lastGenerated) {
-        // If we've generated before, start from the NEXT occurrence after lastGenerated
-        currentDate = new Date(rule.lastGenerated);
-        console.log('  - Starting from last generated:', currentDate);
-        if (rule.frequency === 'monthly') {
-          currentDate.setMonth(currentDate.getMonth() + 1);
-          currentDate.setDate(rule.dayOfMonth);
-        } else if (rule.frequency === 'weekly') {
-          currentDate.setDate(currentDate.getDate() + 7);
-        } else if (rule.frequency === 'yearly') {
-          currentDate.setFullYear(currentDate.getFullYear() + 1);
-        }
-        console.log('  - Next occurrence:', currentDate);
-      } else {
-        // First time generating - start from the start date
-        currentDate = new Date(rule.startDate);
-        console.log('  - First time generation, starting from:', currentDate);
-      }
-
-      console.log('  - Checking condition: currentDate <= today?', currentDate, '<=', today, '=', currentDate <= today);
-
-      // Generate all pending transactions for this rule
-      let generatedCount = 0;
-      while (currentDate <= today) {
-        const transactionDate = currentDate.toISOString().split('T')[0];
-        generatedCount++;
-        console.log('  ✅ Generating transaction for:', transactionDate);
-
-        transactionsToCreate.push({
-          user_id: session.user.id,
-          date: transactionDate,
-          description: rule.description + ' (Auto)',
-          amount: rule.amount,
-          category: rule.category,
-          account_id: rule.account_id,
-        });
-
-        // Update this rule's last generated date
-        rulesToUpdate.push({
-          id: rule.id,
-          lastGenerated: transactionDate
-        });
-
-        // Move to next occurrence
-        if (rule.frequency === 'monthly') {
-          currentDate.setMonth(currentDate.getMonth() + 1);
-          currentDate.setDate(rule.dayOfMonth);
-        } else if (rule.frequency === 'weekly') {
-          currentDate.setDate(currentDate.getDate() + 7);
-        } else if (rule.frequency === 'yearly') {
-          currentDate.setFullYear(currentDate.getFullYear() + 1);
-        }
-      }
-      console.log('  - Generated', generatedCount, 'transaction(s) for this rule');
-    }
-
-    console.log('\n📊 Summary:');
-    console.log('Total transactions to create:', transactionsToCreate.length);
-    console.log('Transactions:', transactionsToCreate);
-
-    if (transactionsToCreate.length === 0) {
-      console.log('❌ No pending transactions to generate');
-      alert('No pending transactions to generate');
-      return;
-    }
-
     try {
-      // Insert all transactions at once
-      const { data: insertedTransactions, error: transError } = await supabase
-        .from('transactions')
-        .insert(transactionsToCreate)
-        .select();
-
-      if (transError) throw transError;
-
-      // Update all recurring rules with new last_generated dates
-      for (const ruleUpdate of rulesToUpdate) {
-        await supabase
-          .from('recurring_rules')
-          .update({ last_generated: ruleUpdate.lastGenerated })
-          .eq('id', ruleUpdate.id);
-      }
-
-      // Update account balances
-      const accountBalanceUpdates = {};
-      for (const trans of insertedTransactions) {
-        if (!accountBalanceUpdates[trans.account_id]) {
-          accountBalanceUpdates[trans.account_id] = 0;
-        }
-        accountBalanceUpdates[trans.account_id] += trans.amount;
-      }
-
-      for (const [accountId, amountChange] of Object.entries(accountBalanceUpdates)) {
-        const account = accounts.find(a => a.id === accountId);
-        if (account) {
-          const newBalance = account.balance + amountChange;
-          await supabase
-            .from('accounts')
-            .update({ balance: newBalance })
-            .eq('id', accountId);
-        }
-      }
-
-      // Update budgets for expenses
-      for (const trans of insertedTransactions) {
-        if (trans.amount < 0) {
-          const budget = budgets.find(b => b.category === trans.category);
-          if (budget) {
-            const newSpent = budget.spent + Math.abs(trans.amount);
-            await supabase
-              .from('budgets')
-              .update({ spent: newSpent })
-              .eq('id', budget.id);
-          }
-        }
-      }
-
-      // Reload all data to sync state
+      const result = await recurringService.generateTransactionsFromRules(
+        recurringRules,
+        accounts,
+        budgets,
+        session.user.id
+      );
       await loadDataFromSupabase();
-
-      alert(`Successfully generated ${insertedTransactions.length} transaction(s)`);
+      alert(result.message);
     } catch (error) {
       console.error('Error generating transactions:', error);
       alert('Failed to generate recurring transactions: ' + error.message);
@@ -1102,96 +860,29 @@ const BudgetApp = ({ session }) => {
     }
   };
 
+  // Helper function to handle delete confirmation
+  const handleDeleteConfirm = () => {
+    if (deleteConfirm.type === 'transaction') {
+      handleDeleteTransaction(deleteConfirm.id);
+    } else if (deleteConfirm.type === 'category') {
+      handleDeleteCategory(deleteConfirm.id);
+    } else if (deleteConfirm.type === 'category-only') {
+      handleDeleteCategoryOnly(deleteConfirm.id);
+    } else if (deleteConfirm.type === 'account') {
+      handleDeleteAccount(deleteConfirm.id);
+    } else if (deleteConfirm.type === 'recurring') {
+      handleDeleteRecurring(deleteConfirm.id);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
       {/* Left Sidebar */}
-      <div className="w-64 bg-white shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-800">Budget Tracker</h1>
-          <p className="text-xs text-gray-500 mt-1">Manage your finances</p>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            style={{
-              backgroundColor: activeTab === 'dashboard' ? THEME.primaryLight : 'transparent',
-              color: activeTab === 'dashboard' ? THEME.primary : '#4b5563'
-            }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
-              activeTab === 'dashboard' ? 'shadow-sm' : 'hover:bg-gray-100'
-            }`}
-          >
-            <LayoutDashboard size={20} />
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab('accounts')}
-            style={{
-              backgroundColor: activeTab === 'accounts' ? THEME.primaryLight : 'transparent',
-              color: activeTab === 'accounts' ? THEME.primary : '#4b5563'
-            }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
-              activeTab === 'accounts' ? 'shadow-sm' : 'hover:bg-gray-100'
-            }`}
-          >
-            <Wallet size={20} />
-            Accounts
-          </button>
-          <button
-            onClick={() => setActiveTab('categories')}
-            style={{
-              backgroundColor: activeTab === 'categories' ? THEME.primaryLight : 'transparent',
-              color: activeTab === 'categories' ? THEME.primary : '#4b5563'
-            }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
-              activeTab === 'categories' ? 'shadow-sm' : 'hover:bg-gray-100'
-            }`}
-          >
-            <Tag size={20} />
-            Categories
-          </button>
-          <button
-            onClick={() => setActiveTab('budgets')}
-            style={{
-              backgroundColor: activeTab === 'budgets' ? THEME.primaryLight : 'transparent',
-              color: activeTab === 'budgets' ? THEME.primary : '#4b5563'
-            }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
-              activeTab === 'budgets' ? 'shadow-sm' : 'hover:bg-gray-100'
-            }`}
-          >
-            <DollarSign size={20} />
-            Budgets
-          </button>
-          <button
-            onClick={() => setActiveTab('recurring')}
-            style={{
-              backgroundColor: activeTab === 'recurring' ? THEME.primaryLight : 'transparent',
-              color: activeTab === 'recurring' ? THEME.primary : '#4b5563'
-            }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
-              activeTab === 'recurring' ? 'shadow-sm' : 'hover:bg-gray-100'
-            }`}
-          >
-            <Repeat size={20} />
-            Recurring
-          </button>
-        </nav>
-
-        {/* Logout Button */}
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium text-gray-700 hover:bg-gray-100"
-          >
-            <LogOut size={20} />
-            Logout
-          </button>
-        </div>
-      </div>
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onSignOut={handleSignOut}
+      />
 
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-8 overflow-y-auto">
@@ -2591,82 +2282,20 @@ const BudgetApp = ({ session }) => {
         )}
 
         {/* Confirmation Dialog */}
-        {deleteConfirm.show && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Confirm Delete</h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete {deleteConfirm.type} "{deleteConfirm.name}"?
-                {deleteConfirm.type === 'transaction' && ' This action cannot be undone.'}
-                {deleteConfirm.type === 'category' && ' This will also delete the associated budget.'}
-                {deleteConfirm.type === 'category-only' && ' This category will be removed.'}
-                {deleteConfirm.type === 'account' && ' This account and its balance information will be deleted.'}
-                {deleteConfirm.type === 'recurring' && ' This will stop future automatic transactions.'}
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setDeleteConfirm({ show: false, type: null, id: null, name: '' })}
-                  className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium transition-colors"
-                  disabled={isLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    if (deleteConfirm.type === 'transaction') {
-                      handleDeleteTransaction(deleteConfirm.id);
-                    } else if (deleteConfirm.type === 'category') {
-                      handleDeleteCategory(deleteConfirm.id);
-                    } else if (deleteConfirm.type === 'category-only') {
-                      handleDeleteCategoryOnly(deleteConfirm.id);
-                    } else if (deleteConfirm.type === 'account') {
-                      handleDeleteAccount(deleteConfirm.id);
-                    } else if (deleteConfirm.type === 'recurring') {
-                      handleDeleteRecurring(deleteConfirm.id);
-                    }
-                  }}
-                  className="px-4 py-2 rounded-lg font-medium text-white transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: THEME.danger }}
-                  onMouseOver={(e) => !isLoading && (e.currentTarget.style.backgroundColor = THEME.dangerHover)}
-                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.danger}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmationDialog
+          show={deleteConfirm.show}
+          type={deleteConfirm.type}
+          name={deleteConfirm.name}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteConfirm({ show: false, type: null, id: null, name: '' })}
+          isLoading={isLoading}
+        />
 
         {/* Loading Overlay */}
-        {isLoading && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-40">
-            <div className="bg-white rounded-2xl shadow-2xl p-6">
-              <div className="flex items-center gap-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: THEME.primary }}></div>
-                <span className="text-gray-700 font-medium">Loading...</span>
-              </div>
-            </div>
-          </div>
-        )}
+        <LoadingOverlay isLoading={isLoading} />
 
         {/* Error Display */}
-        {error && (
-          <div className="fixed bottom-4 right-4 bg-red-100 border-2 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-lg max-w-md z-50">
-            <div className="flex items-start gap-3">
-              <span className="font-bold">Error:</span>
-              <div className="flex-1">
-                <p>{error}</p>
-                <button
-                  onClick={() => setError(null)}
-                  className="mt-2 text-sm underline hover:no-underline"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ErrorDisplay error={error} onDismiss={() => setError(null)} />
       </div>
     </div>
   );
