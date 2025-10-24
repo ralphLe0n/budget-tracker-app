@@ -24,6 +24,16 @@ const BudgetApp = ({ session }) => {
     loadDataFromSupabase();
   }, []);
 
+  // Update newRecurring category when categories are loaded
+  useEffect(() => {
+    if (categories.length > 0 && !newRecurring.category) {
+      setNewRecurring(prev => ({
+        ...prev,
+        category: categories[0]
+      }));
+    }
+  }, [categories]);
+
   const loadDataFromSupabase = async () => {
     setIsLoading(true);
     setError(null);
@@ -75,6 +85,16 @@ const BudgetApp = ({ session }) => {
   const [newCategoryLimit, setNewCategoryLimit] = useState('');
   const [addBudgetWithCategory, setAddBudgetWithCategory] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: null, id: null, name: '' });
+  const [editingRecurring, setEditingRecurring] = useState(null);
+  const [editingRecurringData, setEditingRecurringData] = useState({
+    description: '',
+    amount: '',
+    category: '',
+    frequency: 'monthly',
+    dayOfMonth: 1,
+    startDate: '',
+    account_id: '',
+  });
   
   const [newTransaction, setNewTransaction] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -101,7 +121,7 @@ const BudgetApp = ({ session }) => {
   const [newRecurring, setNewRecurring] = useState({
     description: '',
     amount: '',
-    category: 'Food',
+    category: categories[0] || '',
     frequency: 'monthly',
     dayOfMonth: 1,
     startDate: new Date().toISOString().split('T')[0],
@@ -146,13 +166,13 @@ const BudgetApp = ({ session }) => {
 
   const totalIncome = useMemo(() => {
     return filteredTransactions
-      .filter(t => t.amount > 0)
+      .filter(t => t.amount > 0 && t.category !== 'Transfer')
       .reduce((sum, t) => sum + t.amount, 0);
   }, [filteredTransactions]);
 
   const totalExpenses = useMemo(() => {
     return filteredTransactions
-      .filter(t => t.amount < 0)
+      .filter(t => t.amount < 0 && t.category !== 'Transfer')
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }, [filteredTransactions]);
 
@@ -181,7 +201,7 @@ const BudgetApp = ({ session }) => {
   // Pre-calculate spending by category for performance (used in multiple places)
   const spendingByCategory = useMemo(() => {
     return filteredTransactions.reduce((acc, t) => {
-      if (t.amount < 0) {
+      if (t.amount < 0 && t.category !== 'Transfer') {
         acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
       }
       return acc;
@@ -202,6 +222,8 @@ const BudgetApp = ({ session }) => {
     const monthlyMap = {};
 
     filteredTransactions.forEach(t => {
+      if (t.category === 'Transfer') return; // Skip transfers
+
       const month = t.date.substring(0, 7);
       if (!monthlyMap[month]) {
         monthlyMap[month] = { month, income: 0, expenses: 0 };
@@ -645,7 +667,7 @@ const BudgetApp = ({ session }) => {
       setNewRecurring({
         description: '',
         amount: '',
-        category: 'Food',
+        category: categories[0] || '',
         frequency: 'monthly',
         dayOfMonth: 1,
         startDate: new Date().toISOString().split('T')[0],
@@ -661,7 +683,7 @@ const BudgetApp = ({ session }) => {
 
   const handleToggleRecurring = async (id) => {
   const rule = recurringRules.find(r => r.id === id);
-  
+
   try {
     const { error } = await supabase
       .from('recurring_rules')
@@ -670,7 +692,7 @@ const BudgetApp = ({ session }) => {
 
     if (error) throw error;
 
-    setRecurringRules(recurringRules.map(r => 
+    setRecurringRules(recurringRules.map(r =>
       r.id === id ? { ...r, active: !r.active } : r
     ));
   } catch (error) {
@@ -678,6 +700,80 @@ const BudgetApp = ({ session }) => {
     alert('Failed to toggle recurring rule');
   }
 };
+
+  const handleStartEditRecurring = (rule) => {
+    setEditingRecurring(rule.id);
+    setEditingRecurringData({
+      description: rule.description,
+      amount: rule.amount.toString(),
+      category: rule.category,
+      frequency: rule.frequency,
+      dayOfMonth: rule.dayOfMonth,
+      startDate: rule.startDate,
+      account_id: rule.account_id,
+    });
+  };
+
+  const handleCancelEditRecurring = () => {
+    setEditingRecurring(null);
+    setEditingRecurringData({
+      description: '',
+      amount: '',
+      category: '',
+      frequency: 'monthly',
+      dayOfMonth: 1,
+      startDate: '',
+      account_id: '',
+    });
+  };
+
+  const handleSaveEditRecurring = async () => {
+    if (editingRecurringData.description && editingRecurringData.amount && editingRecurringData.account_id) {
+      try {
+        setIsLoading(true);
+        const updatedRule = {
+          description: editingRecurringData.description,
+          amount: parseFloat(editingRecurringData.amount),
+          category: editingRecurringData.category,
+          frequency: editingRecurringData.frequency,
+          day_of_month: parseInt(editingRecurringData.dayOfMonth),
+          start_date: editingRecurringData.startDate,
+          account_id: editingRecurringData.account_id,
+        };
+
+        const { error } = await supabase
+          .from('recurring_rules')
+          .update(updatedRule)
+          .eq('id', editingRecurring)
+          .eq('user_id', session.user.id);
+
+        if (error) throw error;
+
+        // Update local state
+        setRecurringRules(recurringRules.map(r =>
+          r.id === editingRecurring
+            ? {
+                ...r,
+                description: editingRecurringData.description,
+                amount: parseFloat(editingRecurringData.amount),
+                category: editingRecurringData.category,
+                frequency: editingRecurringData.frequency,
+                dayOfMonth: parseInt(editingRecurringData.dayOfMonth),
+                startDate: editingRecurringData.startDate,
+                account_id: editingRecurringData.account_id,
+              }
+            : r
+        ));
+
+        handleCancelEditRecurring();
+      } catch (error) {
+        console.error('Error updating recurring rule:', error);
+        alert('Failed to update recurring rule: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const handleDeleteRecurring = async (id) => {
     try {
@@ -998,6 +1094,12 @@ const BudgetApp = ({ session }) => {
             calculateNextOccurrence={calculateNextOccurrence}
             generateTransactionsFromRules={generateTransactionsFromRules}
             setDeleteConfirm={setDeleteConfirm}
+            editingRecurring={editingRecurring}
+            editingRecurringData={editingRecurringData}
+            setEditingRecurringData={setEditingRecurringData}
+            handleStartEditRecurring={handleStartEditRecurring}
+            handleCancelEditRecurring={handleCancelEditRecurring}
+            handleSaveEditRecurring={handleSaveEditRecurring}
           />
         )}
 
