@@ -1257,7 +1257,6 @@ const BudgetApp = ({ session }) => {
                 <p className="text-xs text-gray-600 mt-1">
                   {savingsAccounts.length} savings account(s)
                 </p>
-                </p>
               </div>
             </div>
 
