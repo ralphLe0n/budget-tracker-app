@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Calendar, Trash2, Tag, Edit2, Save, X, Filter, LogOut, LayoutDashboard, Repeat, Wallet, CreditCard } from 'lucide-react';
+import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Calendar, Trash2, Tag, Edit2, Save, X, Filter, LogOut, LayoutDashboard, Repeat, Wallet, CreditCard, ArrowLeftRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { supabase } from './supabaseClient';
 
@@ -181,6 +181,14 @@ const BudgetApp = ({ session }) => {
     starting_balance: '',
   });
 
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transfer, setTransfer] = useState({
+    fromAccountId: '',
+    toAccountId: '',
+    amount: '',
+    description: '',
+  });
+
   const [newRecurring, setNewRecurring] = useState({
     description: '',
     amount: '',
@@ -196,6 +204,7 @@ const BudgetApp = ({ session }) => {
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [filterDescription, setFilterDescription] = useState('');
 
   // Filter functions
   const toggleCategoryFilter = (category) => {
@@ -210,9 +219,18 @@ const BudgetApp = ({ session }) => {
     setFilterStartDate('');
     setFilterEndDate('');
     setSelectedCategories([]);
+    setFilterDescription('');
   };
 
-  const hasActiveFilters = filterStartDate || filterEndDate || selectedCategories.length > 0;
+  const hasActiveFilters = filterStartDate || filterEndDate || selectedCategories.length > 0 || filterDescription;
+
+  // Currency formatter for PLN
+  const formatCurrency = (amount) => {
+    if (amount < 0) {
+      return `- ${Math.abs(amount).toFixed(2)} PLN`;
+    }
+    return `${amount.toFixed(2)} PLN`;
+  };
 
   // Apply filters to transactions (optimized with useMemo)
   const filteredTransactions = useMemo(() => {
@@ -220,9 +238,10 @@ const BudgetApp = ({ session }) => {
       if (filterStartDate && t.date < filterStartDate) return false;
       if (filterEndDate && t.date > filterEndDate) return false;
       if (selectedCategories.length > 0 && !selectedCategories.includes(t.category)) return false;
+      if (filterDescription && !t.description.toLowerCase().includes(filterDescription.toLowerCase())) return false;
       return true;
     });
-  }, [transactions, filterStartDate, filterEndDate, selectedCategories]);
+  }, [transactions, filterStartDate, filterEndDate, selectedCategories, filterDescription]);
 
   const totalIncome = useMemo(() => {
     return filteredTransactions
@@ -938,6 +957,105 @@ const BudgetApp = ({ session }) => {
     }
   };
 
+  const handleTransfer = async () => {
+    if (!transfer.fromAccountId || !transfer.toAccountId || !transfer.amount) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    if (transfer.fromAccountId === transfer.toAccountId) {
+      alert('Cannot transfer to the same account');
+      return;
+    }
+
+    const amount = parseFloat(transfer.amount);
+    if (amount <= 0) {
+      alert('Transfer amount must be greater than zero');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const fromAccount = accounts.find(a => a.id === transfer.fromAccountId);
+      const toAccount = accounts.find(a => a.id === transfer.toAccountId);
+
+      if (!fromAccount || !toAccount) {
+        throw new Error('Invalid account selection');
+      }
+
+      // Create two transactions: withdrawal from source, deposit to destination
+      const description = transfer.description || `Transfer: ${fromAccount.name} → ${toAccount.name}`;
+      const transactionDate = new Date().toISOString().split('T')[0];
+
+      // Withdrawal transaction
+      const withdrawalTransaction = {
+        user_id: session.user.id,
+        date: transactionDate,
+        description: description,
+        amount: -amount,
+        category: 'Transfer',
+        account_id: transfer.fromAccountId,
+      };
+
+      // Deposit transaction
+      const depositTransaction = {
+        user_id: session.user.id,
+        date: transactionDate,
+        description: description,
+        amount: amount,
+        category: 'Transfer',
+        account_id: transfer.toAccountId,
+      };
+
+      // Insert both transactions
+      const { error: transError } = await supabase
+        .from('transactions')
+        .insert([withdrawalTransaction, depositTransaction]);
+
+      if (transError) throw transError;
+
+      // Update account balances
+      const newFromBalance = fromAccount.balance - amount;
+      const newToBalance = toAccount.balance + amount;
+
+      await supabase
+        .from('accounts')
+        .update({ balance: newFromBalance })
+        .eq('id', fromAccount.id);
+
+      await supabase
+        .from('accounts')
+        .update({ balance: newToBalance })
+        .eq('id', toAccount.id);
+
+      // Update local state
+      setAccounts(accounts.map(a => {
+        if (a.id === fromAccount.id) return { ...a, balance: newFromBalance };
+        if (a.id === toAccount.id) return { ...a, balance: newToBalance };
+        return a;
+      }));
+
+      // Reload transactions to show the new ones
+      await loadDataFromSupabase();
+
+      // Reset form
+      setTransfer({
+        fromAccountId: '',
+        toAccountId: '',
+        amount: '',
+        description: '',
+      });
+      setShowTransfer(false);
+      alert('Transfer completed successfully');
+    } catch (error) {
+      console.error('Error processing transfer:', error);
+      alert('Failed to process transfer: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
       {/* Left Sidebar */}
@@ -1042,7 +1160,7 @@ const BudgetApp = ({ session }) => {
                   </span>
                   <TrendingUp style={{ color: THEME.success }} size={24} />
                 </div>
-                <p className="text-3xl font-bold text-gray-800">${totalIncome.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalIncome)}</p>
                 {hasActiveFilters && (
                   <p className="text-xs text-gray-500 mt-1">
                     {filteredTransactions.filter(t => t.amount > 0).length} transaction(s)
@@ -1057,7 +1175,7 @@ const BudgetApp = ({ session }) => {
                   </span>
                   <TrendingDown style={{ color: THEME.danger }} size={24} />
                 </div>
-                <p className="text-3xl font-bold text-gray-800">${totalExpenses.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalExpenses)}</p>
                 {hasActiveFilters && (
                   <p className="text-xs text-gray-500 mt-1">
                     {filteredTransactions.filter(t => t.amount < 0).length} transaction(s)
@@ -1073,7 +1191,7 @@ const BudgetApp = ({ session }) => {
                   <DollarSign style={{ color: THEME.primary }} size={24} />
                 </div>
                 <p className="text-3xl font-bold" style={{ color: balance >= 0 ? THEME.success : THEME.danger }}>
-                  ${balance.toFixed(2)}
+                  {formatCurrency(balance)}
                 </p>
                 {hasActiveFilters && (
                   <p className="text-xs text-gray-500 mt-1">
@@ -1194,6 +1312,18 @@ const BudgetApp = ({ session }) => {
                     </div>
                   </div>
 
+                  {/* Description Filter */}
+                  <div className="mb-6">
+                    <h4 className="font-semibold text-gray-700 mb-3">Search by Description</h4>
+                    <input
+                      type="text"
+                      value={filterDescription}
+                      onChange={(e) => setFilterDescription(e.target.value)}
+                      placeholder="Search transactions..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+
                   {/* Category Filter */}
                   <div>
                     <div className="flex justify-between items-center mb-3">
@@ -1275,7 +1405,7 @@ const BudgetApp = ({ session }) => {
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-semibold text-gray-700">{budget.category}</span>
                         <span className="text-sm" style={{ color: isOverBudget ? THEME.danger : '#6b7280' }}>
-                          ${actualSpent.toFixed(2)} / ${budget.limit.toFixed(2)}
+                          {formatCurrency(actualSpent)} / {formatCurrency(budget.limit)}
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -1318,7 +1448,7 @@ const BudgetApp = ({ session }) => {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                        <Tooltip formatter={(value) => formatCurrency(value)} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="mt-4 grid grid-cols-2 gap-2">
@@ -1328,7 +1458,7 @@ const BudgetApp = ({ session }) => {
                             className="w-3 h-3 rounded-full" 
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                           ></div>
-                          <span className="text-sm text-gray-700">{item.name}: ${item.value.toFixed(2)}</span>
+                          <span className="text-sm text-gray-700">{item.name}: {formatCurrency(item.value)}</span>
                         </div>
                       ))}
                     </div>
@@ -1358,7 +1488,7 @@ const BudgetApp = ({ session }) => {
                       />
                       <YAxis tick={{ fontSize: 12 }} />
                       <Tooltip 
-                        formatter={(value) => `$${value.toFixed(2)}`}
+                        formatter={(value) => formatCurrency(value)}
                         labelFormatter={(label) => `Month: ${label}`}
                       />
                       <Legend />
@@ -1478,7 +1608,7 @@ const BudgetApp = ({ session }) => {
                         <option value="">Select Account</option>
                         {accounts.map((account) => (
                           <option key={account.id} value={account.id}>
-                            {account.name} (${account.balance.toFixed(2)})
+                            {account.name} ({formatCurrency(account.balance)})
                           </option>
                         ))}
                       </select>
@@ -1584,7 +1714,7 @@ const BudgetApp = ({ session }) => {
                         className="text-xl font-bold"
                         style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
                       >
-                        {transaction.amount > 0 ? '+' : ''}${transaction.amount.toFixed(2)}
+                        {formatCurrency(transaction.amount)}
                       </span>
                       <button
                         onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
@@ -1836,13 +1966,13 @@ const BudgetApp = ({ session }) => {
                         <div className="flex-1">
                           <p className="font-semibold text-gray-800 text-lg">{budget.category}</p>
                           <p className="text-sm text-gray-600">
-                            ${budget.spent.toFixed(2)} spent of ${budget.limit.toFixed(2)} budget
+                            {formatCurrency(budget.spent)} spent of {formatCurrency(budget.limit)} budget
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-xl font-bold text-gray-800">
-                          ${budget.limit.toFixed(2)}
+                          {formatCurrency(budget.limit)}
                         </span>
                         <button
                           onClick={() => startEditingCategory(budget)}
@@ -1877,16 +2007,29 @@ const BudgetApp = ({ session }) => {
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">Manage Accounts</h2>
-              <button
-                onClick={() => setShowAddAccount(!showAddAccount)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
-                style={{ backgroundColor: THEME.primary }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
-              >
-                <PlusCircle size={20} />
-                Add Account
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowTransfer(!showTransfer)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+                  style={{ backgroundColor: THEME.success }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.successHover}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
+                  title="Transfer money between accounts"
+                >
+                  <ArrowLeftRight size={20} />
+                  Transfer
+                </button>
+                <button
+                  onClick={() => setShowAddAccount(!showAddAccount)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+                  style={{ backgroundColor: THEME.primary }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+                >
+                  <PlusCircle size={20} />
+                  Add Account
+                </button>
+              </div>
             </div>
 
             {/* Add Account Form */}
@@ -1949,6 +2092,86 @@ const BudgetApp = ({ session }) => {
               </div>
             )}
 
+            {/* Transfer Form */}
+            {showTransfer && (
+              <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: '#d1fae5', borderColor: THEME.success }}>
+                <h3 className="font-semibold text-gray-800 mb-4">Transfer Between Accounts</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">From Account *</label>
+                    <select
+                      value={transfer.fromAccountId}
+                      onChange={(e) => setTransfer({ ...transfer, fromAccountId: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select source account</option>
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} ({formatCurrency(account.balance)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">To Account *</label>
+                    <select
+                      value={transfer.toAccountId}
+                      onChange={(e) => setTransfer({ ...transfer, toAccountId: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select destination account</option>
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} ({formatCurrency(account.balance)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={transfer.amount}
+                      onChange={(e) => setTransfer({ ...transfer, amount: e.target.value })}
+                      placeholder="0.00"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                    <input
+                      type="text"
+                      value={transfer.description}
+                      onChange={(e) => setTransfer({ ...transfer, description: e.target.value })}
+                      placeholder="Transfer description..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={handleTransfer}
+                    className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+                    style={{ backgroundColor: THEME.success }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.successHover}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
+                  >
+                    Transfer Money
+                  </button>
+                  <button
+                    onClick={() => setShowTransfer(false)}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Account List */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {accounts.length === 0 ? (
@@ -1987,10 +2210,10 @@ const BudgetApp = ({ session }) => {
                       <div className="border-t border-blue-200 pt-3">
                         <p className="text-xs text-gray-600 mb-1">Current Balance</p>
                         <p className="text-2xl font-bold" style={{ color: account.balance >= 0 ? THEME.success : THEME.danger }}>
-                          ${account.balance.toFixed(2)}
+                          {formatCurrency(account.balance)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Started with: ${account.starting_balance.toFixed(2)}
+                          Started with: {formatCurrency(account.starting_balance)}
                         </p>
                       </div>
                     </div>
@@ -2204,7 +2427,7 @@ const BudgetApp = ({ session }) => {
                         className="text-xl font-bold"
                         style={{ color: rule.amount > 0 ? THEME.success : THEME.danger }}
                       >
-                        {rule.amount > 0 ? '+' : ''}${rule.amount.toFixed(2)}
+                        {formatCurrency(rule.amount)}
                       </span>
                       <button
                         onClick={() => handleToggleRecurring(rule.id)}
