@@ -53,7 +53,7 @@ const DashboardTab = ({
           <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalIncome)}</p>
           {hasActiveFilters && (
             <p className="text-xs text-gray-500 mt-1">
-              {filteredTransactions.filter(t => t.amount > 0).length} transaction(s)
+              {filteredTransactions.filter(t => t.amount > 0 && t.category !== 'Transfer').length} transaction(s)
             </p>
           )}
         </div>
@@ -68,7 +68,7 @@ const DashboardTab = ({
           <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalExpenses)}</p>
           {hasActiveFilters && (
             <p className="text-xs text-gray-500 mt-1">
-              {filteredTransactions.filter(t => t.amount < 0).length} transaction(s)
+              {filteredTransactions.filter(t => t.amount < 0 && t.category !== 'Transfer').length} transaction(s)
             </p>
           )}
         </div>
