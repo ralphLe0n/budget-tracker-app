@@ -1,10 +1,11 @@
 import React from 'react';
-import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, BarChart3 } from 'lucide-react';
 import { THEME } from '../../config/theme';
 
 const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'charts', label: 'Charts', icon: BarChart3 },
     { id: 'accounts', label: 'Accounts', icon: Wallet },
     { id: 'categories', label: 'Categories', icon: Tag },
     { id: 'budgets', label: 'Budgets', icon: DollarSign },

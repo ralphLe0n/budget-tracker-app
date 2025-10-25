@@ -42,7 +42,7 @@ const DashboardTab = ({
   return (
     <>
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.success}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
@@ -103,39 +103,6 @@ const DashboardTab = ({
           </p>
         </div>
       </div>
-
-      {/* Savings Accounts Detail Widget */}
-      {savingsAccounts.length > 0 && (
-        <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl shadow-lg p-6 mb-8 border border-green-200">
-          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <DollarSign style={{ color: THEME.success }} size={24} />
-            Savings Accounts
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {savingsAccounts.map((account) => (
-              <div key={account.id} className="bg-white rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-gray-800">{account.name}</h4>
-                  <Wallet style={{ color: THEME.success }} size={20} />
-                </div>
-                <p className="text-2xl font-bold mb-1" style={{ color: THEME.success }}>
-                  {formatCurrency(account.balance)}
-                </p>
-                <p className="text-xs text-gray-500">
-                  Started with {formatCurrency(account.starting_balance)}
-                </p>
-                <div className="mt-2 pt-2 border-t border-gray-200">
-                  <p className="text-xs text-gray-600">
-                    Growth: <span className="font-semibold" style={{ color: account.balance >= account.starting_balance ? THEME.success : THEME.danger }}>
-                      {formatCurrency(account.balance - account.starting_balance)}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Filters Section */}
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
@@ -323,190 +290,10 @@ const DashboardTab = ({
         )}
       </div>
 
-      {/* Budget Categories */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">
-          Budget Overview {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
-        </h2>
-        <div className="space-y-4">
-          {budgets
-            .filter(budget => selectedCategories.length === 0 || selectedCategories.includes(budget.category))
-            .map((budget) => {
-            const actualSpent = spendingByCategory[budget.category] || 0;
-
-            const percentage = (actualSpent / budget.limit) * 100;
-            const isOverBudget = percentage > 100;
-            return (
-              <div key={budget.category}>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-semibold text-gray-700">{budget.category}</span>
-                  <span className="text-sm" style={{ color: isOverBudget ? THEME.danger : '#6b7280' }}>
-                    {formatCurrency(actualSpent)} / {formatCurrency(budget.limit)}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{
-                      width: `${Math.min(percentage, 100)}%`,
-                      backgroundColor: isOverBudget ? THEME.danger : percentage > 80 ? THEME.warning : THEME.success
-                    }}
-                  ></div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Pie Chart */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Spending by Category {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
-          </h3>
-          {categorySpendingData.length > 0 ? (
-            <div>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={categorySpendingData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {categorySpendingData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value)} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {categorySpendingData.map((item, index) => (
-                  <div key={item.name} className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    ></div>
-                    <span className="text-sm text-gray-700">{item.name}: {formatCurrency(item.value)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-500">
-              <p>No expense data to display</p>
-            </div>
-          )}
-        </div>
-
-        {/* Line Chart */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Monthly Trends {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
-          </h3>
-          {monthlyData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 12 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip
-                  formatter={(value) => formatCurrency(value)}
-                  labelFormatter={(label) => `Month: ${label}`}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="income"
-                  stroke={THEME.success}
-                  strokeWidth={2}
-                  name="Income"
-                  dot={{ r: 4 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="expenses"
-                  stroke={THEME.danger}
-                  strokeWidth={2}
-                  name="Expenses"
-                  dot={{ r: 4 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="balance"
-                  stroke={THEME.primary}
-                  strokeWidth={2}
-                  name="Balance"
-                  dot={{ r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-500">
-              <p>No data to display</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Budget vs Actual Chart */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">
-          Budget vs Actual Spending {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
-        </h3>
-        {categorySpendingData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart
-              data={budgets
-                .filter(budget => selectedCategories.length === 0 || selectedCategories.includes(budget.category))
-                .map(budget => {
-                  const actualSpent = spendingByCategory[budget.category] || 0;
-                  const remaining = budget.limit - actualSpent;
-                  return {
-                    category: budget.category,
-                    spent: actualSpent,
-                    remaining: remaining > 0 ? remaining : 0,
-                    overspent: remaining < 0 ? Math.abs(remaining) : 0
-                  };
-                })}
-              layout="vertical"
-              barSize={30}
-              barGap={8}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="category" type="category" width={100} />
-              <Tooltip formatter={(value) => formatCurrency(value)} />
-              <Legend />
-              <Bar dataKey="spent" stackId="a" fill={THEME.primary} name="Spent" />
-              <Bar dataKey="remaining" stackId="a" fill={THEME.success} name="Remaining" radius={[0, 8, 8, 0]} />
-              <Bar dataKey="overspent" stackId="a" fill={THEME.danger} name="Over Budget" radius={[0, 8, 8, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-[400px] flex items-center justify-center text-gray-500">
-            <p>No budget data to display</p>
-          </div>
-        )}
-      </div>
-
       {/* Transactions */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Recent Transactions</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Transactions</h2>
           <button
             onClick={() => setShowAddTransaction(!showAddTransaction)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
@@ -664,6 +451,42 @@ const DashboardTab = ({
               </div>
             </div>
           )))}
+        </div>
+      </div>
+
+      {/* Budget Categories */}
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          Budget Overview {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+        </h2>
+        <div className="space-y-4">
+          {budgets
+            .filter(budget => selectedCategories.length === 0 || selectedCategories.includes(budget.category))
+            .map((budget) => {
+            const actualSpent = spendingByCategory[budget.category] || 0;
+
+            const percentage = (actualSpent / budget.limit) * 100;
+            const isOverBudget = percentage > 100;
+            return (
+              <div key={budget.category}>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-semibold text-gray-700">{budget.category}</span>
+                  <span className="text-sm" style={{ color: isOverBudget ? THEME.danger : '#6b7280' }}>
+                    {formatCurrency(actualSpent)} / {formatCurrency(budget.limit)}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${Math.min(percentage, 100)}%`,
+                      backgroundColor: isOverBudget ? THEME.danger : percentage > 80 ? THEME.warning : THEME.success
+                    }}
+                  ></div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </>
