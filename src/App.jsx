@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Calendar, Trash2, Tag, Edit2, Save, X, Filter, LogOut, LayoutDashboard, Repeat, Wallet, CreditCard, ArrowLeftRight } from 'lucide-react';
+import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Calendar, Trash2, Tag, Edit2, Save, X, Filter, LogOut, LayoutDashboard, Repeat, Wallet, CreditCard, ArrowLeftRight, Menu } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { supabase } from './supabaseClient';
 import { THEME } from './config/theme';
@@ -21,6 +21,7 @@ const BudgetApp = ({ session }) => {
   // STATE DECLARATIONS
   // ========================================
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -992,10 +993,26 @@ const BudgetApp = ({ session }) => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onSignOut={handleSignOut}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+      <div className="flex-1 flex flex-col overflow-y-auto">
+        {/* Mobile Header with Hamburger Menu */}
+        <div className="md:hidden bg-white shadow-md p-4 flex items-center justify-between sticky top-0 z-30">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu size={24} className="text-gray-800" />
+          </button>
+          <h1 className="text-lg font-bold text-gray-800">Budget Tracker</h1>
+          <div className="w-10"></div> {/* Spacer for centering */}
+        </div>
+
+        <div className="flex-1 p-4 md:p-8">
         {activeTab === 'dashboard' && (
           <DashboardTab
             totalIncome={totalIncome}
@@ -1127,6 +1144,7 @@ const BudgetApp = ({ session }) => {
 
         {/* Error Display */}
         <ErrorDisplay error={error} onDismiss={() => setError(null)} />
+        </div>
       </div>
     </div>
   );
