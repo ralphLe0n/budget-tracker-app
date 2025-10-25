@@ -11,6 +11,7 @@ import ErrorDisplay from './components/ui/ErrorDisplay';
 import * as dataService from './services/dataService';
 import * as recurringService from './services/recurringService';
 import DashboardTab from './components/tabs/DashboardTab';
+import ChartsTab from './components/tabs/ChartsTab';
 import CategoriesTab from './components/tabs/CategoriesTab';
 import BudgetsTab from './components/tabs/BudgetsTab';
 import AccountsTab from './components/tabs/AccountsTab';
@@ -1046,6 +1047,17 @@ const BudgetApp = ({ session }) => {
             setNewTransaction={setNewTransaction}
             handleAddTransaction={handleAddTransaction}
             setDeleteConfirm={setDeleteConfirm}
+          />
+        )}
+
+        {activeTab === 'charts' && (
+          <ChartsTab
+            hasActiveFilters={hasActiveFilters}
+            categorySpendingData={categorySpendingData}
+            monthlyData={monthlyData}
+            budgets={budgets}
+            spendingByCategory={spendingByCategory}
+            selectedCategories={selectedCategories}
           />
         )}
 
