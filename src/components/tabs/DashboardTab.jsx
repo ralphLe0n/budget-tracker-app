@@ -42,7 +42,7 @@ const DashboardTab = ({
   return (
     <>
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-4 mb-8">
         <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.success}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
