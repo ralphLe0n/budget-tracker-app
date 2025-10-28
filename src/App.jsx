@@ -12,6 +12,7 @@ import * as dataService from './services/dataService';
 import * as recurringService from './services/recurringService';
 import { categorizeDescription } from './services/categorizationService';
 import DashboardTab from './components/tabs/DashboardTab';
+import TransactionsTab from './components/tabs/TransactionsTab';
 import ChartsTab from './components/tabs/ChartsTab';
 import CategoriesTab from './components/tabs/CategoriesTab';
 import BudgetsTab from './components/tabs/BudgetsTab';
@@ -48,6 +49,8 @@ const BudgetApp = ({ session }) => {
   const [newCategoryLimit, setNewCategoryLimit] = useState('');
   const [addBudgetWithCategory, setAddBudgetWithCategory] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: null, id: null, name: '' });
+  const [categoryChangeDialog, setCategoryChangeDialog] = useState({ show: false, transaction: null });
+  const [newCategoryForTransaction, setNewCategoryForTransaction] = useState('');
   const [editingRecurring, setEditingRecurring] = useState(null);
   const [editingRecurringData, setEditingRecurringData] = useState({
     description: '',
@@ -638,6 +641,73 @@ const BudgetApp = ({ session }) => {
     setEditingCategoryLimit(budget.limit.toString());
   };
 
+  const handleRenameCategory = async (oldName, newName) => {
+    if (!newName || oldName === newName) return;
+
+    try {
+      setIsLoading(true);
+
+      // Check if new name already exists
+      if (categories.includes(newName)) {
+        setError('A category with this name already exists');
+        return;
+      }
+
+      // Update category in categories table
+      const { error: catError } = await supabase
+        .from('categories')
+        .update({ name: newName })
+        .eq('name', oldName)
+        .eq('user_id', session.user.id);
+
+      if (catError) throw catError;
+
+      // Update transactions with this category
+      const { error: transError } = await supabase
+        .from('transactions')
+        .update({ category: newName })
+        .eq('category', oldName)
+        .eq('user_id', session.user.id);
+
+      if (transError) throw transError;
+
+      // Update budgets with this category
+      const { error: budgetError } = await supabase
+        .from('budgets')
+        .update({ category: newName })
+        .eq('category', oldName)
+        .eq('user_id', session.user.id);
+
+      if (budgetError) throw budgetError;
+
+      // Update category rules with this category
+      const { error: rulesError } = await supabase
+        .from('category_rules')
+        .update({ category: newName })
+        .eq('category', oldName)
+        .eq('user_id', session.user.id);
+
+      if (rulesError) throw rulesError;
+
+      // Update local state
+      setCategories(categories.map(c => c === oldName ? newName : c));
+      setTransactions(transactions.map(t =>
+        t.category === oldName ? { ...t, category: newName } : t
+      ));
+      setBudgets(budgets.map(b =>
+        b.category === oldName ? { ...b, category: newName } : b
+      ));
+      setCategoryRules(categoryRules.map(r =>
+        r.category === oldName ? { ...r, category: newName } : r
+      ));
+    } catch (error) {
+      console.error('Error renaming category:', error);
+      setError('Failed to rename category: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const cancelEditingCategory = () => {
     setEditingCategory(null);
     setEditingCategoryName('');
@@ -1121,6 +1191,80 @@ const BudgetApp = ({ session }) => {
     }
   };
 
+  // Category change handlers
+  const handleCategoryChangeClick = (transaction) => {
+    setCategoryChangeDialog({ show: true, transaction });
+    setNewCategoryForTransaction(transaction.category || '');
+  };
+
+  const handleCategoryChange = async () => {
+    const { transaction } = categoryChangeDialog;
+    if (!transaction || !newCategoryForTransaction) return;
+
+    try {
+      setIsLoading(true);
+
+      // Get the old category for budget adjustment
+      const oldCategory = transaction.category;
+      const newCategory = newCategoryForTransaction;
+
+      // Update in Supabase
+      const { error } = await supabase
+        .from('transactions')
+        .update({ category: newCategory })
+        .eq('id', transaction.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setTransactions(transactions.map(t =>
+        t.id === transaction.id ? { ...t, category: newCategory } : t
+      ));
+
+      // Update budget spent amounts if the transaction is an expense
+      if (transaction.amount < 0) {
+        // Remove from old budget
+        if (oldCategory) {
+          const oldBudget = budgets.find(b => b.category === oldCategory);
+          if (oldBudget) {
+            const newSpent = Math.max(0, oldBudget.spent - Math.abs(transaction.amount));
+            await supabase
+              .from('budgets')
+              .update({ spent: newSpent })
+              .eq('id', oldBudget.id);
+
+            setBudgets(budgets.map(b =>
+              b.id === oldBudget.id ? { ...b, spent: newSpent } : b
+            ));
+          }
+        }
+
+        // Add to new budget
+        const newBudget = budgets.find(b => b.category === newCategory);
+        if (newBudget) {
+          const newSpent = newBudget.spent + Math.abs(transaction.amount);
+          await supabase
+            .from('budgets')
+            .update({ spent: newSpent })
+            .eq('id', newBudget.id);
+
+          setBudgets(budgets.map(b =>
+            b.id === newBudget.id ? { ...b, spent: newSpent } : b
+          ));
+        }
+      }
+
+      // Close dialog
+      setCategoryChangeDialog({ show: false, transaction: null });
+      setNewCategoryForTransaction('');
+    } catch (error) {
+      console.error('Error changing category:', error);
+      setError('Failed to change category: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Helper function to handle delete confirmation
   const handleDeleteConfirm = () => {
     if (deleteConfirm.type === 'transaction') {
@@ -1197,6 +1341,30 @@ const BudgetApp = ({ session }) => {
             handleAddTransaction={handleAddTransaction}
             setDeleteConfirm={setDeleteConfirm}
             setShowCSVImport={setShowCSVImport}
+            setActiveTab={setActiveTab}
+            onCategoryChange={handleCategoryChangeClick}
+          />
+        )}
+
+        {activeTab === 'transactions' && (
+          <TransactionsTab
+            filteredTransactions={filteredTransactions}
+            hasActiveFilters={hasActiveFilters}
+            showFilters={showFilters}
+            setShowFilters={setShowFilters}
+            clearFilters={clearFilters}
+            filterStartDate={filterStartDate}
+            setFilterStartDate={setFilterStartDate}
+            filterEndDate={filterEndDate}
+            setFilterEndDate={setFilterEndDate}
+            filterDescription={filterDescription}
+            setFilterDescription={setFilterDescription}
+            selectedCategories={selectedCategories}
+            setSelectedCategories={setSelectedCategories}
+            categories={categories}
+            toggleCategoryFilter={toggleCategoryFilter}
+            setDeleteConfirm={setDeleteConfirm}
+            onCategoryChange={handleCategoryChangeClick}
           />
         )}
 
@@ -1225,6 +1393,7 @@ const BudgetApp = ({ session }) => {
             setNewCategoryLimit={setNewCategoryLimit}
             onAddCategory={handleAddCategory}
             onDeleteCategory={(category) => setDeleteConfirm({ show: true, type: 'category-only', id: category, name: category })}
+            onRenameCategory={handleRenameCategory}
             categoryRules={categoryRules}
             onAddRule={handleAddCategoryRule}
             onUpdateRule={handleUpdateCategoryRule}
@@ -1315,6 +1484,89 @@ const BudgetApp = ({ session }) => {
           onCancel={() => setDeleteConfirm({ show: false, type: null, id: null, name: '' })}
           isLoading={isLoading}
         />
+
+        {/* Category Change Dialog */}
+        {categoryChangeDialog.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Change Transaction Category</h3>
+              <p className="text-gray-600 mb-4">
+                Transaction: <span className="font-semibold">{categoryChangeDialog.transaction?.description}</span>
+              </p>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Category
+                </label>
+                <select
+                  value={newCategoryForTransaction}
+                  onChange={(e) => setNewCategoryForTransaction(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  style={{ focusRing: THEME.primary }}
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600 mb-2">Or add a new category:</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="New category name"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && newCategoryName.trim()) {
+                          handleAddCategory();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (newCategoryName.trim()) {
+                          await handleAddCategory();
+                          setNewCategoryForTransaction(newCategoryName);
+                        }
+                      }}
+                      disabled={!newCategoryName.trim()}
+                      className="px-4 py-2 rounded-lg font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: THEME.primary }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCategoryChange}
+                  disabled={!newCategoryForTransaction || isLoading}
+                  className="flex-1 px-6 py-2 rounded-lg font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: THEME.primary }}
+                >
+                  {isLoading ? 'Changing...' : 'Change Category'}
+                </button>
+                <button
+                  onClick={() => {
+                    setCategoryChangeDialog({ show: false, transaction: null });
+                    setNewCategoryForTransaction('');
+                  }}
+                  disabled={isLoading}
+                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Loading Overlay */}
         <LoadingOverlay isLoading={isLoading} />

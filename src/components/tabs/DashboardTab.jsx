@@ -36,9 +36,15 @@ const DashboardTab = ({
   setNewTransaction,
   handleAddTransaction,
   setDeleteConfirm,
-  setShowCSVImport
+  setShowCSVImport,
+  setActiveTab,
+  onCategoryChange
 }) => {
   const COLORS = THEME.chartColors;
+
+  // Show only last 10 transactions on dashboard
+  const displayedTransactions = filteredTransactions.slice(0, 10);
+  const hasMoreTransactions = filteredTransactions.length > 10;
 
   return (
     <>
@@ -422,54 +428,87 @@ const DashboardTab = ({
               <p className="text-sm">Try adjusting your filters or add a new transaction</p>
             </div>
           ) : (
-            filteredTransactions.map((transaction) => (
-            <div
-              key={transaction.id}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              <div className="flex items-center gap-4 flex-1">
+            <>
+              {displayedTransactions.map((transaction) => (
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight }}
+                  key={transaction.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                 >
-                  {transaction.amount > 0 ? (
-                    <TrendingUp style={{ color: THEME.success }} size={20} />
-                  ) : (
-                    <TrendingDown style={{ color: THEME.danger }} size={20} />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-800">{transaction.description}</p>
-                  <div className="flex gap-4 text-sm text-gray-600 mt-1">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={14} />
-                      {transaction.date}
+                  <div className="flex items-center gap-4 flex-1">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight }}
+                    >
+                      {transaction.amount > 0 ? (
+                        <TrendingUp style={{ color: THEME.success }} size={20} />
+                      ) : (
+                        <TrendingDown style={{ color: THEME.danger }} size={20} />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800">{transaction.description}</p>
+                      <div className="flex gap-4 text-sm text-gray-600 mt-1">
+                        <span className="flex items-center gap-1">
+                          <Calendar size={14} />
+                          {transaction.date}
+                        </span>
+                        <button
+                          onClick={() => onCategoryChange && onCategoryChange(transaction)}
+                          className="px-2 py-0.5 rounded-full text-xs font-medium hover:opacity-80 transition-opacity cursor-pointer"
+                          style={{ backgroundColor: THEME.primaryLight, color: THEME.primary }}
+                          title="Click to change category"
+                        >
+                          {transaction.category}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span
+                      className="text-xl font-bold"
+                      style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+                    >
+                      {formatCurrency(transaction.amount)}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: THEME.primaryLight, color: THEME.primary }}>
-                      {transaction.category}
-                    </span>
+                    <button
+                      onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                      className="transition-colors p-2"
+                      style={{ color: THEME.danger }}
+                      onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
+                      onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <span
-                  className="text-xl font-bold"
-                  style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-                >
-                  {formatCurrency(transaction.amount)}
-                </span>
-                <button
-                  onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                  className="transition-colors p-2"
-                  style={{ color: THEME.danger }}
-                  onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
-                  onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
-          )))}
+              ))}
+
+              {/* Show More Button */}
+              {hasMoreTransactions && (
+                <div className="text-center pt-4">
+                  <button
+                    onClick={() => setActiveTab('transactions')}
+                    className="px-6 py-3 rounded-lg transition-colors font-medium"
+                    style={{
+                      backgroundColor: THEME.primaryLight,
+                      color: THEME.primary,
+                      border: `2px solid ${THEME.primary}`
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = THEME.primary;
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = THEME.primaryLight;
+                      e.currentTarget.style.color = THEME.primary;
+                    }}
+                  >
+                    Show More Transactions ({filteredTransactions.length - 10} more)
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
