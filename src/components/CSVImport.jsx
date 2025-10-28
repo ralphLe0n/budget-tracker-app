@@ -4,7 +4,7 @@ import { Upload, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { THEME } from '../config/theme';
 import { categorizeDescription } from '../services/categorizationService';
 
-const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose }) => {
+const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, existingTransactions = [] }) => {
   const [file, setFile] = useState(null);
   const [csvData, setCsvData] = useState([]);
   const [headers, setHeaders] = useState([]);
@@ -21,6 +21,10 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose }) =
   const [separator, setSeparator] = useState(',');
   const [headerRowNumber, setHeaderRowNumber] = useState(1);
   const [rawFileData, setRawFileData] = useState(null);
+  const [duplicateOption, setDuplicateOption] = useState('skip'); // 'skip', 'import', 'review'
+  const [duplicates, setDuplicates] = useState([]);
+  const [newTransactions, setNewTransactions] = useState([]);
+  const [selectedDuplicates, setSelectedDuplicates] = useState(new Set());
 
   const parseCSVFile = (fileData, delimiter, skipRows) => {
     Papa.parse(fileData, {
@@ -177,6 +181,38 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose }) =
 
   const handleNextStep = () => {
     if (validateMapping()) {
+      // Parse all transactions
+      const transactions = csvData.map(row => {
+        const amount = parseAmount(row[columnMapping.amount]);
+        const description = row[columnMapping.description] || 'Imported transaction';
+
+        let category;
+        if (columnMapping.category && row[columnMapping.category]) {
+          category = row[columnMapping.category];
+        } else {
+          const autoCategory = categorizeDescription(description, categoryRules || []);
+          category = autoCategory || (amount > 0 ? 'Income' : 'Other');
+        }
+
+        return {
+          date: parseDate(row[columnMapping.date]),
+          description: description,
+          amount: amount,
+          category: category,
+          account_id: selectedAccount
+        };
+      });
+
+      // Detect duplicates
+      const { duplicates: dups, newTransactions: newTxns } = detectDuplicates(transactions);
+      setDuplicates(dups);
+      setNewTransactions(newTxns);
+
+      // If in review mode, select all duplicates for import by default
+      if (duplicateOption === 'review') {
+        setSelectedDuplicates(new Set());
+      }
+
       setStep(3);
     }
   };
@@ -210,24 +246,72 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose }) =
   const parseDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
 
-    // Try to parse various date formats
-    const date = new Date(dateStr);
+    // Clean the string
+    const cleaned = dateStr.toString().trim();
 
+    // Try DD/MM/YYYY or DD-MM-YYYY format first (most common for European/international banks)
+    const parts = cleaned.split(/[\/\-\.]/);
+    if (parts.length === 3) {
+      const [first, second, third] = parts.map(p => parseInt(p));
+
+      // Determine format based on values
+      // If first value is > 12 or (first <= 31 AND second <= 12), it's likely DD/MM/YYYY
+      if (first > 12 || (first <= 31 && second <= 12)) {
+        // DD/MM/YYYY format
+        const day = first;
+        const month = second;
+        const year = third > 100 ? third : (third > 50 ? 1900 + third : 2000 + third);
+
+        // Validate
+        if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+          return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+      }
+
+      // Try MM/DD/YYYY format as fallback
+      if (second <= 31 && first <= 12) {
+        const month = first;
+        const day = second;
+        const year = third > 100 ? third : (third > 50 ? 1900 + third : 2000 + third);
+
+        if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+          return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+      }
+    }
+
+    // Try ISO format or other standard formats
+    const date = new Date(cleaned);
     if (!isNaN(date.getTime())) {
       return date.toISOString().split('T')[0];
     }
 
-    // Try DD/MM/YYYY or DD-MM-YYYY format
-    const parts = dateStr.split(/[\/\-\.]/);
-    if (parts.length === 3) {
-      // Assume DD/MM/YYYY if first part is <= 31
-      if (parseInt(parts[0]) <= 31) {
-        const [day, month, year] = parts;
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-      }
-    }
-
     return new Date().toISOString().split('T')[0];
+  };
+
+  const detectDuplicates = (incomingTransactions) => {
+    const duplicateList = [];
+    const newList = [];
+
+    incomingTransactions.forEach(incoming => {
+      // Check if this transaction matches any existing transaction
+      const isDuplicate = existingTransactions.some(existing => {
+        // Compare date, description, and amount
+        const sameDate = existing.date === incoming.date;
+        const sameDescription = existing.description.toLowerCase().trim() === incoming.description.toLowerCase().trim();
+        const sameAmount = Math.abs(existing.amount - incoming.amount) < 0.01; // Allow small floating point differences
+
+        return sameDate && sameDescription && sameAmount;
+      });
+
+      if (isDuplicate) {
+        duplicateList.push(incoming);
+      } else {
+        newList.push(incoming);
+      }
+    });
+
+    return { duplicates: duplicateList, newTransactions: newList };
   };
 
   const handleImport = async () => {
@@ -237,33 +321,22 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose }) =
     setError('');
 
     try {
-      const transactions = csvData.map(row => {
-        const amount = parseAmount(row[columnMapping.amount]);
-        const description = row[columnMapping.description] || 'Imported transaction';
+      // Determine which transactions to import based on duplicate option
+      let transactionsToImport = [];
 
-        // Determine category with priority:
-        // 1. Category from CSV column (if mapped and exists)
-        // 2. Auto-categorization from rules
-        // 3. Default based on amount (Income/Other)
-        let category;
-        if (columnMapping.category && row[columnMapping.category]) {
-          category = row[columnMapping.category];
-        } else {
-          // Try auto-categorization
-          const autoCategory = categorizeDescription(description, categoryRules || []);
-          category = autoCategory || (amount > 0 ? 'Income' : 'Other');
-        }
+      if (duplicateOption === 'skip') {
+        // Import only new transactions
+        transactionsToImport = newTransactions;
+      } else if (duplicateOption === 'import') {
+        // Import everything (new + duplicates)
+        transactionsToImport = [...newTransactions, ...duplicates];
+      } else if (duplicateOption === 'review') {
+        // Import new transactions + selected duplicates
+        const selectedDupsArray = duplicates.filter((_, index) => selectedDuplicates.has(index));
+        transactionsToImport = [...newTransactions, ...selectedDupsArray];
+      }
 
-        return {
-          date: parseDate(row[columnMapping.date]),
-          description: description,
-          amount: amount,
-          category: category,
-          account_id: selectedAccount
-        };
-      });
-
-      await onImport(transactions);
+      await onImport(transactionsToImport);
 
       // Reset form
       setFile(null);
@@ -568,42 +641,178 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose }) =
               <div>
                 <h3 className="text-lg font-semibold mb-2">Review Import</h3>
                 <p className="text-gray-600">
-                  Preview of the first 5 transactions (Total: {csvData.length} transactions)
+                  Found {newTransactions.length} new transaction(s) and {duplicates.length} duplicate(s)
                 </p>
               </div>
 
-              {/* Preview Table */}
-              <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {getPreviewData().map((row, idx) => (
-                      <tr key={idx}>
-                        <td className="px-4 py-3 text-sm text-gray-900">{row.date}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{row.description}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{row.amount}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{row.category}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Duplicate Detection Summary */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={20} className="text-green-600" />
+                    <div>
+                      <p className="font-semibold text-green-900">{newTransactions.length} New</p>
+                      <p className="text-sm text-green-700">Unique transactions</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle size={20} className="text-orange-600" />
+                    <div>
+                      <p className="font-semibold text-orange-900">{duplicates.length} Duplicates</p>
+                      <p className="text-sm text-orange-700">Already exist in system</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
+              {/* Duplicate Handling Options */}
+              {duplicates.length > 0 && (
+                <div className="border border-gray-300 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-800 mb-3">How to handle duplicates?</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="duplicateOption"
+                        value="skip"
+                        checked={duplicateOption === 'skip'}
+                        onChange={(e) => setDuplicateOption(e.target.value)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <p className="font-medium text-gray-900">Skip duplicates (Recommended)</p>
+                        <p className="text-sm text-gray-600">Import only {newTransactions.length} new transactions</p>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="duplicateOption"
+                        value="import"
+                        checked={duplicateOption === 'import'}
+                        onChange={(e) => setDuplicateOption(e.target.value)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <p className="font-medium text-gray-900">Import all anyway</p>
+                        <p className="text-sm text-gray-600">Import all {newTransactions.length + duplicates.length} transactions (including duplicates)</p>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="duplicateOption"
+                        value="review"
+                        checked={duplicateOption === 'review'}
+                        onChange={(e) => setDuplicateOption(e.target.value)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <p className="font-medium text-gray-900">Let me review duplicates</p>
+                        <p className="text-sm text-gray-600">Choose which duplicates to import</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Review Duplicates Table */}
+              {duplicateOption === 'review' && duplicates.length > 0 && (
+                <div className="border border-orange-300 rounded-lg p-4 bg-orange-50">
+                  <h4 className="font-semibold text-gray-800 mb-3">Select duplicates to import:</h4>
+                  <div className="overflow-x-auto bg-white rounded border border-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedDuplicates(new Set(duplicates.map((_, i) => i)));
+                                } else {
+                                  setSelectedDuplicates(new Set());
+                                }
+                              }}
+                              checked={selectedDuplicates.size === duplicates.length}
+                            />
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {duplicates.map((dup, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedDuplicates.has(idx)}
+                                onChange={(e) => {
+                                  const newSet = new Set(selectedDuplicates);
+                                  if (e.target.checked) {
+                                    newSet.add(idx);
+                                  } else {
+                                    newSet.delete(idx);
+                                  }
+                                  setSelectedDuplicates(newSet);
+                                }}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{dup.date}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{dup.description}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{dup.amount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Preview New Transactions */}
+              {newTransactions.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-3">Preview of new transactions (first 5):</h4>
+                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {newTransactions.slice(0, 5).map((txn, idx) => (
+                          <tr key={idx}>
+                            <td className="px-4 py-3 text-sm text-gray-900">{txn.date}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{txn.description}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{txn.amount}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500">{txn.category}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Import Summary */}
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-start gap-2">
                   <CheckCircle size={20} className="text-blue-500 mt-0.5" />
                   <div>
                     <p className="font-medium text-blue-900">Ready to import</p>
                     <p className="text-sm text-blue-700 mt-1">
-                      {csvData.length} transactions will be imported to{' '}
-                      <strong>{accounts.find(a => a.id === selectedAccount)?.name}</strong>
+                      {duplicateOption === 'skip' && `${newTransactions.length} new transaction(s) will be imported`}
+                      {duplicateOption === 'import' && `${newTransactions.length + duplicates.length} transaction(s) will be imported (including ${duplicates.length} duplicate(s))`}
+                      {duplicateOption === 'review' && `${newTransactions.length + selectedDuplicates.size} transaction(s) will be imported (${newTransactions.length} new + ${selectedDuplicates.size} selected duplicate(s))`}
+                      {' '}to <strong>{accounts.find(a => a.id === selectedAccount)?.name}</strong>
                     </p>
                   </div>
                 </div>
@@ -630,7 +839,12 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose }) =
                   className="px-6 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: THEME.primary }}
                 >
-                  {importing ? 'Importing...' : `Import ${csvData.length} Transactions`}
+                  {importing ? 'Importing...' : duplicateOption === 'skip'
+                    ? `Import ${newTransactions.length} New Transaction${newTransactions.length !== 1 ? 's' : ''}`
+                    : duplicateOption === 'import'
+                    ? `Import All ${newTransactions.length + duplicates.length} Transaction${newTransactions.length + duplicates.length !== 1 ? 's' : ''}`
+                    : `Import ${newTransactions.length + selectedDuplicates.size} Transaction${newTransactions.length + selectedDuplicates.size !== 1 ? 's' : ''}`
+                  }
                 </button>
               </div>
             </div>

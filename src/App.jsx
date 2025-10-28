@@ -1471,6 +1471,7 @@ const BudgetApp = ({ session }) => {
             accounts={accounts}
             categories={categories}
             categoryRules={categoryRules}
+            existingTransactions={transactions}
             onImport={handleCSVImport}
             onClose={() => setShowCSVImport(false)}
           />
