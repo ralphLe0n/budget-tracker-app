@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Wallet, Calendar, Trash2, Filter } from 'lucide-react';
+import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Wallet, Calendar, Trash2, Filter, Upload } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
@@ -35,7 +35,8 @@ const DashboardTab = ({
   newTransaction,
   setNewTransaction,
   handleAddTransaction,
-  setDeleteConfirm
+  setDeleteConfirm,
+  setShowCSVImport
 }) => {
   const COLORS = THEME.chartColors;
 
@@ -294,16 +295,34 @@ const DashboardTab = ({
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Transactions</h2>
-          <button
-            onClick={() => setShowAddTransaction(!showAddTransaction)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
-            style={{ backgroundColor: THEME.primary }}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
-          >
-            <PlusCircle size={20} />
-            Add Transaction
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowCSVImport(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+              style={{ borderColor: THEME.primary, color: THEME.primary }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = THEME.primary;
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = THEME.primary;
+              }}
+            >
+              <Upload size={20} />
+              Import CSV
+            </button>
+            <button
+              onClick={() => setShowAddTransaction(!showAddTransaction)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+              style={{ backgroundColor: THEME.primary }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+            >
+              <PlusCircle size={20} />
+              Add Transaction
+            </button>
+          </div>
         </div>
 
         {/* Add Transaction Form */}

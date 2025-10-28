@@ -16,6 +16,7 @@ import CategoriesTab from './components/tabs/CategoriesTab';
 import BudgetsTab from './components/tabs/BudgetsTab';
 import AccountsTab from './components/tabs/AccountsTab';
 import RecurringTab from './components/tabs/RecurringTab';
+import CSVImport from './components/CSVImport';
 
 const BudgetApp = ({ session }) => {
   // ========================================
@@ -37,6 +38,7 @@ const BudgetApp = ({ session }) => {
   const [showAddRecurring, setShowAddRecurring] = useState(false);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [showAddBudget, setShowAddBudget] = useState(false);
+  const [showCSVImport, setShowCSVImport] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
   const [editingCategoryLimit, setEditingCategoryLimit] = useState('');
@@ -331,6 +333,99 @@ const BudgetApp = ({ session }) => {
       } finally {
         setIsLoading(false);
       }
+    }
+  };
+
+  const handleCSVImport = async (importedTransactions) => {
+    try {
+      setIsLoading(true);
+
+      // Add user_id to each transaction
+      const transactionsWithUserId = importedTransactions.map(t => ({
+        ...t,
+        user_id: session.user.id
+      }));
+
+      // Bulk insert into Supabase
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert(transactionsWithUserId)
+        .select();
+
+      if (error) throw error;
+
+      // Calculate account balance changes
+      const accountBalanceChanges = {};
+      data.forEach(trans => {
+        if (!accountBalanceChanges[trans.account_id]) {
+          accountBalanceChanges[trans.account_id] = 0;
+        }
+        accountBalanceChanges[trans.account_id] += parseFloat(trans.amount);
+      });
+
+      // Update account balances
+      for (const [accountId, balanceChange] of Object.entries(accountBalanceChanges)) {
+        const account = accounts.find(a => a.id === accountId);
+        if (account) {
+          const newBalance = account.balance + balanceChange;
+          await supabase
+            .from('accounts')
+            .update({ balance: newBalance })
+            .eq('id', accountId);
+
+          setAccounts(prev => prev.map(a =>
+            a.id === accountId ? { ...a, balance: newBalance } : a
+          ));
+        }
+      }
+
+      // Calculate budget spent changes
+      const budgetSpentChanges = {};
+      data.forEach(trans => {
+        if (parseFloat(trans.amount) < 0 && trans.category) {
+          if (!budgetSpentChanges[trans.category]) {
+            budgetSpentChanges[trans.category] = 0;
+          }
+          budgetSpentChanges[trans.category] += Math.abs(parseFloat(trans.amount));
+        }
+      });
+
+      // Update budget spent amounts
+      for (const [category, spentIncrease] of Object.entries(budgetSpentChanges)) {
+        const budget = budgets.find(b => b.category === category);
+        if (budget) {
+          const newSpent = budget.spent + spentIncrease;
+          await supabase
+            .from('budgets')
+            .update({ spent: newSpent })
+            .eq('id', budget.id);
+
+          setBudgets(prev => prev.map(b =>
+            b.id === budget.id ? { ...b, spent: newSpent } : b
+          ));
+        }
+      }
+
+      // Add to local state
+      const newTransactions = data.map(d => ({
+        id: d.id,
+        date: d.date,
+        description: d.description,
+        amount: parseFloat(d.amount),
+        category: d.category,
+        account_id: d.account_id
+      }));
+
+      setTransactions(prev => [...newTransactions, ...prev]);
+      setShowCSVImport(false);
+
+      alert(`Successfully imported ${data.length} transactions!`);
+    } catch (error) {
+      console.error('Error importing transactions:', error);
+      alert('Failed to import transactions: ' + error.message);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1047,6 +1142,7 @@ const BudgetApp = ({ session }) => {
             setNewTransaction={setNewTransaction}
             handleAddTransaction={handleAddTransaction}
             setDeleteConfirm={setDeleteConfirm}
+            setShowCSVImport={setShowCSVImport}
           />
         )}
 
@@ -1138,6 +1234,16 @@ const BudgetApp = ({ session }) => {
             handleStartEditRecurring={handleStartEditRecurring}
             handleCancelEditRecurring={handleCancelEditRecurring}
             handleSaveEditRecurring={handleSaveEditRecurring}
+          />
+        )}
+
+        {/* CSV Import Modal */}
+        {showCSVImport && (
+          <CSVImport
+            accounts={accounts}
+            categories={categories}
+            onImport={handleCSVImport}
+            onClose={() => setShowCSVImport(false)}
           />
         )}
 
