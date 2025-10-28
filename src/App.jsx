@@ -1367,6 +1367,12 @@ const BudgetApp = ({ session }) => {
             budgets={budgets}
             spendingByCategory={spendingByCategory}
             setShowCSVImport={setShowCSVImport}
+            accounts={accounts}
+            showAddTransaction={showAddTransaction}
+            setShowAddTransaction={setShowAddTransaction}
+            newTransaction={newTransaction}
+            setNewTransaction={setNewTransaction}
+            handleAddTransaction={handleAddTransaction}
           />
         )}
 

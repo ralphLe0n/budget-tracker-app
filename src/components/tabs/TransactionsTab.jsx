@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp, Upload } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
@@ -28,7 +28,13 @@ const TransactionsTab = ({
   monthlyData,
   budgets,
   spendingByCategory,
-  setShowCSVImport
+  setShowCSVImport,
+  accounts,
+  showAddTransaction,
+  setShowAddTransaction,
+  newTransaction,
+  setNewTransaction,
+  handleAddTransaction
 }) => {
   const COLORS = THEME.chartColors;
   const [chartsExpanded, setChartsExpanded] = useState(true);
@@ -38,21 +44,9 @@ const TransactionsTab = ({
   return (
     <>
       {/* Page Header */}
-      <div className="mb-8 flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Transactions & Analytics</h1>
-          <p className="text-gray-600 mt-2">Comprehensive view of your financial data</p>
-        </div>
-        <button
-          onClick={() => setShowCSVImport(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
-          style={{ backgroundColor: THEME.primary }}
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
-        >
-          <Upload size={20} />
-          Import CSV
-        </button>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Transactions & Analytics</h1>
+        <p className="text-gray-600 mt-2">Comprehensive view of your financial data</p>
       </div>
 
       {/* Charts Section */}
@@ -413,7 +407,7 @@ const TransactionsTab = ({
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <button
           onClick={() => setTransactionsExpanded(!transactionsExpanded)}
-          className="w-full flex justify-between items-center mb-6"
+          className="w-full flex justify-between items-center mb-4"
         >
           <h2 className="text-2xl font-bold text-gray-800">
             All Transactions
@@ -423,6 +417,129 @@ const TransactionsTab = ({
           </h2>
           {transactionsExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
         </button>
+
+        {transactionsExpanded && (
+          <>
+            {/* Action Buttons */}
+            <div className="flex gap-3 mb-6">
+              <button
+                onClick={() => setShowAddTransaction(!showAddTransaction)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+                style={{ backgroundColor: THEME.primary }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+              >
+                <PlusCircle size={20} />
+                Add Transaction
+              </button>
+              <button
+                onClick={() => setShowCSVImport(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+                style={{ borderColor: THEME.primary, color: THEME.primary }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = THEME.primary;
+                  e.currentTarget.style.color = 'white';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = THEME.primary;
+                }}
+              >
+                <Upload size={20} />
+                Import CSV
+              </button>
+            </div>
+
+            {/* Add Transaction Form */}
+            {showAddTransaction && (
+              <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
+                <h3 className="font-semibold text-gray-800 mb-4">New Transaction</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                    <input
+                      type="date"
+                      value={newTransaction.date}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Account *</label>
+                    <select
+                      value={newTransaction.account_id}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, account_id: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select Account</option>
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} ({formatCurrency(account.balance)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category (Optional)</label>
+                    <select
+                      value={newTransaction.category}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    >
+                      <option value="">No Category</option>
+                      {categories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <input
+                      type="text"
+                      value={newTransaction.description}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                      placeholder="Coffee shop, rent, etc."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Amount (negative for expenses)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newTransaction.amount}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+                      placeholder="-50.00 or 3000.00"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={handleAddTransaction}
+                    className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+                    style={{ backgroundColor: THEME.primary }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+                  >
+                    Save Transaction
+                  </button>
+                  <button
+                    onClick={() => setShowAddTransaction(false)}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {transactionsExpanded && (
           <div className="overflow-x-auto">
