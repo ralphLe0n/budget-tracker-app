@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlusCircle, Tag, Trash2 } from 'lucide-react';
 import { THEME } from '../../config/theme';
+import CategoryRulesManager from '../CategoryRulesManager';
 
 const CategoriesTab = ({
   categories,
@@ -14,10 +15,16 @@ const CategoriesTab = ({
   newCategoryLimit,
   setNewCategoryLimit,
   onAddCategory,
-  onDeleteCategory
+  onDeleteCategory,
+  categoryRules,
+  onAddRule,
+  onUpdateRule,
+  onDeleteRule
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
+    <div className="space-y-8">
+      {/* Categories Section */}
+      <div className="bg-white rounded-2xl shadow-lg p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Manage Categories</h2>
         <button
@@ -138,6 +145,18 @@ const CategoriesTab = ({
             </div>
           ))
         )}
+      </div>
+      </div>
+
+      {/* Auto-Categorization Rules Section */}
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <CategoryRulesManager
+          rules={categoryRules || []}
+          categories={categories}
+          onAddRule={onAddRule}
+          onUpdateRule={onUpdateRule}
+          onDeleteRule={onDeleteRule}
+        />
       </div>
     </div>
   );
