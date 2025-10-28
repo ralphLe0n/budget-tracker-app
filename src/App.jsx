@@ -239,12 +239,20 @@ const BudgetApp = ({ session }) => {
     const monthlyMap = {};
 
     filteredTransactions.forEach(t => {
-      if (t.category === 'Transfer') return; // Skip transfers
-
       const month = t.date.substring(0, 7);
       if (!monthlyMap[month]) {
-        monthlyMap[month] = { month, income: 0, expenses: 0 };
+        monthlyMap[month] = { month, income: 0, expenses: 0, savings: 0 };
       }
+
+      if (t.category === 'Transfer') {
+        // Track transfers to savings accounts as savings contributions
+        const toAccount = accounts.find(a => a.id === t.account_id);
+        if (toAccount && toAccount.type === 'savings' && t.amount > 0) {
+          monthlyMap[month].savings += t.amount;
+        }
+        return; // Skip other transfer calculations
+      }
+
       if (t.amount > 0) {
         monthlyMap[month].income += t.amount;
       } else {
@@ -258,7 +266,7 @@ const BudgetApp = ({ session }) => {
         ...item,
         balance: item.income - item.expenses
       }));
-  }, [filteredTransactions]);
+  }, [filteredTransactions, accounts]);
 
   const handleAddTransaction = async () => {
     if (newTransaction.description && newTransaction.amount && newTransaction.account_id) {
@@ -1354,6 +1362,10 @@ const BudgetApp = ({ session }) => {
             setDeleteConfirm={setDeleteConfirm}
             onCategoryChange={handleCategoryChange}
             onAddCategory={handleAddCategory}
+            categorySpendingData={categorySpendingData}
+            monthlyData={monthlyData}
+            budgets={budgets}
+            spendingByCategory={spendingByCategory}
           />
         )}
 

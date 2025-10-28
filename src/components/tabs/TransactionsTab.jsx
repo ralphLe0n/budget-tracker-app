@@ -1,5 +1,6 @@
-import React from 'react';
-import { TrendingUp, TrendingDown, Calendar, Trash2, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
 import CategorySelector from '../CategorySelector';
@@ -22,14 +23,194 @@ const TransactionsTab = ({
   toggleCategoryFilter,
   setDeleteConfirm,
   onCategoryChange,
-  onAddCategory
+  onAddCategory,
+  categorySpendingData,
+  monthlyData,
+  budgets,
+  spendingByCategory
 }) => {
+  const COLORS = THEME.chartColors;
+  const [chartsExpanded, setChartsExpanded] = useState(true);
+  const [budgetExpanded, setBudgetExpanded] = useState(true);
+  const [transactionsExpanded, setTransactionsExpanded] = useState(true);
+
   return (
     <>
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">All Transactions</h1>
-        <p className="text-gray-600 mt-2">View and manage all your transactions</p>
+        <h1 className="text-3xl font-bold text-gray-800">Transactions & Analytics</h1>
+        <p className="text-gray-600 mt-2">Comprehensive view of your financial data</p>
+      </div>
+
+      {/* Charts Section */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+        <button
+          onClick={() => setChartsExpanded(!chartsExpanded)}
+          className="w-full flex justify-between items-center mb-4"
+        >
+          <h2 className="text-2xl font-bold text-gray-800">
+            Charts & Trends {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+          </h2>
+          {chartsExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+        </button>
+
+        {chartsExpanded && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Pie Chart */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">Spending by Category</h3>
+              {categorySpendingData.length > 0 ? (
+                <div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={categorySpendingData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {categorySpendingData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {categorySpendingData.map((item, index) => (
+                      <div key={item.name} className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        ></div>
+                        <span className="text-sm text-gray-700">{item.name}: {formatCurrency(item.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                  <p>No expense data to display</p>
+                </div>
+              )}
+            </div>
+
+            {/* Line Chart */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Trends</h3>
+              {monthlyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      formatter={(value) => formatCurrency(value)}
+                      labelFormatter={(label) => `Month: ${label}`}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="income"
+                      stroke={THEME.success}
+                      strokeWidth={2}
+                      name="Income"
+                      dot={{ r: 4 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="expenses"
+                      stroke={THEME.danger}
+                      strokeWidth={2}
+                      name="Expenses"
+                      dot={{ r: 4 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="balance"
+                      stroke={THEME.primary}
+                      strokeWidth={2}
+                      name="Balance"
+                      dot={{ r: 4 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="savings"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      name="Savings"
+                      dot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                  <p>No data to display</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Budget vs Actual Section */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+        <button
+          onClick={() => setBudgetExpanded(!budgetExpanded)}
+          className="w-full flex justify-between items-center mb-4"
+        >
+          <h2 className="text-2xl font-bold text-gray-800">
+            Budget vs Actual {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+          </h2>
+          {budgetExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+        </button>
+
+        {budgetExpanded && (
+          categorySpendingData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart
+                data={budgets
+                  .filter(budget => selectedCategories.length === 0 || selectedCategories.includes(budget.category))
+                  .map(budget => {
+                    const actualSpent = spendingByCategory[budget.category] || 0;
+                    const remaining = budget.limit - actualSpent;
+                    return {
+                      category: budget.category,
+                      spent: actualSpent,
+                      remaining: remaining > 0 ? remaining : 0,
+                      overspent: remaining < 0 ? Math.abs(remaining) : 0
+                    };
+                  })}
+                layout="vertical"
+                barSize={30}
+                barGap={8}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis dataKey="category" type="category" width={100} />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Bar dataKey="spent" stackId="a" fill={THEME.primary} name="Spent" />
+                <Bar dataKey="remaining" stackId="a" fill={THEME.success} name="Remaining" radius={[0, 8, 8, 0]} />
+                <Bar dataKey="overspent" stackId="a" fill={THEME.danger} name="Over Budget" radius={[0, 8, 8, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[400px] flex items-center justify-center text-gray-500">
+              <p>No budget data to display</p>
+            </div>
+          )
+        )}
       </div>
 
       {/* Filters Section */}
@@ -220,76 +401,81 @@ const TransactionsTab = ({
 
       {/* Transactions List */}
       <div className="bg-white rounded-2xl shadow-lg p-6">
-        <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={() => setTransactionsExpanded(!transactionsExpanded)}
+          className="w-full flex justify-between items-center mb-6"
+        >
           <h2 className="text-2xl font-bold text-gray-800">
             All Transactions
             <span className="ml-3 text-sm text-gray-500 font-normal">
               ({filteredTransactions.length} total)
             </span>
           </h2>
-        </div>
+          {transactionsExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+        </button>
 
-        {/* Transaction List */}
-        <div className="space-y-3">
-          {filteredTransactions.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">No transactions found</p>
-              <p className="text-sm">Try adjusting your filters</p>
-            </div>
-          ) : (
-            filteredTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight }}
-                  >
-                    {transaction.amount > 0 ? (
-                      <TrendingUp style={{ color: THEME.success }} size={20} />
-                    ) : (
-                      <TrendingDown style={{ color: THEME.danger }} size={20} />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-800">{transaction.description}</p>
-                    <div className="flex gap-4 text-sm text-gray-600 mt-1 items-center">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={14} />
-                        {transaction.date}
-                      </span>
-                      <CategorySelector
-                        transaction={transaction}
-                        categories={categories}
-                        onCategoryChange={onCategoryChange}
-                        onAddCategory={onAddCategory}
-                      />
+        {transactionsExpanded && (
+          <div className="space-y-3">
+            {filteredTransactions.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg">No transactions found</p>
+                <p className="text-sm">Try adjusting your filters</p>
+              </div>
+            ) : (
+              filteredTransactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight }}
+                    >
+                      {transaction.amount > 0 ? (
+                        <TrendingUp style={{ color: THEME.success }} size={20} />
+                      ) : (
+                        <TrendingDown style={{ color: THEME.danger }} size={20} />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800">{transaction.description}</p>
+                      <div className="flex gap-4 text-sm text-gray-600 mt-1 items-center">
+                        <span className="flex items-center gap-1">
+                          <Calendar size={14} />
+                          {transaction.date}
+                        </span>
+                        <CategorySelector
+                          transaction={transaction}
+                          categories={categories}
+                          onCategoryChange={onCategoryChange}
+                          onAddCategory={onAddCategory}
+                        />
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-4">
+                    <span
+                      className="text-xl font-bold"
+                      style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+                    >
+                      {formatCurrency(transaction.amount)}
+                    </span>
+                    <button
+                      onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                      className="transition-colors p-2"
+                      style={{ color: THEME.danger }}
+                      onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
+                      onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span
-                    className="text-xl font-bold"
-                    style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-                  >
-                    {formatCurrency(transaction.amount)}
-                  </span>
-                  <button
-                    onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                    className="transition-colors p-2"
-                    style={{ color: THEME.danger }}
-                    onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
-                    onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </>
   );
