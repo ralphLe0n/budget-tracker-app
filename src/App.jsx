@@ -49,8 +49,6 @@ const BudgetApp = ({ session }) => {
   const [newCategoryLimit, setNewCategoryLimit] = useState('');
   const [addBudgetWithCategory, setAddBudgetWithCategory] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: null, id: null, name: '' });
-  const [categoryChangeDialog, setCategoryChangeDialog] = useState({ show: false, transaction: null });
-  const [newCategoryForTransaction, setNewCategoryForTransaction] = useState('');
   const [editingRecurring, setEditingRecurring] = useState(null);
   const [editingRecurringData, setEditingRecurringData] = useState({
     description: '',
@@ -1191,22 +1189,15 @@ const BudgetApp = ({ session }) => {
     }
   };
 
-  // Category change handlers
-  const handleCategoryChangeClick = (transaction) => {
-    setCategoryChangeDialog({ show: true, transaction });
-    setNewCategoryForTransaction(transaction.category || '');
-  };
-
-  const handleCategoryChange = async () => {
-    const { transaction } = categoryChangeDialog;
-    if (!transaction || !newCategoryForTransaction) return;
+  // Category change handler
+  const handleCategoryChange = async (transaction, newCategory) => {
+    if (!transaction || !newCategory) return;
 
     try {
       setIsLoading(true);
 
       // Get the old category for budget adjustment
       const oldCategory = transaction.category;
-      const newCategory = newCategoryForTransaction;
 
       // Update in Supabase
       const { error } = await supabase
@@ -1253,10 +1244,6 @@ const BudgetApp = ({ session }) => {
           ));
         }
       }
-
-      // Close dialog
-      setCategoryChangeDialog({ show: false, transaction: null });
-      setNewCategoryForTransaction('');
     } catch (error) {
       console.error('Error changing category:', error);
       setError('Failed to change category: ' + error.message);
@@ -1342,7 +1329,8 @@ const BudgetApp = ({ session }) => {
             setDeleteConfirm={setDeleteConfirm}
             setShowCSVImport={setShowCSVImport}
             setActiveTab={setActiveTab}
-            onCategoryChange={handleCategoryChangeClick}
+            onCategoryChange={handleCategoryChange}
+            onAddCategory={handleAddCategory}
           />
         )}
 
@@ -1364,7 +1352,8 @@ const BudgetApp = ({ session }) => {
             categories={categories}
             toggleCategoryFilter={toggleCategoryFilter}
             setDeleteConfirm={setDeleteConfirm}
-            onCategoryChange={handleCategoryChangeClick}
+            onCategoryChange={handleCategoryChange}
+            onAddCategory={handleAddCategory}
           />
         )}
 
@@ -1484,89 +1473,6 @@ const BudgetApp = ({ session }) => {
           onCancel={() => setDeleteConfirm({ show: false, type: null, id: null, name: '' })}
           isLoading={isLoading}
         />
-
-        {/* Category Change Dialog */}
-        {categoryChangeDialog.show && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Change Transaction Category</h3>
-              <p className="text-gray-600 mb-4">
-                Transaction: <span className="font-semibold">{categoryChangeDialog.transaction?.description}</span>
-              </p>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Category
-                </label>
-                <select
-                  value={newCategoryForTransaction}
-                  onChange={(e) => setNewCategoryForTransaction(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ focusRing: THEME.primary }}
-                >
-                  <option value="">Select a category</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600 mb-2">Or add a new category:</p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="New category name"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && newCategoryName.trim()) {
-                          handleAddCategory();
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={async () => {
-                        if (newCategoryName.trim()) {
-                          await handleAddCategory();
-                          setNewCategoryForTransaction(newCategoryName);
-                        }
-                      }}
-                      disabled={!newCategoryName.trim()}
-                      className="px-4 py-2 rounded-lg font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: THEME.primary }}
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCategoryChange}
-                  disabled={!newCategoryForTransaction || isLoading}
-                  className="flex-1 px-6 py-2 rounded-lg font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: THEME.primary }}
-                >
-                  {isLoading ? 'Changing...' : 'Change Category'}
-                </button>
-                <button
-                  onClick={() => {
-                    setCategoryChangeDialog({ show: false, transaction: null });
-                    setNewCategoryForTransaction('');
-                  }}
-                  disabled={isLoading}
-                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Loading Overlay */}
         <LoadingOverlay isLoading={isLoading} />

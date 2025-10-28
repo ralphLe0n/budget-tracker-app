@@ -3,6 +3,7 @@ import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Wallet, Calendar, Tra
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
+import CategorySelector from '../CategorySelector';
 
 const DashboardTab = ({
   totalIncome,
@@ -38,7 +39,8 @@ const DashboardTab = ({
   setDeleteConfirm,
   setShowCSVImport,
   setActiveTab,
-  onCategoryChange
+  onCategoryChange,
+  onAddCategory
 }) => {
   const COLORS = THEME.chartColors;
 
@@ -447,19 +449,17 @@ const DashboardTab = ({
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-gray-800">{transaction.description}</p>
-                      <div className="flex gap-4 text-sm text-gray-600 mt-1">
+                      <div className="flex gap-4 text-sm text-gray-600 mt-1 items-center">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
                           {transaction.date}
                         </span>
-                        <button
-                          onClick={() => onCategoryChange && onCategoryChange(transaction)}
-                          className="px-2 py-0.5 rounded-full text-xs font-medium hover:opacity-80 transition-opacity cursor-pointer"
-                          style={{ backgroundColor: THEME.primaryLight, color: THEME.primary }}
-                          title="Click to change category"
-                        >
-                          {transaction.category}
-                        </button>
+                        <CategorySelector
+                          transaction={transaction}
+                          categories={categories}
+                          onCategoryChange={onCategoryChange}
+                          onAddCategory={onAddCategory}
+                        />
                       </div>
                     </div>
                   </div>
