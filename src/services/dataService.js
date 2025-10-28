@@ -27,7 +27,10 @@ export const loadAllData = async (userId) => {
         description: t.description,
         amount: parseFloat(t.amount),
         category: t.category,
-        account_id: t.account_id
+        account_id: t.account_id,
+        transfer_id: t.transfer_id || null,
+        transfer_type: t.transfer_type || null,
+        comment: t.comment || ''
       }));
     }
 
@@ -124,7 +127,7 @@ export const loadAllData = async (userId) => {
 
 // Transaction operations
 export const addTransaction = async (transaction, userId) => {
-  const { data, error } = await supabase
+  const { data, error} = await supabase
     .from('transactions')
     .insert([{
       user_id: userId,
@@ -132,7 +135,10 @@ export const addTransaction = async (transaction, userId) => {
       description: transaction.description,
       amount: transaction.amount,
       category: transaction.category,
-      account_id: transaction.account_id
+      account_id: transaction.account_id,
+      transfer_id: transaction.transfer_id || null,
+      transfer_type: transaction.transfer_type || null,
+      comment: transaction.comment || null
     }])
     .select();
 
@@ -147,6 +153,28 @@ export const deleteTransaction = async (id) => {
     .eq('id', id);
 
   if (error) throw error;
+};
+
+export const updateTransaction = async (id, updates) => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .update(updates)
+    .eq('id', id)
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
+export const bulkUpdateTransactions = async (ids, updates) => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .update(updates)
+    .in('id', ids)
+    .select();
+
+  if (error) throw error;
+  return data;
 };
 
 // Category operations

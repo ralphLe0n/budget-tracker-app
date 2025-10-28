@@ -66,6 +66,7 @@ const BudgetApp = ({ session }) => {
     amount: '',
     category: '',
     account_id: '',
+    comment: '',
   });
 
   const [newAccount, setNewAccount] = useState({
@@ -246,11 +247,12 @@ const BudgetApp = ({ session }) => {
 
       if (t.category === 'Transfer') {
         // Track transfers to savings accounts as savings contributions
+        // Only count deposits (positive amounts) to savings to avoid double counting
         const toAccount = accounts.find(a => a.id === t.account_id);
-        if (toAccount && toAccount.type === 'savings' && t.amount > 0) {
+        if (toAccount && toAccount.type === 'savings' && t.amount > 0 && t.transfer_type === 'deposit') {
           monthlyMap[month].savings += t.amount;
         }
-        return; // Skip other transfer calculations
+        return; // Skip transfer from income/expense calculations
       }
 
       if (t.amount > 0) {
@@ -284,6 +286,7 @@ const BudgetApp = ({ session }) => {
         amount: parseFloat(newTransaction.amount),
         category: category,
         account_id: newTransaction.account_id,
+        comment: newTransaction.comment || null,
       };
 
       try {
@@ -304,7 +307,10 @@ const BudgetApp = ({ session }) => {
           description: data.description,
           amount: parseFloat(data.amount),
           category: data.category,
-          account_id: data.account_id
+          account_id: data.account_id,
+          comment: data.comment || '',
+          transfer_id: data.transfer_id || null,
+          transfer_type: data.transfer_type || null
         };
         setTransactions([newTrans, ...transactions]);
 
@@ -344,6 +350,7 @@ const BudgetApp = ({ session }) => {
           amount: '',
           category: '',
           account_id: '',
+          comment: '',
         });
         setShowAddTransaction(false);
       } catch (error) {
@@ -352,6 +359,131 @@ const BudgetApp = ({ session }) => {
       } finally {
         setIsLoading(false);
       }
+    }
+  };
+
+  const handleUpdateTransaction = async (transactionId, updates) => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('id', transactionId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state
+      setTransactions(transactions.map(t =>
+        t.id === transactionId ? { ...t, ...updates } : t
+      ));
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      alert('Failed to update transaction: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBulkUpdate = async (transactionIds, updates) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .in('id', transactionIds);
+
+      if (error) throw error;
+
+      // Update local state
+      setTransactions(transactions.map(t =>
+        transactionIds.includes(t.id) ? { ...t, ...updates } : t
+      ));
+
+      alert(`Successfully updated ${transactionIds.length} transaction(s)`);
+    } catch (error) {
+      console.error('Error bulk updating transactions:', error);
+      alert('Failed to update transactions: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConvertToTransfer = async (transactionId, destinationAccountId) => {
+    try {
+      setIsLoading(true);
+
+      const originalTransaction = transactions.find(t => t.id === transactionId);
+      if (!originalTransaction) {
+        throw new Error('Transaction not found');
+      }
+
+      const fromAccount = accounts.find(a => a.id === originalTransaction.account_id);
+      const toAccount = accounts.find(a => a.id === destinationAccountId);
+
+      if (!fromAccount || !toAccount) {
+        throw new Error('Invalid account selection');
+      }
+
+      // Generate a unique transfer ID (UUID)
+      const transferId = crypto.randomUUID();
+
+      // Determine transfer types based on amount direction
+      const isWithdrawal = originalTransaction.amount < 0;
+      const sourceTransferType = isWithdrawal ? 'withdrawal' : 'deposit';
+      const destTransferType = isWithdrawal ? 'deposit' : 'withdrawal';
+
+      // Update the original transaction
+      const { error: updateError } = await supabase
+        .from('transactions')
+        .update({
+          category: 'Transfer',
+          transfer_id: transferId,
+          transfer_type: sourceTransferType,
+          description: `Transfer: ${fromAccount.name} → ${toAccount.name}`
+        })
+        .eq('id', transactionId);
+
+      if (updateError) throw updateError;
+
+      // Create the counterpart transaction
+      const counterpartTransaction = {
+        user_id: session.user.id,
+        date: originalTransaction.date,
+        description: `Transfer: ${fromAccount.name} → ${toAccount.name}`,
+        amount: -originalTransaction.amount, // Opposite amount
+        category: 'Transfer',
+        account_id: destinationAccountId,
+        transfer_id: transferId,
+        transfer_type: destTransferType,
+        comment: originalTransaction.comment
+      };
+
+      const { data: newTrans, error: insertError } = await supabase
+        .from('transactions')
+        .insert([counterpartTransaction])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Update account balances
+      const balanceChange = -originalTransaction.amount;
+      await supabase
+        .from('accounts')
+        .update({ balance: toAccount.balance + balanceChange })
+        .eq('id', destinationAccountId);
+
+      // Reload data to ensure consistency
+      await loadDataFromSupabase();
+
+      alert('Transaction successfully converted to transfer');
+    } catch (error) {
+      console.error('Error converting to transfer:', error);
+      alert('Failed to convert to transfer: ' + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1081,6 +1213,9 @@ const BudgetApp = ({ session }) => {
         throw new Error('Invalid account selection');
       }
 
+      // Generate a unique transfer ID to link the transactions
+      const transferId = crypto.randomUUID();
+
       // Create two transactions: withdrawal from source, deposit to destination
       const description = transfer.description || `Transfer: ${fromAccount.name} → ${toAccount.name}`;
       const transactionDate = new Date().toISOString().split('T')[0];
@@ -1093,6 +1228,8 @@ const BudgetApp = ({ session }) => {
         amount: -amount,
         category: 'Transfer',
         account_id: transfer.fromAccountId,
+        transfer_id: transferId,
+        transfer_type: 'withdrawal',
       };
 
       // Deposit transaction
@@ -1103,6 +1240,8 @@ const BudgetApp = ({ session }) => {
         amount: amount,
         category: 'Transfer',
         account_id: transfer.toAccountId,
+        transfer_id: transferId,
+        transfer_type: 'deposit',
       };
 
       // Insert both transactions
@@ -1366,6 +1505,16 @@ const BudgetApp = ({ session }) => {
             monthlyData={monthlyData}
             budgets={budgets}
             spendingByCategory={spendingByCategory}
+            setShowCSVImport={setShowCSVImport}
+            accounts={accounts}
+            showAddTransaction={showAddTransaction}
+            setShowAddTransaction={setShowAddTransaction}
+            newTransaction={newTransaction}
+            setNewTransaction={setNewTransaction}
+            handleAddTransaction={handleAddTransaction}
+            onUpdateTransaction={handleUpdateTransaction}
+            onConvertToTransfer={handleConvertToTransfer}
+            onBulkUpdate={handleBulkUpdate}
           />
         )}
 
@@ -1471,6 +1620,7 @@ const BudgetApp = ({ session }) => {
             accounts={accounts}
             categories={categories}
             categoryRules={categoryRules}
+            existingTransactions={transactions}
             onImport={handleCSVImport}
             onClose={() => setShowCSVImport(false)}
           />

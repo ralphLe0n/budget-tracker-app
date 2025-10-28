@@ -1,12 +1,11 @@
 import React from 'react';
-import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, BarChart3, Receipt } from 'lucide-react';
+import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, Receipt } from 'lucide-react';
 import { THEME } from '../../config/theme';
 
 const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transactions', icon: Receipt },
-    { id: 'charts', label: 'Charts', icon: BarChart3 },
     { id: 'accounts', label: 'Accounts', icon: Wallet },
     { id: 'categories', label: 'Categories', icon: Tag },
     { id: 'budgets', label: 'Budgets', icon: DollarSign },
@@ -33,13 +32,13 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMo
 
       {/* Sidebar */}
       <div className={`
-        fixed md:static inset-y-0 left-0 z-50
-        w-64 bg-white shadow-2xl flex flex-col
+        fixed md:sticky md:top-0 inset-y-0 left-0 z-50
+        w-64 bg-white shadow-2xl flex flex-col md:h-screen
         transform transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Budget Tracker</h1>
             <p className="text-xs text-gray-500 mt-1">Manage your finances</p>
@@ -54,8 +53,8 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMo
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4">
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 p-4 overflow-y-auto">
           {navItems.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -74,8 +73,8 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMo
           ))}
         </nav>
 
-        {/* Logout Button */}
-        <div className="p-4 border-t border-gray-200">
+        {/* Logout Button - Sticky at bottom */}
+        <div className="p-4 border-t border-gray-200 flex-shrink-0">
           <button
             onClick={onSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium text-gray-700 hover:bg-gray-100"
