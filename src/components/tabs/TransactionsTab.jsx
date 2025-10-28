@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle, Edit2, Check, X, ArrowLeftRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
@@ -34,12 +34,72 @@ const TransactionsTab = ({
   setShowAddTransaction,
   newTransaction,
   setNewTransaction,
-  handleAddTransaction
+  handleAddTransaction,
+  onUpdateTransaction,
+  onConvertToTransfer,
+  onBulkUpdate
 }) => {
   const COLORS = THEME.chartColors;
   const [chartsExpanded, setChartsExpanded] = useState(true);
   const [budgetExpanded, setBudgetExpanded] = useState(true);
   const [transactionsExpanded, setTransactionsExpanded] = useState(true);
+  const [editingDescriptionId, setEditingDescriptionId] = useState(null);
+  const [editingDescription, setEditingDescription] = useState('');
+  const [selectedTransactions, setSelectedTransactions] = useState(new Set());
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [showConvertTransfer, setShowConvertTransfer] = useState(false);
+  const [convertingTransactionId, setConvertingTransactionId] = useState(null);
+  const [bulkEditData, setBulkEditData] = useState({ category: '', date: '', description: '' });
+
+  const handleStartEditDescription = (transaction) => {
+    setEditingDescriptionId(transaction.id);
+    setEditingDescription(transaction.description);
+  };
+
+  const handleSaveDescription = async (transactionId) => {
+    if (editingDescription.trim()) {
+      await onUpdateTransaction(transactionId, { description: editingDescription });
+      setEditingDescriptionId(null);
+      setEditingDescription('');
+    }
+  };
+
+  const handleCancelEditDescription = () => {
+    setEditingDescriptionId(null);
+    setEditingDescription('');
+  };
+
+  const toggleSelectTransaction = (id) => {
+    const newSelected = new Set(selectedTransactions);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedTransactions(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedTransactions.size === filteredTransactions.length) {
+      setSelectedTransactions(new Set());
+    } else {
+      setSelectedTransactions(new Set(filteredTransactions.map(t => t.id)));
+    }
+  };
+
+  const handleBulkEditSubmit = async () => {
+    const updates = {};
+    if (bulkEditData.category) updates.category = bulkEditData.category;
+    if (bulkEditData.date) updates.date = bulkEditData.date;
+    if (bulkEditData.description) updates.description = bulkEditData.description;
+
+    if (Object.keys(updates).length > 0) {
+      await onBulkUpdate(Array.from(selectedTransactions), updates);
+      setSelectedTransactions(new Set());
+      setShowBulkEdit(false);
+      setBulkEditData({ category: '', date: '', description: '' });
+    }
+  };
 
   return (
     <>
@@ -421,33 +481,66 @@ const TransactionsTab = ({
         {transactionsExpanded && (
           <>
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3 mb-6">
-              <button
-                onClick={() => setShowAddTransaction(!showAddTransaction)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
-                style={{ backgroundColor: THEME.primary }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
-              >
-                <PlusCircle size={20} />
-                Add Transaction
-              </button>
-              <button
-                onClick={() => setShowCSVImport(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
-                style={{ borderColor: THEME.primary, color: THEME.primary }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = THEME.primary;
-                  e.currentTarget.style.color = 'white';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = THEME.primary;
-                }}
-              >
-                <Upload size={20} />
-                Import CSV
-              </button>
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                {selectedTransactions.size > 0 && (
+                  <>
+                    <span className="text-sm font-medium text-gray-700">
+                      {selectedTransactions.size} selected
+                    </span>
+                    <button
+                      onClick={() => setShowBulkEdit(true)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+                      style={{ borderColor: THEME.primary, color: THEME.primary }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = THEME.primary;
+                        e.currentTarget.style.color = 'white';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = THEME.primary;
+                      }}
+                    >
+                      <Edit2 size={18} />
+                      Bulk Edit
+                    </button>
+                    <button
+                      onClick={() => setSelectedTransactions(new Set())}
+                      className="text-sm text-gray-600 hover:text-gray-800"
+                    >
+                      Clear Selection
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAddTransaction(!showAddTransaction)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+                  style={{ backgroundColor: THEME.primary }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+                >
+                  <PlusCircle size={20} />
+                  Add Transaction
+                </button>
+                <button
+                  onClick={() => setShowCSVImport(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+                  style={{ borderColor: THEME.primary, color: THEME.primary }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = THEME.primary;
+                    e.currentTarget.style.color = 'white';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = THEME.primary;
+                  }}
+                >
+                  <Upload size={20} />
+                  Import CSV
+                </button>
+              </div>
             </div>
 
             {/* Add Transaction Form */}
@@ -562,6 +655,14 @@ const TransactionsTab = ({
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b-2 border-gray-300">
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
+                        onChange={toggleSelectAll}
+                        className="cursor-pointer"
+                      />
+                    </th>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Type</th>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Description</th>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Date</th>
@@ -578,6 +679,14 @@ const TransactionsTab = ({
                         index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                       }`}
                     >
+                      <td className="px-3 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedTransactions.has(transaction.id)}
+                          onChange={() => toggleSelectTransaction(transaction.id)}
+                          className="cursor-pointer"
+                        />
+                      </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-center w-8 h-8 rounded-full" style={{ backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight }}>
                           {transaction.amount > 0 ? (
@@ -587,7 +696,48 @@ const TransactionsTab = ({
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-800 font-medium">{transaction.description}</td>
+                      <td className="px-3 py-2 text-sm text-gray-800 font-medium">
+                        {editingDescriptionId === transaction.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editingDescription}
+                              onChange={(e) => setEditingDescription(e.target.value)}
+                              className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:border-transparent"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveDescription(transaction.id);
+                                if (e.key === 'Escape') handleCancelEditDescription();
+                              }}
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleSaveDescription(transaction.id)}
+                              className="p-1 hover:bg-green-100 rounded"
+                              title="Save"
+                            >
+                              <Check size={16} style={{ color: THEME.success }} />
+                            </button>
+                            <button
+                              onClick={handleCancelEditDescription}
+                              className="p-1 hover:bg-red-100 rounded"
+                              title="Cancel"
+                            >
+                              <X size={16} style={{ color: THEME.danger }} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 group">
+                            <span>{transaction.description}</span>
+                            <button
+                              onClick={() => handleStartEditDescription(transaction)}
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity"
+                              title="Edit description"
+                            >
+                              <Edit2 size={14} className="text-gray-500" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-sm text-gray-600 whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
@@ -605,15 +755,30 @@ const TransactionsTab = ({
                       <td className="px-3 py-2 text-sm font-semibold text-right whitespace-nowrap" style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}>
                         {formatCurrency(transaction.amount)}
                       </td>
-                      <td className="px-3 py-2 text-center">
-                        <button
-                          onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-red-100"
-                          style={{ color: THEME.danger }}
-                          title="Delete transaction"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center justify-center gap-1">
+                          {transaction.category !== 'Transfer' && (
+                            <button
+                              onClick={() => {
+                                setConvertingTransactionId(transaction.id);
+                                setShowConvertTransfer(true);
+                              }}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-blue-100"
+                              style={{ color: THEME.primary }}
+                              title="Convert to Transfer"
+                            >
+                              <ArrowLeftRight size={16} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-red-100"
+                            style={{ color: THEME.danger }}
+                            title="Delete transaction"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -623,6 +788,127 @@ const TransactionsTab = ({
           </div>
         )}
       </div>
+
+      {/* Bulk Edit Modal */}
+      {showBulkEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Bulk Edit ({selectedTransactions.size} transactions)
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category (leave empty to keep current)
+                </label>
+                <select
+                  value={bulkEditData.category}
+                  onChange={(e) => setBulkEditData({ ...bulkEditData, category: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                >
+                  <option value="">Don't change</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date (leave empty to keep current)
+                </label>
+                <input
+                  type="date"
+                  value={bulkEditData.date}
+                  onChange={(e) => setBulkEditData({ ...bulkEditData, date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description (leave empty to keep current)
+                </label>
+                <input
+                  type="text"
+                  value={bulkEditData.description}
+                  onChange={(e) => setBulkEditData({ ...bulkEditData, description: e.target.value })}
+                  placeholder="New description for all selected"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleBulkEditSubmit}
+                className="flex-1 px-4 py-2 rounded-lg text-white font-medium transition-colors"
+                style={{ backgroundColor: THEME.primary }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+              >
+                Update All
+              </button>
+              <button
+                onClick={() => {
+                  setShowBulkEdit(false);
+                  setBulkEditData({ category: '', date: '', description: '' });
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Convert to Transfer Modal */}
+      {showConvertTransfer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Convert to Transfer
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              This will create a linked transaction in the destination account and mark both as transfers.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Destination Account *
+                </label>
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      onConvertToTransfer(convertingTransactionId, e.target.value);
+                      setShowConvertTransfer(false);
+                      setConvertingTransactionId(null);
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  defaultValue=""
+                >
+                  <option value="">Select account...</option>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({account.type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowConvertTransfer(false);
+                  setConvertingTransactionId(null);
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
