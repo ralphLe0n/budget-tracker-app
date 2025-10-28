@@ -1366,6 +1366,7 @@ const BudgetApp = ({ session }) => {
             monthlyData={monthlyData}
             budgets={budgets}
             spendingByCategory={spendingByCategory}
+            setShowCSVImport={setShowCSVImport}
           />
         )}
 

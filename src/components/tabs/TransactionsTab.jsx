@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
@@ -27,7 +27,8 @@ const TransactionsTab = ({
   categorySpendingData,
   monthlyData,
   budgets,
-  spendingByCategory
+  spendingByCategory,
+  setShowCSVImport
 }) => {
   const COLORS = THEME.chartColors;
   const [chartsExpanded, setChartsExpanded] = useState(true);
@@ -37,9 +38,21 @@ const TransactionsTab = ({
   return (
     <>
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Transactions & Analytics</h1>
-        <p className="text-gray-600 mt-2">Comprehensive view of your financial data</p>
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Transactions & Analytics</h1>
+          <p className="text-gray-600 mt-2">Comprehensive view of your financial data</p>
+        </div>
+        <button
+          onClick={() => setShowCSVImport(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+          style={{ backgroundColor: THEME.primary }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+        >
+          <Upload size={20} />
+          Import CSV
+        </button>
       </div>
 
       {/* Charts Section */}
