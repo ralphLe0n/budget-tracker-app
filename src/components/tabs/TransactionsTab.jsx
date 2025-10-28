@@ -421,7 +421,7 @@ const TransactionsTab = ({
         {transactionsExpanded && (
           <>
             {/* Action Buttons */}
-            <div className="flex gap-3 mb-6">
+            <div className="flex justify-end gap-3 mb-6">
               <button
                 onClick={() => setShowAddTransaction(!showAddTransaction)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
@@ -516,6 +516,16 @@ const TransactionsTab = ({
                       onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
                       placeholder="-50.00 or 3000.00"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Comment (Optional)</label>
+                    <textarea
+                      value={newTransaction.comment || ''}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, comment: e.target.value })}
+                      placeholder="Additional notes or details..."
+                      rows="2"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent resize-none"
                     />
                   </div>
                 </div>

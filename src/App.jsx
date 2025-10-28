@@ -66,6 +66,7 @@ const BudgetApp = ({ session }) => {
     amount: '',
     category: '',
     account_id: '',
+    comment: '',
   });
 
   const [newAccount, setNewAccount] = useState({
@@ -284,6 +285,7 @@ const BudgetApp = ({ session }) => {
         amount: parseFloat(newTransaction.amount),
         category: category,
         account_id: newTransaction.account_id,
+        comment: newTransaction.comment || null,
       };
 
       try {
@@ -304,7 +306,10 @@ const BudgetApp = ({ session }) => {
           description: data.description,
           amount: parseFloat(data.amount),
           category: data.category,
-          account_id: data.account_id
+          account_id: data.account_id,
+          comment: data.comment || '',
+          transfer_id: data.transfer_id || null,
+          transfer_type: data.transfer_type || null
         };
         setTransactions([newTrans, ...transactions]);
 
@@ -344,6 +349,7 @@ const BudgetApp = ({ session }) => {
           amount: '',
           category: '',
           account_id: '',
+          comment: '',
         });
         setShowAddTransaction(false);
       } catch (error) {
