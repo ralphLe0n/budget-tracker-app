@@ -17,6 +17,64 @@ const CSVImport = ({ accounts, categories, onImport, onClose }) => {
   const [step, setStep] = useState(1); // 1: Upload, 2: Map, 3: Review
   const [error, setError] = useState('');
   const [importing, setImporting] = useState(false);
+  const [separator, setSeparator] = useState(',');
+  const [headerRowNumber, setHeaderRowNumber] = useState(1);
+  const [rawFileData, setRawFileData] = useState(null);
+
+  const parseCSVFile = (fileData, delimiter, skipRows) => {
+    Papa.parse(fileData, {
+      complete: (results) => {
+        if (results.data && results.data.length > skipRows) {
+          // Skip the specified number of rows
+          const dataRows = results.data.slice(skipRows - 1);
+
+          if (dataRows.length === 0) {
+            setError('No data found after skipping rows');
+            return;
+          }
+
+          // First row after skip is the header
+          const headerRow = dataRows[0];
+          const detectedHeaders = headerRow;
+
+          // Rest are data rows
+          const dataOnlyRows = dataRows.slice(1);
+
+          // Convert array rows to objects using headers
+          const parsedData = dataOnlyRows
+            .filter(row => row.length > 0 && row.some(cell => cell && cell.trim()))
+            .map(row => {
+              const obj = {};
+              detectedHeaders.forEach((header, index) => {
+                obj[header] = row[index] || '';
+              });
+              return obj;
+            });
+
+          setHeaders(detectedHeaders);
+          setCsvData(parsedData);
+
+          // Try to auto-detect column mappings
+          const autoMapping = autoDetectColumns(detectedHeaders);
+          setColumnMapping(autoMapping);
+
+          setError('');
+
+          // Show success message
+          if (parsedData.length > 0) {
+            setError('');
+          }
+        } else {
+          setError('CSV file is empty or invalid');
+        }
+      },
+      error: (error) => {
+        setError(`Error parsing CSV: ${error.message}`);
+      },
+      delimiter: delimiter,
+      skipEmptyLines: true
+    });
+  };
 
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files[0];
@@ -28,34 +86,17 @@ const CSVImport = ({ accounts, categories, onImport, onClose }) => {
     }
 
     setFile(selectedFile);
+    setRawFileData(selectedFile);
     setError('');
 
-    // Parse CSV
-    Papa.parse(selectedFile, {
-      complete: (results) => {
-        if (results.data && results.data.length > 0) {
-          // Get headers from first row
-          const firstRow = results.data[0];
-          const detectedHeaders = Object.keys(firstRow);
+    // Parse CSV with current settings
+    parseCSVFile(selectedFile, separator, headerRowNumber);
+  };
 
-          setHeaders(detectedHeaders);
-          setCsvData(results.data);
-
-          // Try to auto-detect column mappings
-          const autoMapping = autoDetectColumns(detectedHeaders);
-          setColumnMapping(autoMapping);
-
-          setStep(2);
-        } else {
-          setError('CSV file is empty or invalid');
-        }
-      },
-      error: (error) => {
-        setError(`Error parsing CSV: ${error.message}`);
-      },
-      header: true,
-      skipEmptyLines: true
-    });
+  const handleReparse = () => {
+    if (rawFileData) {
+      parseCSVFile(rawFileData, separator, headerRowNumber);
+    }
   };
 
   const autoDetectColumns = (headers) => {
@@ -287,10 +328,93 @@ const CSVImport = ({ accounts, categories, onImport, onClose }) => {
                 )}
               </div>
 
+              {/* CSV Settings */}
+              {file && (
+                <div className="space-y-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <h3 className="font-semibold text-gray-800 mb-2">CSV Settings</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Separator Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Column Separator
+                      </label>
+                      <select
+                        value={separator}
+                        onChange={(e) => setSeparator(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
+                      >
+                        <option value=",">Comma (,)</option>
+                        <option value=";">Semicolon (;)</option>
+                        <option value="\t">Tab</option>
+                        <option value="|">Pipe (|)</option>
+                      </select>
+                    </div>
+
+                    {/* Header Row Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Header Row Number
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={headerRowNumber}
+                        onChange={(e) => setHeaderRowNumber(parseInt(e.target.value) || 1)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Which row contains the column headers?
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Re-parse Button */}
+                  <button
+                    onClick={handleReparse}
+                    className="w-full px-4 py-2 border-2 rounded-lg font-medium transition-colors"
+                    style={{ borderColor: THEME.primary, color: THEME.primary }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = THEME.primary;
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = THEME.primary;
+                    }}
+                  >
+                    Apply Settings & Re-parse
+                  </button>
+                </div>
+              )}
+
               {error && (
                 <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <AlertCircle size={20} className="text-red-500" />
                   <span className="text-red-700">{error}</span>
+                </div>
+              )}
+
+              {/* Success Message and Continue Button */}
+              {csvData.length > 0 && !error && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <CheckCircle size={20} className="text-green-500" />
+                    <span className="text-green-700">
+                      Successfully parsed {csvData.length} rows with {headers.length} columns
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setStep(2)}
+                    className="w-full px-6 py-3 rounded-lg text-white font-medium transition-colors"
+                    style={{ backgroundColor: THEME.primary }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+                  >
+                    Continue to Column Mapping
+                  </button>
                 </div>
               )}
             </div>
