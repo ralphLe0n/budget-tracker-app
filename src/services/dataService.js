@@ -7,7 +7,8 @@ export const loadAllData = async (userId) => {
     budgets: [],
     categories: [],
     recurringRules: [],
-    accounts: []
+    accounts: [],
+    categoryRules: []
   };
 
   try {
@@ -95,6 +96,23 @@ export const loadAllData = async (userId) => {
         balance: parseFloat(a.balance),
         starting_balance: parseFloat(a.starting_balance)
       }));
+    }
+
+    // Load category rules
+    const { data: rulesData, error: rulesError } = await supabase
+      .from('category_rules')
+      .select('*')
+      .eq('user_id', userId)
+      .order('priority', { ascending: true });
+
+    if (rulesError) {
+      // Don't throw error if table doesn't exist yet (migration not run)
+      if (rulesError.code !== '42P01') {
+        throw rulesError;
+      }
+    }
+    if (rulesData) {
+      results.categoryRules = rulesData;
     }
 
     return results;
@@ -269,6 +287,43 @@ export const updateRecurringRule = async (ruleId, updates) => {
 export const deleteRecurringRule = async (id) => {
   const { error } = await supabase
     .from('recurring_rules')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
+// Category rule operations
+export const addCategoryRule = async (rule, userId) => {
+  const { data, error } = await supabase
+    .from('category_rules')
+    .insert([{
+      user_id: userId,
+      category: rule.category,
+      pattern: rule.pattern,
+      is_regex: rule.is_regex,
+      case_sensitive: rule.case_sensitive,
+      priority: rule.priority,
+      enabled: rule.enabled
+    }])
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateCategoryRule = async (ruleId, updates) => {
+  const { error } = await supabase
+    .from('category_rules')
+    .update(updates)
+    .eq('id', ruleId);
+
+  if (error) throw error;
+};
+
+export const deleteCategoryRule = async (id) => {
+  const { error } = await supabase
+    .from('category_rules')
     .delete()
     .eq('id', id);
 

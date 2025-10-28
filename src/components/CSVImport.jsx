@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import Papa from 'papaparse';
 import { Upload, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { THEME } from '../config/theme';
+import { categorizeDescription } from '../services/categorizationService';
 
-const CSVImport = ({ accounts, categories, onImport, onClose }) => {
+const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose }) => {
   const [file, setFile] = useState(null);
   const [csvData, setCsvData] = useState([]);
   const [headers, setHeaders] = useState([]);
@@ -238,14 +239,26 @@ const CSVImport = ({ accounts, categories, onImport, onClose }) => {
     try {
       const transactions = csvData.map(row => {
         const amount = parseAmount(row[columnMapping.amount]);
+        const description = row[columnMapping.description] || 'Imported transaction';
+
+        // Determine category with priority:
+        // 1. Category from CSV column (if mapped and exists)
+        // 2. Auto-categorization from rules
+        // 3. Default based on amount (Income/Other)
+        let category;
+        if (columnMapping.category && row[columnMapping.category]) {
+          category = row[columnMapping.category];
+        } else {
+          // Try auto-categorization
+          const autoCategory = categorizeDescription(description, categoryRules || []);
+          category = autoCategory || (amount > 0 ? 'Income' : 'Other');
+        }
 
         return {
           date: parseDate(row[columnMapping.date]),
-          description: row[columnMapping.description] || 'Imported transaction',
+          description: description,
           amount: amount,
-          category: columnMapping.category && row[columnMapping.category]
-            ? row[columnMapping.category]
-            : (amount > 0 ? 'Income' : 'Other'),
+          category: category,
           account_id: selectedAccount
         };
       });

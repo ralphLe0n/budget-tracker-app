@@ -10,6 +10,7 @@ import LoadingOverlay from './components/ui/LoadingOverlay';
 import ErrorDisplay from './components/ui/ErrorDisplay';
 import * as dataService from './services/dataService';
 import * as recurringService from './services/recurringService';
+import { categorizeDescription } from './services/categorizationService';
 import DashboardTab from './components/tabs/DashboardTab';
 import ChartsTab from './components/tabs/ChartsTab';
 import CategoriesTab from './components/tabs/CategoriesTab';
@@ -30,6 +31,7 @@ const BudgetApp = ({ session }) => {
   const [recurringRules, setRecurringRules] = useState([]);
   const [categories, setCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [categoryRules, setCategoryRules] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -129,6 +131,7 @@ const BudgetApp = ({ session }) => {
       setCategories(data.categories);
       setRecurringRules(data.recurringRules);
       setAccounts(data.accounts);
+      setCategoryRules(data.categoryRules);
     } catch (error) {
       console.error('Error loading data:', error);
       setError('Failed to load data from database: ' + error.message);
@@ -258,12 +261,19 @@ const BudgetApp = ({ session }) => {
 
   const handleAddTransaction = async () => {
     if (newTransaction.description && newTransaction.amount && newTransaction.account_id) {
+      // Auto-categorize if no category is selected
+      let category = newTransaction.category;
+      if (!category || category === '') {
+        const autoCategory = categorizeDescription(newTransaction.description, categoryRules);
+        category = autoCategory || (parseFloat(newTransaction.amount) > 0 ? 'Income' : 'Other');
+      }
+
       const transaction = {
         user_id: session.user.id,
         date: newTransaction.date,
         description: newTransaction.description,
         amount: parseFloat(newTransaction.amount),
-        category: newTransaction.category,
+        category: category,
         account_id: newTransaction.account_id,
       };
 
@@ -1067,6 +1077,50 @@ const BudgetApp = ({ session }) => {
     }
   };
 
+  // Category rule handlers
+  const handleAddCategoryRule = async (ruleData) => {
+    try {
+      setIsLoading(true);
+      const data = await dataService.addCategoryRule(ruleData, session.user.id);
+      setCategoryRules([...categoryRules, data]);
+    } catch (error) {
+      console.error('Error adding category rule:', error);
+      alert('Failed to add category rule: ' + error.message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateCategoryRule = async (ruleId, updates) => {
+    try {
+      setIsLoading(true);
+      await dataService.updateCategoryRule(ruleId, updates);
+      setCategoryRules(categoryRules.map(r =>
+        r.id === ruleId ? { ...r, ...updates } : r
+      ));
+    } catch (error) {
+      console.error('Error updating category rule:', error);
+      alert('Failed to update category rule: ' + error.message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteCategoryRule = async (ruleId) => {
+    try {
+      setIsLoading(true);
+      await dataService.deleteCategoryRule(ruleId);
+      setCategoryRules(categoryRules.filter(r => r.id !== ruleId));
+    } catch (error) {
+      console.error('Error deleting category rule:', error);
+      alert('Failed to delete category rule: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Helper function to handle delete confirmation
   const handleDeleteConfirm = () => {
     if (deleteConfirm.type === 'transaction') {
@@ -1171,6 +1225,10 @@ const BudgetApp = ({ session }) => {
             setNewCategoryLimit={setNewCategoryLimit}
             onAddCategory={handleAddCategory}
             onDeleteCategory={(category) => setDeleteConfirm({ show: true, type: 'category-only', id: category, name: category })}
+            categoryRules={categoryRules}
+            onAddRule={handleAddCategoryRule}
+            onUpdateRule={handleUpdateCategoryRule}
+            onDeleteRule={handleDeleteCategoryRule}
           />
         )}
 
@@ -1242,6 +1300,7 @@ const BudgetApp = ({ session }) => {
           <CSVImport
             accounts={accounts}
             categories={categories}
+            categoryRules={categoryRules}
             onImport={handleCSVImport}
             onClose={() => setShowCSVImport(false)}
           />
