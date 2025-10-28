@@ -12,6 +12,7 @@ import * as dataService from './services/dataService';
 import * as recurringService from './services/recurringService';
 import { categorizeDescription } from './services/categorizationService';
 import DashboardTab from './components/tabs/DashboardTab';
+import TransactionsTab from './components/tabs/TransactionsTab';
 import ChartsTab from './components/tabs/ChartsTab';
 import CategoriesTab from './components/tabs/CategoriesTab';
 import BudgetsTab from './components/tabs/BudgetsTab';
@@ -238,12 +239,20 @@ const BudgetApp = ({ session }) => {
     const monthlyMap = {};
 
     filteredTransactions.forEach(t => {
-      if (t.category === 'Transfer') return; // Skip transfers
-
       const month = t.date.substring(0, 7);
       if (!monthlyMap[month]) {
-        monthlyMap[month] = { month, income: 0, expenses: 0 };
+        monthlyMap[month] = { month, income: 0, expenses: 0, savings: 0 };
       }
+
+      if (t.category === 'Transfer') {
+        // Track transfers to savings accounts as savings contributions
+        const toAccount = accounts.find(a => a.id === t.account_id);
+        if (toAccount && toAccount.type === 'savings' && t.amount > 0) {
+          monthlyMap[month].savings += t.amount;
+        }
+        return; // Skip other transfer calculations
+      }
+
       if (t.amount > 0) {
         monthlyMap[month].income += t.amount;
       } else {
@@ -257,7 +266,7 @@ const BudgetApp = ({ session }) => {
         ...item,
         balance: item.income - item.expenses
       }));
-  }, [filteredTransactions]);
+  }, [filteredTransactions, accounts]);
 
   const handleAddTransaction = async () => {
     if (newTransaction.description && newTransaction.amount && newTransaction.account_id) {
@@ -636,6 +645,73 @@ const BudgetApp = ({ session }) => {
     setEditingCategory(budget.id);
     setEditingCategoryName(budget.category);
     setEditingCategoryLimit(budget.limit.toString());
+  };
+
+  const handleRenameCategory = async (oldName, newName) => {
+    if (!newName || oldName === newName) return;
+
+    try {
+      setIsLoading(true);
+
+      // Check if new name already exists
+      if (categories.includes(newName)) {
+        setError('A category with this name already exists');
+        return;
+      }
+
+      // Update category in categories table
+      const { error: catError } = await supabase
+        .from('categories')
+        .update({ name: newName })
+        .eq('name', oldName)
+        .eq('user_id', session.user.id);
+
+      if (catError) throw catError;
+
+      // Update transactions with this category
+      const { error: transError } = await supabase
+        .from('transactions')
+        .update({ category: newName })
+        .eq('category', oldName)
+        .eq('user_id', session.user.id);
+
+      if (transError) throw transError;
+
+      // Update budgets with this category
+      const { error: budgetError } = await supabase
+        .from('budgets')
+        .update({ category: newName })
+        .eq('category', oldName)
+        .eq('user_id', session.user.id);
+
+      if (budgetError) throw budgetError;
+
+      // Update category rules with this category
+      const { error: rulesError } = await supabase
+        .from('category_rules')
+        .update({ category: newName })
+        .eq('category', oldName)
+        .eq('user_id', session.user.id);
+
+      if (rulesError) throw rulesError;
+
+      // Update local state
+      setCategories(categories.map(c => c === oldName ? newName : c));
+      setTransactions(transactions.map(t =>
+        t.category === oldName ? { ...t, category: newName } : t
+      ));
+      setBudgets(budgets.map(b =>
+        b.category === oldName ? { ...b, category: newName } : b
+      ));
+      setCategoryRules(categoryRules.map(r =>
+        r.category === oldName ? { ...r, category: newName } : r
+      ));
+    } catch (error) {
+      console.error('Error renaming category:', error);
+      setError('Failed to rename category: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const cancelEditingCategory = () => {
@@ -1121,6 +1197,69 @@ const BudgetApp = ({ session }) => {
     }
   };
 
+  // Category change handler
+  const handleCategoryChange = async (transaction, newCategory) => {
+    if (!transaction || !newCategory) return;
+
+    try {
+      setIsLoading(true);
+
+      // Get the old category for budget adjustment
+      const oldCategory = transaction.category;
+
+      // Update in Supabase
+      const { error } = await supabase
+        .from('transactions')
+        .update({ category: newCategory })
+        .eq('id', transaction.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setTransactions(transactions.map(t =>
+        t.id === transaction.id ? { ...t, category: newCategory } : t
+      ));
+
+      // Update budget spent amounts if the transaction is an expense
+      if (transaction.amount < 0) {
+        // Remove from old budget
+        if (oldCategory) {
+          const oldBudget = budgets.find(b => b.category === oldCategory);
+          if (oldBudget) {
+            const newSpent = Math.max(0, oldBudget.spent - Math.abs(transaction.amount));
+            await supabase
+              .from('budgets')
+              .update({ spent: newSpent })
+              .eq('id', oldBudget.id);
+
+            setBudgets(budgets.map(b =>
+              b.id === oldBudget.id ? { ...b, spent: newSpent } : b
+            ));
+          }
+        }
+
+        // Add to new budget
+        const newBudget = budgets.find(b => b.category === newCategory);
+        if (newBudget) {
+          const newSpent = newBudget.spent + Math.abs(transaction.amount);
+          await supabase
+            .from('budgets')
+            .update({ spent: newSpent })
+            .eq('id', newBudget.id);
+
+          setBudgets(budgets.map(b =>
+            b.id === newBudget.id ? { ...b, spent: newSpent } : b
+          ));
+        }
+      }
+    } catch (error) {
+      console.error('Error changing category:', error);
+      setError('Failed to change category: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Helper function to handle delete confirmation
   const handleDeleteConfirm = () => {
     if (deleteConfirm.type === 'transaction') {
@@ -1197,6 +1336,36 @@ const BudgetApp = ({ session }) => {
             handleAddTransaction={handleAddTransaction}
             setDeleteConfirm={setDeleteConfirm}
             setShowCSVImport={setShowCSVImport}
+            setActiveTab={setActiveTab}
+            onCategoryChange={handleCategoryChange}
+            onAddCategory={handleAddCategory}
+          />
+        )}
+
+        {activeTab === 'transactions' && (
+          <TransactionsTab
+            filteredTransactions={filteredTransactions}
+            hasActiveFilters={hasActiveFilters}
+            showFilters={showFilters}
+            setShowFilters={setShowFilters}
+            clearFilters={clearFilters}
+            filterStartDate={filterStartDate}
+            setFilterStartDate={setFilterStartDate}
+            filterEndDate={filterEndDate}
+            setFilterEndDate={setFilterEndDate}
+            filterDescription={filterDescription}
+            setFilterDescription={setFilterDescription}
+            selectedCategories={selectedCategories}
+            setSelectedCategories={setSelectedCategories}
+            categories={categories}
+            toggleCategoryFilter={toggleCategoryFilter}
+            setDeleteConfirm={setDeleteConfirm}
+            onCategoryChange={handleCategoryChange}
+            onAddCategory={handleAddCategory}
+            categorySpendingData={categorySpendingData}
+            monthlyData={monthlyData}
+            budgets={budgets}
+            spendingByCategory={spendingByCategory}
           />
         )}
 
@@ -1225,6 +1394,7 @@ const BudgetApp = ({ session }) => {
             setNewCategoryLimit={setNewCategoryLimit}
             onAddCategory={handleAddCategory}
             onDeleteCategory={(category) => setDeleteConfirm({ show: true, type: 'category-only', id: category, name: category })}
+            onRenameCategory={handleRenameCategory}
             categoryRules={categoryRules}
             onAddRule={handleAddCategoryRule}
             onUpdateRule={handleUpdateCategoryRule}

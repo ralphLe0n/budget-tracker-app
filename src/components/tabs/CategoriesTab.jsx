@@ -1,5 +1,5 @@
-import React from 'react';
-import { PlusCircle, Tag, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { PlusCircle, Tag, Trash2, Edit2, Save, X } from 'lucide-react';
 import { THEME } from '../../config/theme';
 import CategoryRulesManager from '../CategoryRulesManager';
 
@@ -19,8 +19,28 @@ const CategoriesTab = ({
   categoryRules,
   onAddRule,
   onUpdateRule,
-  onDeleteRule
+  onDeleteRule,
+  onRenameCategory
 }) => {
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editedCategoryName, setEditedCategoryName] = useState('');
+
+  const handleStartEdit = (category) => {
+    setEditingCategory(category);
+    setEditedCategoryName(category);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCategory(null);
+    setEditedCategoryName('');
+  };
+
+  const handleSaveEdit = () => {
+    if (editedCategoryName.trim() && editedCategoryName !== editingCategory) {
+      onRenameCategory(editingCategory, editedCategoryName.trim());
+    }
+    handleCancelEdit();
+  };
   return (
     <div className="space-y-8">
       {/* Categories Section */}
@@ -119,29 +139,79 @@ const CategoriesTab = ({
           categories.map((category) => (
             <div
               key={category}
-              className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-between"
+              className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: THEME.primaryLight }}>
-                  <Tag style={{ color: THEME.primary }} size={20} />
+              {editingCategory === category ? (
+                // Edit mode
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: THEME.primaryLight }}>
+                    <Tag style={{ color: THEME.primary }} size={20} />
+                  </div>
+                  <input
+                    type="text"
+                    value={editedCategoryName}
+                    onChange={(e) => setEditedCategoryName(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    autoFocus
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleSaveEdit();
+                      if (e.key === 'Escape') handleCancelEdit();
+                    }}
+                  />
+                  <button
+                    onClick={handleSaveEdit}
+                    className="p-2 rounded-lg transition-colors"
+                    style={{ color: THEME.success }}
+                    title="Save changes"
+                  >
+                    <Save size={18} />
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="p-2 rounded-lg transition-colors text-gray-600"
+                    title="Cancel"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-800 text-lg">{category}</p>
-                  <p className="text-sm text-gray-600">
-                    {transactions.filter(t => t.category === category).length} transaction(s)
-                  </p>
+              ) : (
+                // View mode
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: THEME.primaryLight }}>
+                      <Tag style={{ color: THEME.primary }} size={20} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 text-lg">{category}</p>
+                      <p className="text-sm text-gray-600">
+                        {transactions.filter(t => t.category === category).length} transaction(s)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleStartEdit(category)}
+                      className="transition-colors p-2"
+                      style={{ color: THEME.primary }}
+                      onMouseOver={(e) => e.currentTarget.style.color = THEME.primaryHover}
+                      onMouseOut={(e) => e.currentTarget.style.color = THEME.primary}
+                      title="Rename category"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => onDeleteCategory(category)}
+                      className="transition-colors p-2"
+                      style={{ color: THEME.danger }}
+                      onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
+                      onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
+                      title="Delete category"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={() => onDeleteCategory(category)}
-                className="transition-colors p-2"
-                style={{ color: THEME.danger }}
-                onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
-                onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
-                title="Delete category"
-              >
-                <Trash2 size={18} />
-              </button>
+              )}
             </div>
           ))
         )}
