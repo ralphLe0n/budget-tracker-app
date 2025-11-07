@@ -46,7 +46,10 @@ export const loadAllData = async (userId) => {
         id: b.id,
         category: b.category,
         limit: parseFloat(b.limit_amount),
-        spent: parseFloat(b.spent)
+        spent: parseFloat(b.spent),
+        recurrenceFrequency: b.recurrence_frequency || 'monthly',
+        periodStartDate: b.period_start_date || new Date().toISOString().split('T')[0],
+        lastResetDate: b.last_reset_date || new Date().toISOString().split('T')[0]
       }));
     }
 
