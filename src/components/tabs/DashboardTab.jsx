@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
 import CategorySelector from '../CategorySelector';
+import CategoryIconSelector from '../CategoryIconSelector';
 
 const DashboardTab = ({
   totalIncome,
@@ -187,8 +188,8 @@ const DashboardTab = ({
                 >
                   <option value="">No Category</option>
                   {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+                    <option key={cat.name} value={cat.name}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
@@ -252,16 +253,12 @@ const DashboardTab = ({
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-4 flex-1">
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight }}
-                    >
-                      {transaction.amount > 0 ? (
-                        <TrendingUp style={{ color: THEME.success }} size={20} />
-                      ) : (
-                        <TrendingDown style={{ color: THEME.danger }} size={20} />
-                      )}
-                    </div>
+                    <CategoryIconSelector
+                      transaction={transaction}
+                      categories={categories}
+                      onCategoryChange={onCategoryChange}
+                      onAddCategory={onAddCategory}
+                    />
                     <div className="flex-1">
                       <p className="font-semibold text-gray-800">{transaction.description}</p>
                       <div className="flex gap-4 text-sm text-gray-600 mt-1 items-center">
@@ -269,12 +266,12 @@ const DashboardTab = ({
                           <Calendar size={14} />
                           {transaction.date}
                         </span>
-                        <CategorySelector
-                          transaction={transaction}
-                          categories={categories}
-                          onCategoryChange={onCategoryChange}
-                          onAddCategory={onAddCategory}
-                        />
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{
+                          backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
+                          color: transaction.amount > 0 ? THEME.success : THEME.danger
+                        }}>
+                          {transaction.amount > 0 ? 'Income' : 'Expense'}
+                        </span>
                       </div>
                     </div>
                   </div>
