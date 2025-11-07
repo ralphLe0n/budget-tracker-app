@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
 import CategorySelector from '../CategorySelector';
+import CategoryIconSelector from '../CategoryIconSelector';
 
 const TransactionsTab = ({
   filteredTransactions,
@@ -424,17 +425,17 @@ const TransactionsTab = ({
               <div className="flex flex-wrap gap-2">
                 {categories.map((category) => (
                   <button
-                    key={category}
-                    onClick={() => toggleCategoryFilter(category)}
+                    key={category.name}
+                    onClick={() => toggleCategoryFilter(category.name)}
                     style={{
-                      backgroundColor: selectedCategories.includes(category) ? THEME.primary : '#f3f4f6',
-                      color: selectedCategories.includes(category) ? 'white' : '#374151'
+                      backgroundColor: selectedCategories.includes(category.name) ? THEME.primary : '#f3f4f6',
+                      color: selectedCategories.includes(category.name) ? 'white' : '#374151'
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedCategories.includes(category) ? 'shadow-md' : 'hover:bg-gray-200'
+                      selectedCategories.includes(category.name) ? 'shadow-md' : 'hover:bg-gray-200'
                     }`}
                   >
-                    {category}
+                    {category.name}
                   </button>
                 ))}
               </div>
@@ -583,8 +584,8 @@ const TransactionsTab = ({
                     >
                       <option value="">No Category</option>
                       {categories.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
+                        <option key={cat.name} value={cat.name}>
+                          {cat.name}
                         </option>
                       ))}
                     </select>
@@ -664,10 +665,10 @@ const TransactionsTab = ({
                         className="cursor-pointer"
                       />
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Type</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Category</th>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Description</th>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Date</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Category</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Type</th>
                     <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Amount</th>
                     <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Actions</th>
                   </tr>
@@ -689,12 +690,13 @@ const TransactionsTab = ({
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full" style={{ backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight }}>
-                          {transaction.amount > 0 ? (
-                            <TrendingUp style={{ color: THEME.success }} size={16} />
-                          ) : (
-                            <TrendingDown style={{ color: THEME.danger }} size={16} />
-                          )}
+                        <div className="flex items-center justify-center">
+                          <CategoryIconSelector
+                            transaction={transaction}
+                            categories={categories}
+                            onCategoryChange={onCategoryChange}
+                            onAddCategory={onAddCategory}
+                          />
                         </div>
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-800 font-medium">
@@ -746,12 +748,12 @@ const TransactionsTab = ({
                         </span>
                       </td>
                       <td className="px-3 py-2 text-sm">
-                        <CategorySelector
-                          transaction={transaction}
-                          categories={categories}
-                          onCategoryChange={onCategoryChange}
-                          onAddCategory={onAddCategory}
-                        />
+                        <span className="inline-flex text-xs font-medium px-2 py-1 rounded-full" style={{
+                          backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
+                          color: transaction.amount > 0 ? THEME.success : THEME.danger
+                        }}>
+                          {transaction.amount > 0 ? 'Income' : 'Expense'}
+                        </span>
                       </td>
                       <td className="px-3 py-2 text-sm font-semibold text-right whitespace-nowrap" style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}>
                         {formatCurrency(transaction.amount)}
@@ -809,7 +811,7 @@ const TransactionsTab = ({
                 >
                   <option value="">Don't change</option>
                   {categories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat.name} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
               </div>

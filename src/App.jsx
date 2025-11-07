@@ -5,6 +5,7 @@ import { supabase } from './supabaseClient';
 import { THEME } from './config/theme';
 import { formatCurrency } from './utils/formatters';
 import { shouldResetBudget, getCurrentPeriod } from './utils/budgetPeriods';
+import { getCategoryNames } from './utils/categoryHelpers';
 import Sidebar from './components/layout/Sidebar';
 import ConfirmationDialog from './components/ui/ConfirmationDialog';
 import LoadingOverlay from './components/ui/LoadingOverlay';
@@ -50,6 +51,8 @@ const BudgetApp = ({ session }) => {
   const [editingPeriodStartDate, setEditingPeriodStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryLimit, setNewCategoryLimit] = useState('');
+  const [newCategoryIcon, setNewCategoryIcon] = useState('Tag');
+  const [newCategoryColor, setNewCategoryColor] = useState('#3b82f6');
   const [newRecurrenceFrequency, setNewRecurrenceFrequency] = useState('monthly');
   const [newPeriodStartDate, setNewPeriodStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [addBudgetWithCategory, setAddBudgetWithCategory] = useState(false);
@@ -119,7 +122,7 @@ const BudgetApp = ({ session }) => {
     if (categories.length > 0 && !newRecurring.category) {
       setNewRecurring(prev => ({
         ...prev,
-        category: categories[0]
+        category: categories[0].name
       }));
     }
   }, [categories, newRecurring.category]);
@@ -313,8 +316,8 @@ const BudgetApp = ({ session }) => {
   const categorySpendingData = useMemo(() => {
     return categories
       .map(category => ({
-        name: category,
-        value: spendingByCategory[category] || 0
+        name: category.name,
+        value: spendingByCategory[category.name] || 0
       }))
       .filter(item => item.value > 0)
       .sort((a, b) => b.value - a.value);
@@ -726,11 +729,20 @@ const BudgetApp = ({ session }) => {
         // Add category to categories table
         const { error: catError } = await supabase
           .from('categories')
-          .insert([{ user_id: session.user.id, name: newCategoryName }]);
+          .insert([{
+            user_id: session.user.id,
+            name: newCategoryName,
+            icon: newCategoryIcon,
+            color: newCategoryColor
+          }]);
 
         if (catError) throw catError;
 
-        setCategories([...categories, newCategoryName]);
+        setCategories([...categories, {
+          name: newCategoryName,
+          icon: newCategoryIcon,
+          color: newCategoryColor
+        }]);
 
         // Optionally add budget if checkbox is checked and limit is provided
         if (addBudgetWithCategory && newCategoryLimit) {
@@ -759,6 +771,8 @@ const BudgetApp = ({ session }) => {
 
         setNewCategoryName('');
         setNewCategoryLimit('');
+        setNewCategoryIcon('Tag');
+        setNewCategoryColor('#3b82f6');
         setAddBudgetWithCategory(false);
         setShowAddCategory(false);
       } catch (error) {
@@ -851,7 +865,7 @@ const BudgetApp = ({ session }) => {
       setTransactions(transactions.map(t =>
         t.category === oldName ? { ...t, category: newName } : t
       ));
-      setCategories(categories.map(c => c === oldName ? newName : c));
+      setCategories(categories.map(c => c.name === oldName ? { ...c, name: newName } : c));
     }
 
     setBudgets(budgets.map(b =>
@@ -890,7 +904,7 @@ const BudgetApp = ({ session }) => {
       setIsLoading(true);
 
       // Check if new name already exists
-      if (categories.includes(newName)) {
+      if (categories.some(c => c.name === newName)) {
         setError('A category with this name already exists');
         return;
       }
@@ -932,7 +946,7 @@ const BudgetApp = ({ session }) => {
       if (rulesError) throw rulesError;
 
       // Update local state
-      setCategories(categories.map(c => c === oldName ? newName : c));
+      setCategories(categories.map(c => c.name === oldName ? { ...c, name: newName } : c));
       setTransactions(transactions.map(t =>
         t.category === oldName ? { ...t, category: newName } : t
       ));
@@ -945,6 +959,25 @@ const BudgetApp = ({ session }) => {
     } catch (error) {
       console.error('Error renaming category:', error);
       setError('Failed to rename category: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateCategoryCustomization = async (categoryName, icon, color) => {
+    try {
+      setIsLoading(true);
+
+      // Update category customization in database
+      await dataService.updateCategoryCustomization(categoryName, session.user.id, icon, color);
+
+      // Update local state
+      setCategories(categories.map(c =>
+        c.name === categoryName ? { ...c, icon, color } : c
+      ));
+    } catch (error) {
+      console.error('Error updating category customization:', error);
+      setError('Failed to update category customization: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -982,7 +1015,7 @@ const BudgetApp = ({ session }) => {
         .eq('user_id', session.user.id);
 
       setBudgets(budgets.filter(b => b.category !== categoryName));
-      setCategories(categories.filter(c => c !== categoryName));
+      setCategories(categories.filter(c => c.name !== categoryName));
       setDeleteConfirm({ show: false, type: null, id: null, name: '' });
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -1008,7 +1041,7 @@ const BudgetApp = ({ session }) => {
         .eq('name', categoryName)
         .eq('user_id', session.user.id);
 
-      setCategories(categories.filter(c => c !== categoryName));
+      setCategories(categories.filter(c => c.name !== categoryName));
       setDeleteConfirm({ show: false, type: null, id: null, name: '' });
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -1646,6 +1679,10 @@ const BudgetApp = ({ session }) => {
             setShowAddCategory={setShowAddCategory}
             newCategoryName={newCategoryName}
             setNewCategoryName={setNewCategoryName}
+            newCategoryIcon={newCategoryIcon}
+            setNewCategoryIcon={setNewCategoryIcon}
+            newCategoryColor={newCategoryColor}
+            setNewCategoryColor={setNewCategoryColor}
             addBudgetWithCategory={addBudgetWithCategory}
             setAddBudgetWithCategory={setAddBudgetWithCategory}
             newCategoryLimit={newCategoryLimit}
@@ -1653,6 +1690,7 @@ const BudgetApp = ({ session }) => {
             onAddCategory={handleAddCategory}
             onDeleteCategory={(category) => setDeleteConfirm({ show: true, type: 'category-only', id: category, name: category })}
             onRenameCategory={handleRenameCategory}
+            onUpdateCustomization={handleUpdateCategoryCustomization}
             categoryRules={categoryRules}
             onAddRule={handleAddCategoryRule}
             onUpdateRule={handleUpdateCategoryRule}

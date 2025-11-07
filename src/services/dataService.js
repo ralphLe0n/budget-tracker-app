@@ -61,7 +61,11 @@ export const loadAllData = async (userId) => {
 
     if (catError) throw catError;
     if (categoriesData) {
-      results.categories = categoriesData.map(c => c.name);
+      results.categories = categoriesData.map(c => ({
+        name: c.name,
+        icon: c.icon || 'Tag',
+        color: c.color || '#3b82f6'
+      }));
     }
 
     // Load recurring rules
@@ -181,10 +185,10 @@ export const bulkUpdateTransactions = async (ids, updates) => {
 };
 
 // Category operations
-export const addCategory = async (name, userId) => {
+export const addCategory = async (name, userId, icon = 'Tag', color = '#3b82f6') => {
   const { data, error } = await supabase
     .from('categories')
-    .insert([{ name, user_id: userId }])
+    .insert([{ name, user_id: userId, icon, color }])
     .select();
 
   if (error) throw error;
@@ -196,6 +200,16 @@ export const updateCategory = async (oldName, newName, userId) => {
     .from('categories')
     .update({ name: newName })
     .eq('name', oldName)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+};
+
+export const updateCategoryCustomization = async (name, userId, icon, color) => {
+  const { error } = await supabase
+    .from('categories')
+    .update({ icon, color })
+    .eq('name', name)
     .eq('user_id', userId);
 
   if (error) throw error;
