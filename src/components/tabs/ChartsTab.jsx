@@ -9,6 +9,7 @@ const ChartsTab = ({
   monthlyData,
   budgets,
   spendingByCategory,
+  spendingByBudgetPeriod,
   selectedCategories
 }) => {
   const COLORS = THEME.chartColors;
@@ -129,7 +130,7 @@ const ChartsTab = ({
               data={budgets
                 .filter(budget => selectedCategories.length === 0 || selectedCategories.includes(budget.category))
                 .map(budget => {
-                  const actualSpent = spendingByCategory[budget.category] || 0;
+                  const actualSpent = spendingByBudgetPeriod[budget.category] || 0;
                   const remaining = budget.limit - actualSpent;
                   return {
                     category: budget.category,

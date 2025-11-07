@@ -29,6 +29,7 @@ const DashboardTab = ({
   toggleCategoryFilter,
   budgets,
   spendingByCategory,
+  spendingByBudgetPeriod,
   categorySpendingData,
   monthlyData,
   showAddTransaction,
@@ -335,7 +336,7 @@ const DashboardTab = ({
           {budgets
             .filter(budget => selectedCategories.length === 0 || selectedCategories.includes(budget.category))
             .map((budget) => {
-            const actualSpent = spendingByCategory[budget.category] || 0;
+            const actualSpent = spendingByBudgetPeriod[budget.category] || 0;
 
             const percentage = (actualSpent / budget.limit) * 100;
             const isOverBudget = percentage > 100;

@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis
 import { supabase } from './supabaseClient';
 import { THEME } from './config/theme';
 import { formatCurrency } from './utils/formatters';
+import { shouldResetBudget, getCurrentPeriod } from './utils/budgetPeriods';
 import Sidebar from './components/layout/Sidebar';
 import ConfirmationDialog from './components/ui/ConfirmationDialog';
 import LoadingOverlay from './components/ui/LoadingOverlay';
@@ -45,8 +46,12 @@ const BudgetApp = ({ session }) => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
   const [editingCategoryLimit, setEditingCategoryLimit] = useState('');
+  const [editingRecurrenceFrequency, setEditingRecurrenceFrequency] = useState('monthly');
+  const [editingPeriodStartDate, setEditingPeriodStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryLimit, setNewCategoryLimit] = useState('');
+  const [newRecurrenceFrequency, setNewRecurrenceFrequency] = useState('monthly');
+  const [newPeriodStartDate, setNewPeriodStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [addBudgetWithCategory, setAddBudgetWithCategory] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: null, id: null, name: '' });
   const [editingRecurring, setEditingRecurring] = useState(null);
@@ -134,11 +139,55 @@ const BudgetApp = ({ session }) => {
       setRecurringRules(data.recurringRules);
       setAccounts(data.accounts);
       setCategoryRules(data.categoryRules);
+
+      // Check and reset budgets if needed
+      await checkAndResetBudgets(data.budgets);
     } catch (error) {
       console.error('Error loading data:', error);
       setError('Failed to load data from database: ' + error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Check if any budgets need to be reset based on their recurrence period
+  const checkAndResetBudgets = async (budgetsToCheck) => {
+    const budgetsNeedingReset = budgetsToCheck.filter(budget => {
+      if (!budget.recurrenceFrequency || !budget.periodStartDate || !budget.lastResetDate) {
+        return false;
+      }
+      return shouldResetBudget(budget.lastResetDate, budget.periodStartDate, budget.recurrenceFrequency);
+    });
+
+    if (budgetsNeedingReset.length > 0) {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // Reset each budget
+        for (const budget of budgetsNeedingReset) {
+          await supabase
+            .from('budgets')
+            .update({
+              spent: 0,
+              last_reset_date: today
+            })
+            .eq('id', budget.id);
+        }
+
+        // Update local state
+        setBudgets(prevBudgets =>
+          prevBudgets.map(b => {
+            if (budgetsNeedingReset.find(br => br.id === b.id)) {
+              return { ...b, spent: 0, lastResetDate: today };
+            }
+            return b;
+          })
+        );
+
+        console.log(`Reset ${budgetsNeedingReset.length} budget(s) for new period`);
+      } catch (error) {
+        console.error('Error resetting budgets:', error);
+      }
     }
   };
 
@@ -225,6 +274,41 @@ const BudgetApp = ({ session }) => {
       return acc;
     }, {});
   }, [filteredTransactions]);
+
+  // Calculate spending per budget based on each budget's current period
+  const spendingByBudgetPeriod = useMemo(() => {
+    const periodSpending = {};
+
+    budgets.forEach(budget => {
+      // Get the current period for this budget
+      if (budget.recurrenceFrequency && budget.periodStartDate) {
+        const { periodStart, periodEnd } = getCurrentPeriod(
+          budget.periodStartDate,
+          budget.recurrenceFrequency
+        );
+
+        // Calculate spending within this period
+        const spending = transactions
+          .filter(t => {
+            const transactionDate = new Date(t.date);
+            return (
+              t.category === budget.category &&
+              t.amount < 0 &&
+              transactionDate >= periodStart &&
+              transactionDate <= periodEnd
+            );
+          })
+          .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+        periodSpending[budget.category] = spending;
+      } else {
+        // Fallback to all spending if no period defined
+        periodSpending[budget.category] = spendingByCategory[budget.category] || 0;
+      }
+    });
+
+    return periodSpending;
+  }, [budgets, transactions, spendingByCategory]);
 
   const categorySpendingData = useMemo(() => {
     return categories
@@ -697,7 +781,10 @@ const BudgetApp = ({ session }) => {
             user_id: session.user.id,
             category: newCategoryName,
             limit_amount: parseFloat(newCategoryLimit),
-            spent: 0
+            spent: 0,
+            recurrence_frequency: newRecurrenceFrequency,
+            period_start_date: newPeriodStartDate,
+            last_reset_date: new Date().toISOString().split('T')[0]
           }])
           .select()
           .single();
@@ -708,12 +795,17 @@ const BudgetApp = ({ session }) => {
           id: budgetData.id,
           category: newCategoryName,
           limit: parseFloat(newCategoryLimit),
-          spent: 0
+          spent: 0,
+          recurrenceFrequency: newRecurrenceFrequency,
+          periodStartDate: newPeriodStartDate,
+          lastResetDate: new Date().toISOString().split('T')[0]
         };
 
         setBudgets([...budgets, newBudget]);
         setNewCategoryName('');
         setNewCategoryLimit('');
+        setNewRecurrenceFrequency('monthly');
+        setNewPeriodStartDate(new Date().toISOString().split('T')[0]);
         setShowAddBudget(false);
       } catch (error) {
         console.error('Error adding budget:', error);
@@ -724,17 +816,19 @@ const BudgetApp = ({ session }) => {
     }
   };
 
-  const handleUpdateCategory = async (id, newName, newLimit) => {
+  const handleUpdateCategory = async (id, newName, newLimit, newFrequency, newStartDate) => {
   const oldBudget = budgets.find(b => b.id === id);
   const oldName = oldBudget.category;
-  
+
   try {
     // Update budget
     const { error: budgetError } = await supabase
       .from('budgets')
-      .update({ 
-        category: newName, 
-        limit_amount: parseFloat(newLimit) 
+      .update({
+        category: newName,
+        limit_amount: parseFloat(newLimit),
+        recurrence_frequency: newFrequency,
+        period_start_date: newStartDate
       })
       .eq('id', id);
 
@@ -754,19 +848,27 @@ const BudgetApp = ({ session }) => {
         .eq('category', oldName)
         .eq('user_id', session.user.id);
 
-      setTransactions(transactions.map(t => 
+      setTransactions(transactions.map(t =>
         t.category === oldName ? { ...t, category: newName } : t
       ));
       setCategories(categories.map(c => c === oldName ? newName : c));
     }
-    
-    setBudgets(budgets.map(b => 
-      b.id === id ? { ...b, category: newName, limit: parseFloat(newLimit) } : b
+
+    setBudgets(budgets.map(b =>
+      b.id === id ? {
+        ...b,
+        category: newName,
+        limit: parseFloat(newLimit),
+        recurrenceFrequency: newFrequency,
+        periodStartDate: newStartDate
+      } : b
     ));
-    
+
     setEditingCategory(null);
     setEditingCategoryName('');
     setEditingCategoryLimit('');
+    setEditingRecurrenceFrequency('monthly');
+    setEditingPeriodStartDate(new Date().toISOString().split('T')[0]);
   } catch (error) {
     console.error('Error updating category:', error);
     alert('Failed to update category');
@@ -777,6 +879,8 @@ const BudgetApp = ({ session }) => {
     setEditingCategory(budget.id);
     setEditingCategoryName(budget.category);
     setEditingCategoryLimit(budget.limit.toString());
+    setEditingRecurrenceFrequency(budget.recurrenceFrequency || 'monthly');
+    setEditingPeriodStartDate(budget.periodStartDate || new Date().toISOString().split('T')[0]);
   };
 
   const handleRenameCategory = async (oldName, newName) => {
@@ -850,6 +954,8 @@ const BudgetApp = ({ session }) => {
     setEditingCategory(null);
     setEditingCategoryName('');
     setEditingCategoryLimit('');
+    setEditingRecurrenceFrequency('monthly');
+    setEditingPeriodStartDate(new Date().toISOString().split('T')[0]);
   };
 
   const handleDeleteCategory = async (categoryName) => {
@@ -1466,6 +1572,7 @@ const BudgetApp = ({ session }) => {
             toggleCategoryFilter={toggleCategoryFilter}
             budgets={budgets}
             spendingByCategory={spendingByCategory}
+            spendingByBudgetPeriod={spendingByBudgetPeriod}
             categorySpendingData={categorySpendingData}
             monthlyData={monthlyData}
             showAddTransaction={showAddTransaction}
@@ -1505,6 +1612,7 @@ const BudgetApp = ({ session }) => {
             monthlyData={monthlyData}
             budgets={budgets}
             spendingByCategory={spendingByCategory}
+            spendingByBudgetPeriod={spendingByBudgetPeriod}
             setShowCSVImport={setShowCSVImport}
             accounts={accounts}
             showAddTransaction={showAddTransaction}
@@ -1525,6 +1633,7 @@ const BudgetApp = ({ session }) => {
             monthlyData={monthlyData}
             budgets={budgets}
             spendingByCategory={spendingByCategory}
+            spendingByBudgetPeriod={spendingByBudgetPeriod}
             selectedCategories={selectedCategories}
           />
         )}
@@ -1561,11 +1670,19 @@ const BudgetApp = ({ session }) => {
             setNewCategoryName={setNewCategoryName}
             newCategoryLimit={newCategoryLimit}
             setNewCategoryLimit={setNewCategoryLimit}
+            newRecurrenceFrequency={newRecurrenceFrequency}
+            setNewRecurrenceFrequency={setNewRecurrenceFrequency}
+            newPeriodStartDate={newPeriodStartDate}
+            setNewPeriodStartDate={setNewPeriodStartDate}
             editingCategory={editingCategory}
             editingCategoryName={editingCategoryName}
             setEditingCategoryName={setEditingCategoryName}
             editingCategoryLimit={editingCategoryLimit}
             setEditingCategoryLimit={setEditingCategoryLimit}
+            editingRecurrenceFrequency={editingRecurrenceFrequency}
+            setEditingRecurrenceFrequency={setEditingRecurrenceFrequency}
+            editingPeriodStartDate={editingPeriodStartDate}
+            setEditingPeriodStartDate={setEditingPeriodStartDate}
             onAddBudget={handleAddBudget}
             onStartEditing={startEditingCategory}
             onSaveEdit={handleUpdateCategory}
