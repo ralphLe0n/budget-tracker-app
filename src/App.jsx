@@ -20,6 +20,7 @@ import CategoriesTab from './components/tabs/CategoriesTab';
 import BudgetsTab from './components/tabs/BudgetsTab';
 import AccountsTab from './components/tabs/AccountsTab';
 import RecurringTab from './components/tabs/RecurringTab';
+import DebtsTab from './components/tabs/DebtsTab';
 import CSVImport from './components/CSVImport';
 
 const BudgetApp = ({ session }) => {
@@ -35,6 +36,8 @@ const BudgetApp = ({ session }) => {
   const [categories, setCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [categoryRules, setCategoryRules] = useState([]);
+  const [debts, setDebts] = useState([]);
+  const [debtPayments, setDebtPayments] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -142,6 +145,8 @@ const BudgetApp = ({ session }) => {
       setRecurringRules(data.recurringRules);
       setAccounts(data.accounts);
       setCategoryRules(data.categoryRules);
+      setDebts(data.debts);
+      setDebtPayments(data.debtPayments);
 
       // Check and reset budgets if needed
       await checkAndResetBudgets(data.budgets);
@@ -1475,6 +1480,68 @@ const BudgetApp = ({ session }) => {
     }
   };
 
+  // Debt handlers
+  const handleAddDebt = async (debtData) => {
+    try {
+      setIsLoading(true);
+      const data = await dataService.addDebt(debtData, session.user.id);
+      setDebts([...debts, data]);
+    } catch (error) {
+      console.error('Error adding debt:', error);
+      alert('Failed to add debt: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteDebt = async (debtId) => {
+    try {
+      setIsLoading(true);
+      await dataService.deleteDebt(debtId);
+      setDebts(debts.filter(d => d.id !== debtId));
+      // Also remove associated payments
+      setDebtPayments(debtPayments.filter(p => p.debt_id !== debtId));
+    } catch (error) {
+      console.error('Error deleting debt:', error);
+      alert('Failed to delete debt: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRecordPayment = async (payment, debtId, debtUpdate) => {
+    try {
+      setIsLoading(true);
+
+      // Add payment record
+      const paymentData = await dataService.addDebtPayment(payment, session.user.id);
+      setDebtPayments([...debtPayments, paymentData]);
+
+      // Update debt
+      const updatedDebt = await dataService.updateDebt(debtId, debtUpdate);
+      setDebts(debts.map(d => d.id === debtId ? updatedDebt : d));
+
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      alert('Failed to record payment: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateDebt = async (debtId, updates) => {
+    try {
+      setIsLoading(true);
+      const updatedDebt = await dataService.updateDebt(debtId, updates);
+      setDebts(debts.map(d => d.id === debtId ? updatedDebt : d));
+    } catch (error) {
+      console.error('Error updating debt:', error);
+      alert('Failed to update debt: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Category change handler
   const handleCategoryChange = async (transaction, newCategory) => {
     if (!transaction || !newCategory) return;
@@ -1766,6 +1833,18 @@ const BudgetApp = ({ session }) => {
             handleStartEditRecurring={handleStartEditRecurring}
             handleCancelEditRecurring={handleCancelEditRecurring}
             handleSaveEditRecurring={handleSaveEditRecurring}
+          />
+        )}
+
+        {activeTab === 'debts' && (
+          <DebtsTab
+            debts={debts}
+            debtPayments={debtPayments}
+            accounts={accounts}
+            onAddDebt={handleAddDebt}
+            onDeleteDebt={handleDeleteDebt}
+            onRecordPayment={handleRecordPayment}
+            onUpdateDebt={handleUpdateDebt}
           />
         )}
 

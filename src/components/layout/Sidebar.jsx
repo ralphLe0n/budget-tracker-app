@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, Receipt } from 'lucide-react';
+import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, Receipt, CreditCard } from 'lucide-react';
 import { THEME } from '../../config/theme';
 
 const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMobileMenuOpen }) => {
@@ -10,6 +10,7 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMo
     { id: 'categories', label: 'Categories', icon: Tag },
     { id: 'budgets', label: 'Budgets', icon: DollarSign },
     { id: 'recurring', label: 'Recurring', icon: Repeat },
+    { id: 'debts', label: 'Debts', icon: CreditCard },
   ];
 
   const handleTabClick = (tabId) => {

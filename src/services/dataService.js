@@ -8,7 +8,9 @@ export const loadAllData = async (userId) => {
     categories: [],
     recurringRules: [],
     accounts: [],
-    categoryRules: []
+    categoryRules: [],
+    debts: [],
+    debtPayments: []
   };
 
   try {
@@ -124,6 +126,14 @@ export const loadAllData = async (userId) => {
     if (rulesData) {
       results.categoryRules = rulesData;
     }
+
+    // Load debts
+    const debtsData = await loadDebts(userId);
+    results.debts = debtsData;
+
+    // Load debt payments
+    const debtPaymentsData = await loadDebtPayments(userId);
+    results.debtPayments = debtPaymentsData;
 
     return results;
   } catch (error) {
@@ -369,6 +379,119 @@ export const updateCategoryRule = async (ruleId, updates) => {
 export const deleteCategoryRule = async (id) => {
   const { error } = await supabase
     .from('category_rules')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
+// Debt operations
+export const loadDebts = async (userId) => {
+  const { data, error } = await supabase
+    .from('debts')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    // Don't throw error if table doesn't exist yet (migration not run)
+    if (error.code !== '42P01') {
+      throw error;
+    }
+    return [];
+  }
+
+  return data || [];
+};
+
+export const addDebt = async (debt, userId) => {
+  const { data, error } = await supabase
+    .from('debts')
+    .insert([{
+      user_id: userId,
+      name: debt.name,
+      principal_amount: debt.principal_amount,
+      current_balance: debt.current_balance,
+      interest_rate: debt.interest_rate,
+      rrso: debt.rrso,
+      total_installments: debt.total_installments,
+      paid_installments: debt.paid_installments || 0,
+      installment_amount: debt.installment_amount,
+      start_date: debt.start_date,
+      next_payment_date: debt.next_payment_date,
+      end_date: debt.end_date,
+      creditor: debt.creditor || null,
+      description: debt.description || null,
+      account_id: debt.account_id || null,
+      is_active: debt.is_active !== undefined ? debt.is_active : true
+    }])
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateDebt = async (debtId, updates) => {
+  const { data, error } = await supabase
+    .from('debts')
+    .update(updates)
+    .eq('id', debtId)
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteDebt = async (id) => {
+  const { error } = await supabase
+    .from('debts')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
+// Debt payment operations
+export const loadDebtPayments = async (userId) => {
+  const { data, error } = await supabase
+    .from('debt_payments')
+    .select('*')
+    .eq('user_id', userId)
+    .order('payment_date', { ascending: false });
+
+  if (error) {
+    // Don't throw error if table doesn't exist yet
+    if (error.code !== '42P01') {
+      throw error;
+    }
+    return [];
+  }
+
+  return data || [];
+};
+
+export const addDebtPayment = async (payment, userId) => {
+  const { data, error } = await supabase
+    .from('debt_payments')
+    .insert([{
+      user_id: userId,
+      debt_id: payment.debt_id,
+      payment_date: payment.payment_date,
+      amount_paid: payment.amount_paid,
+      principal_paid: payment.principal_paid,
+      interest_paid: payment.interest_paid,
+      transaction_id: payment.transaction_id || null,
+      note: payment.note || null
+    }])
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteDebtPayment = async (id) => {
+  const { error } = await supabase
+    .from('debt_payments')
     .delete()
     .eq('id', id);
 
