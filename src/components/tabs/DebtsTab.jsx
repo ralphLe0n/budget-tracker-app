@@ -39,7 +39,12 @@ const DebtsTab = ({
 
   // Calculate installment amount using Polish amortization (annuity method)
   const calculateInstallment = (principal, annualRate, months) => {
-    if (!principal || !annualRate || !months) return 0;
+    if (!principal || !months) return 0;
+
+    // Handle zero or undefined interest rate
+    if (annualRate === null || annualRate === undefined || annualRate === '') {
+      return 0;
+    }
 
     const monthlyRate = annualRate / 100 / 12;
 
@@ -81,8 +86,8 @@ const DebtsTab = ({
   };
 
   const handleAddDebt = async () => {
-    if (!newDebt.name || !newDebt.principal_amount || !newDebt.interest_rate ||
-        !newDebt.rrso || !newDebt.total_installments || !newDebt.start_date) {
+    if (!newDebt.name || !newDebt.principal_amount || newDebt.interest_rate === '' ||
+        newDebt.rrso === '' || !newDebt.total_installments || !newDebt.start_date) {
       alert('Proszę wypełnić wszystkie wymagane pola (nazwę, kwotę, oprocentowanie, RRSO, liczbę rat i datę rozpoczęcia)');
       return;
     }

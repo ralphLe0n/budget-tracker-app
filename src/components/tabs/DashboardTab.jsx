@@ -57,14 +57,14 @@ const DashboardTab = ({
         <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.success}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
-              Total Income {hasActiveFilters && <span className="text-xs">(Filtered)</span>}
+              Całkowity Przychód {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
             <TrendingUp style={{ color: THEME.success }} size={24} />
           </div>
           <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalIncome)}</p>
           {hasActiveFilters && (
             <p className="text-xs text-gray-500 mt-1">
-              {filteredTransactions.filter(t => t.amount > 0 && t.category !== 'Transfer').length} transaction(s)
+              {filteredTransactions.filter(t => t.amount > 0 && t.category !== 'Transfer').length} transakcj(e/i)
             </p>
           )}
         </div>
@@ -72,14 +72,14 @@ const DashboardTab = ({
         <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.danger}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
-              Total Expenses {hasActiveFilters && <span className="text-xs">(Filtered)</span>}
+              Całkowite Wydatki {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
             <TrendingDown style={{ color: THEME.danger }} size={24} />
           </div>
           <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalExpenses)}</p>
           {hasActiveFilters && (
             <p className="text-xs text-gray-500 mt-1">
-              {filteredTransactions.filter(t => t.amount < 0 && t.category !== 'Transfer').length} transaction(s)
+              {filteredTransactions.filter(t => t.amount < 0 && t.category !== 'Transfer').length} transakcj(e/i)
             </p>
           )}
         </div>
@@ -87,7 +87,7 @@ const DashboardTab = ({
         <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.primary}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
-              Account Balance
+              Saldo Konta
             </span>
             <Wallet style={{ color: THEME.primary }} size={24} />
           </div>
@@ -95,14 +95,14 @@ const DashboardTab = ({
             {formatCurrency(totalAccountBalance)}
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            {accounts.filter(a => a.type !== 'savings').length} account(s)
+            {accounts.filter(a => a.type !== 'savings').length} kont(o/a)
           </p>
         </div>
 
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 border-2 border-green-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-700 text-sm font-medium">
-              Total Savings
+              Całkowite Oszczędności
             </span>
             <DollarSign style={{ color: THEME.success }} size={24} />
           </div>
@@ -110,7 +110,7 @@ const DashboardTab = ({
             {formatCurrency(totalSavings)}
           </p>
           <p className="text-xs text-gray-600 mt-1">
-            {savingsAccounts.length} savings account(s)
+            {savingsAccounts.length} kont(o/a) oszczędnościow(ych/e)
           </p>
         </div>
       </div>
@@ -118,7 +118,7 @@ const DashboardTab = ({
       {/* Transactions */}
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Recent Transactions</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Ostatnie Transakcje</h2>
           <div className="flex gap-2">
             <button
               onClick={() => setShowCSVImport(true)}
@@ -134,7 +134,7 @@ const DashboardTab = ({
               }}
             >
               <Upload size={20} />
-              Import CSV
+              Importuj CSV
             </button>
             <button
               onClick={() => setShowAddTransaction(!showAddTransaction)}
@@ -144,7 +144,7 @@ const DashboardTab = ({
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
             >
               <PlusCircle size={20} />
-              Add Transaction
+              Dodaj Transakcję
             </button>
           </div>
         </div>
@@ -152,10 +152,10 @@ const DashboardTab = ({
         {/* Add Transaction Form */}
         {showAddTransaction && (
           <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
-            <h3 className="font-semibold text-gray-800 mb-4">New Transaction</h3>
+            <h3 className="font-semibold text-gray-800 mb-4">Nowa Transakcja</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data</label>
                 <input
                   type="date"
                   value={newTransaction.date}
@@ -164,14 +164,14 @@ const DashboardTab = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Account *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Konto *</label>
                 <select
                   value={newTransaction.account_id}
                   onChange={(e) => setNewTransaction({ ...newTransaction, account_id: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                   required
                 >
-                  <option value="">Select Account</option>
+                  <option value="">Wybierz Konto</option>
                   {accounts.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name} ({formatCurrency(account.balance)})
@@ -180,13 +180,13 @@ const DashboardTab = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Kategoria (Opcjonalna)</label>
                 <select
                   value={newTransaction.category}
                   onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 >
-                  <option value="">No Category</option>
+                  <option value="">Bez Kategorii</option>
                   {categories.map((cat) => (
                     <option key={cat.name} value={cat.name}>
                       {cat.name}
@@ -195,25 +195,25 @@ const DashboardTab = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Opis</label>
                 <input
                   type="text"
                   value={newTransaction.description}
                   onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
-                  placeholder="Coffee shop, rent, etc."
+                  placeholder="Kawiarnia, czynsz, itp."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Amount (negative for expenses)
+                  Kwota (ujemna dla wydatków)
                 </label>
                 <input
                   type="number"
                   step="0.01"
                   value={newTransaction.amount}
                   onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
-                  placeholder="-50.00 or 3000.00"
+                  placeholder="-50.00 lub 3000.00"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 />
               </div>
@@ -226,13 +226,13 @@ const DashboardTab = ({
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
               >
-                Save Transaction
+                Zapisz Transakcję
               </button>
               <button
                 onClick={() => setShowAddTransaction(false)}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
               >
-                Cancel
+                Anuluj
               </button>
             </div>
           </div>
@@ -242,8 +242,8 @@ const DashboardTab = ({
         <div className="space-y-3">
           {filteredTransactions.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">No transactions found</p>
-              <p className="text-sm">Try adjusting your filters or add a new transaction</p>
+              <p className="text-lg">Nie znaleziono transakcji</p>
+              <p className="text-sm">Spróbuj dostosować filtry lub dodaj nową transakcję</p>
             </div>
           ) : (
             <>
@@ -270,7 +270,7 @@ const DashboardTab = ({
                           backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
                           color: transaction.amount > 0 ? THEME.success : THEME.danger
                         }}>
-                          {transaction.amount > 0 ? 'Income' : 'Expense'}
+                          {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
                         </span>
                       </div>
                     </div>
@@ -315,7 +315,7 @@ const DashboardTab = ({
                       e.currentTarget.style.color = THEME.primary;
                     }}
                   >
-                    Show More Transactions ({filteredTransactions.length - 10} more)
+                    Pokaż Więcej Transakcji ({filteredTransactions.length - 10} więcej)
                   </button>
                 </div>
               )}
@@ -327,7 +327,7 @@ const DashboardTab = ({
       {/* Budget Categories */}
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
-          Budget Overview {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+          Przegląd Budżetu {hasActiveFilters && <span className="text-sm text-gray-500">(Filtrowane)</span>}
         </h2>
         <div className="space-y-4">
           {budgets

@@ -27,8 +27,8 @@ const RecurringTab = ({
     <div className="bg-white rounded-2xl shadow-lg p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Recurring Transactions</h2>
-          <p className="text-gray-600 text-sm mt-1">Set up automatic recurring transactions</p>
+          <h2 className="text-2xl font-bold text-gray-800">Transakcje Cykliczne</h2>
+          <p className="text-gray-600 text-sm mt-1">Konfiguruj automatyczne transakcje cykliczne</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -37,10 +37,10 @@ const RecurringTab = ({
             style={{ backgroundColor: THEME.success }}
             onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.successHover}
             onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
-            title="Generate all pending transactions from active rules"
+            title="Wygeneruj wszystkie oczekujące transakcje z aktywnych reguł"
           >
             <Calendar size={20} />
-            Generate Now
+            Generuj Teraz
           </button>
           <button
             onClick={() => setShowAddRecurring(!showAddRecurring)}
@@ -50,7 +50,7 @@ const RecurringTab = ({
             onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
           >
             <PlusCircle size={20} />
-            Add Rule
+            Dodaj Regułę
           </button>
         </div>
       </div>
@@ -58,36 +58,36 @@ const RecurringTab = ({
       {/* Info Box */}
       <div className="rounded-lg p-4 mb-6" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary, border: '1px solid' }}>
         <p className="text-sm text-gray-700">
-          <strong>💡 How it works:</strong> Create rules for recurring income or expenses (salary, subscriptions, rent, etc.).
-          Click <strong>"Generate Now"</strong> to create all pending transactions based on your active rules.
-          The app tracks the last generated date to avoid duplicates.
+          <strong>💡 Jak to działa:</strong> Twórz reguły dla cyklicznych przychodów lub wydatków (pensja, subskrypcje, czynsz, itp.).
+          Kliknij <strong>"Generuj Teraz"</strong> aby utworzyć wszystkie oczekujące transakcje na podstawie Twoich aktywnych reguł.
+          Aplikacja śledzi datę ostatniego wygenerowania aby uniknąć duplikatów.
         </p>
       </div>
 
       {/* Add Recurring Rule Form */}
       {showAddRecurring && (
         <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
-          <h3 className="font-semibold text-gray-800 mb-4">New Recurring Rule</h3>
+          <h3 className="font-semibold text-gray-800 mb-4">Nowa Reguła Cykliczna</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Opis</label>
               <input
                 type="text"
                 value={newRecurring.description}
                 onChange={(e) => setNewRecurring({ ...newRecurring, description: e.target.value })}
-                placeholder="Monthly rent, salary, etc."
+                placeholder="Miesięczny czynsz, pensja, itp."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Account *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Konto *</label>
               <select
                 value={newRecurring.account_id}
                 onChange={(e) => setNewRecurring({ ...newRecurring, account_id: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 required
               >
-                <option value="">Select Account</option>
+                <option value="">Wybierz Konto</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.name} ({formatCurrency(account.balance)})
@@ -96,7 +96,7 @@ const RecurringTab = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Kategoria</label>
               <select
                 value={newRecurring.category}
                 onChange={(e) => setNewRecurring({ ...newRecurring, category: e.target.value })}
@@ -111,32 +111,32 @@ const RecurringTab = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Amount (negative for expenses)
+                Kwota (ujemna dla wydatków)
               </label>
               <input
                 type="number"
                 step="0.01"
                 value={newRecurring.amount}
                 onChange={(e) => setNewRecurring({ ...newRecurring, amount: e.target.value })}
-                placeholder="-50.00 or 3000.00"
+                placeholder="-50.00 lub 3000.00"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Częstotliwość</label>
               <select
                 value={newRecurring.frequency}
                 onChange={(e) => setNewRecurring({ ...newRecurring, frequency: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               >
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
+                <option value="weekly">Tygodniowa</option>
+                <option value="monthly">Miesięczna</option>
+                <option value="yearly">Roczna</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {newRecurring.frequency === 'monthly' || newRecurring.frequency === 'yearly' ? 'Day of Month' : 'Start Date'}
+                {newRecurring.frequency === 'monthly' || newRecurring.frequency === 'yearly' ? 'Dzień Miesiąca' : 'Data Początku'}
               </label>
               {newRecurring.frequency === 'monthly' || newRecurring.frequency === 'yearly' ? (
                 <input
@@ -157,7 +157,7 @@ const RecurringTab = ({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Data Początku</label>
               <input
                 type="date"
                 value={newRecurring.startDate}
@@ -174,13 +174,13 @@ const RecurringTab = ({
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
             >
-              Save Rule
+              Zapisz Regułę
             </button>
             <button
               onClick={() => setShowAddRecurring(false)}
               className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
             >
-              Cancel
+              Anuluj
             </button>
           </div>
         </div>
@@ -199,27 +199,27 @@ const RecurringTab = ({
             {editingRecurring === rule.id ? (
               /* Edit Form */
               <div>
-                <h3 className="font-semibold text-gray-800 mb-4">Edit Recurring Rule</h3>
+                <h3 className="font-semibold text-gray-800 mb-4">Edytuj Regułę Cykliczną</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Opis</label>
                     <input
                       type="text"
                       value={editingRecurringData.description}
                       onChange={(e) => setEditingRecurringData({ ...editingRecurringData, description: e.target.value })}
-                      placeholder="Monthly rent, salary, etc."
+                      placeholder="Miesięczny czynsz, pensja, itp."
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Account *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Konto *</label>
                     <select
                       value={editingRecurringData.account_id}
                       onChange={(e) => setEditingRecurringData({ ...editingRecurringData, account_id: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                       required
                     >
-                      <option value="">Select Account</option>
+                      <option value="">Wybierz Konto</option>
                       {accounts.map((account) => (
                         <option key={account.id} value={account.id}>
                           {account.name} ({formatCurrency(account.balance)})
@@ -228,7 +228,7 @@ const RecurringTab = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Kategoria</label>
                     <select
                       value={editingRecurringData.category}
                       onChange={(e) => setEditingRecurringData({ ...editingRecurringData, category: e.target.value })}
@@ -243,32 +243,32 @@ const RecurringTab = ({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Amount (negative for expenses)
+                      Kwota (ujemna dla wydatków)
                     </label>
                     <input
                       type="number"
                       step="0.01"
                       value={editingRecurringData.amount}
                       onChange={(e) => setEditingRecurringData({ ...editingRecurringData, amount: e.target.value })}
-                      placeholder="-50.00 or 3000.00"
+                      placeholder="-50.00 lub 3000.00"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Częstotliwość</label>
                     <select
                       value={editingRecurringData.frequency}
                       onChange={(e) => setEditingRecurringData({ ...editingRecurringData, frequency: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     >
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="yearly">Yearly</option>
+                      <option value="weekly">Tygodniowa</option>
+                      <option value="monthly">Miesięczna</option>
+                      <option value="yearly">Roczna</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {editingRecurringData.frequency === 'monthly' || editingRecurringData.frequency === 'yearly' ? 'Day of Month' : 'Start Date'}
+                      {editingRecurringData.frequency === 'monthly' || editingRecurringData.frequency === 'yearly' ? 'Dzień Miesiąca' : 'Data Początku'}
                     </label>
                     {editingRecurringData.frequency === 'monthly' || editingRecurringData.frequency === 'yearly' ? (
                       <input
@@ -289,7 +289,7 @@ const RecurringTab = ({
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Data Początku</label>
                     <input
                       type="date"
                       value={editingRecurringData.startDate}
@@ -307,14 +307,14 @@ const RecurringTab = ({
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
                   >
                     <Save size={18} />
-                    Save Changes
+                    Zapisz Zmiany
                   </button>
                   <button
                     onClick={handleCancelEditRecurring}
                     className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
                   >
                     <X size={18} />
-                    Cancel
+                    Anuluj
                   </button>
                 </div>
               </div>
@@ -333,7 +333,7 @@ const RecurringTab = ({
                       <p className="font-semibold text-gray-800 text-lg">{rule.description}</p>
                       {!rule.active && (
                         <span className="px-2 py-0.5 bg-gray-400 text-white rounded-full text-xs font-medium">
-                          Paused
+                          Wstrzymana
                         </span>
                       )}
                     </div>
@@ -342,8 +342,8 @@ const RecurringTab = ({
                         {rule.category}
                       </span>
                       <span className="capitalize">{rule.frequency}</span>
-                      {rule.frequency !== 'weekly' && <span>Day {rule.dayOfMonth}</span>}
-                      <span>Next: {calculateNextOccurrence(rule)}</span>
+                      {rule.frequency !== 'weekly' && <span>Dzień {rule.dayOfMonth}</span>}
+                      <span>Następna: {calculateNextOccurrence(rule)}</span>
                     </div>
                   </div>
                 </div>
@@ -360,7 +360,7 @@ const RecurringTab = ({
                     style={{ color: THEME.primary }}
                     onMouseOver={(e) => e.currentTarget.style.color = THEME.primaryHover}
                     onMouseOut={(e) => e.currentTarget.style.color = THEME.primary}
-                    title="Edit"
+                    title="Edytuj"
                   >
                     <Edit2 size={18} />
                   </button>
@@ -372,7 +372,7 @@ const RecurringTab = ({
                       color: rule.active ? '#92400e' : THEME.success
                     }}
                   >
-                    {rule.active ? 'Pause' : 'Resume'}
+                    {rule.active ? 'Wstrzymaj' : 'Wznów'}
                   </button>
                   <button
                     onClick={() => setDeleteConfirm({ show: true, type: 'recurring', id: rule.id, name: rule.description })}
@@ -393,8 +393,8 @@ const RecurringTab = ({
       {recurringRules.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-lg">No recurring rules yet</p>
-          <p className="text-sm">Create a rule to automatically generate transactions</p>
+          <p className="text-lg">Brak reguł cyklicznych</p>
+          <p className="text-sm">Utwórz regułę aby automatycznie generować transakcje</p>
         </div>
       )}
     </div>

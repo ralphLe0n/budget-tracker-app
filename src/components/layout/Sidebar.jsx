@@ -4,13 +4,13 @@ import { THEME } from '../../config/theme';
 
 const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Transactions', icon: Receipt },
-    { id: 'accounts', label: 'Accounts', icon: Wallet },
-    { id: 'categories', label: 'Categories', icon: Tag },
-    { id: 'budgets', label: 'Budgets', icon: DollarSign },
-    { id: 'recurring', label: 'Recurring', icon: Repeat },
-    { id: 'debts', label: 'Debts', icon: CreditCard },
+    { id: 'dashboard', label: 'Panel Główny', icon: LayoutDashboard },
+    { id: 'transactions', label: 'Transakcje', icon: Receipt },
+    { id: 'accounts', label: 'Konta', icon: Wallet },
+    { id: 'categories', label: 'Kategorie', icon: Tag },
+    { id: 'budgets', label: 'Budżety', icon: DollarSign },
+    { id: 'recurring', label: 'Cykliczne', icon: Repeat },
+    { id: 'debts', label: 'Długi', icon: CreditCard },
   ];
 
   const handleTabClick = (tabId) => {
@@ -41,14 +41,14 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMo
         {/* Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Budget Tracker</h1>
-            <p className="text-xs text-gray-500 mt-1">Manage your finances</p>
+            <h1 className="text-2xl font-bold text-gray-800">Zarządzanie Budżetem</h1>
+            <p className="text-xs text-gray-500 mt-1">Zarządzaj swoimi finansami</p>
           </div>
           {/* Close button for mobile */}
           <button
             onClick={() => setIsMobileMenuOpen(false)}
             className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Close menu"
+            aria-label="Zamknij menu"
           >
             <X size={24} className="text-gray-600" />
           </button>
@@ -81,7 +81,7 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMo
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium text-gray-700 hover:bg-gray-100"
           >
             <LogOut size={20} />
-            Logout
+            Wyloguj
           </button>
         </div>
       </div>
