@@ -10,7 +10,10 @@ export const loadAllData = async (userId) => {
     accounts: [],
     categoryRules: [],
     debts: [],
-    debtPayments: []
+    debtPayments: [],
+    savingsGoals: [],
+    goalContributions: [],
+    analyticsSnapshots: []
   };
 
   try {
@@ -134,6 +137,18 @@ export const loadAllData = async (userId) => {
     // Load debt payments
     const debtPaymentsData = await loadDebtPayments(userId);
     results.debtPayments = debtPaymentsData;
+
+    // Load savings goals
+    const savingsGoalsData = await loadSavingsGoals(userId);
+    results.savingsGoals = savingsGoalsData;
+
+    // Load goal contributions
+    const goalContributionsData = await loadGoalContributions(userId);
+    results.goalContributions = goalContributionsData;
+
+    // Load analytics snapshots
+    const analyticsSnapshotsData = await loadAnalyticsSnapshots(userId);
+    results.analyticsSnapshots = analyticsSnapshotsData;
 
     return results;
   } catch (error) {
@@ -492,6 +507,192 @@ export const addDebtPayment = async (payment, userId) => {
 export const deleteDebtPayment = async (id) => {
   const { error } = await supabase
     .from('debt_payments')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
+// ============================================================================
+// Savings Goals operations
+// ============================================================================
+export const loadSavingsGoals = async (userId) => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    // Don't throw error if table doesn't exist yet (migration not run)
+    if (error.code !== '42P01') {
+      throw error;
+    }
+    return [];
+  }
+
+  return data || [];
+};
+
+export const addSavingsGoal = async (goal, userId) => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .insert([{
+      user_id: userId,
+      name: goal.name,
+      description: goal.description || null,
+      category: goal.category,
+      target_amount: goal.target_amount,
+      current_amount: goal.current_amount || 0,
+      start_date: goal.start_date || new Date().toISOString().split('T')[0],
+      target_date: goal.target_date,
+      priority: goal.priority || 5,
+      auto_allocate: goal.auto_allocate || false,
+      allocation_percentage: goal.allocation_percentage || 0,
+      account_id: goal.account_id || null,
+      is_active: goal.is_active !== undefined ? goal.is_active : true,
+      is_completed: false
+    }])
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateSavingsGoal = async (goalId, updates) => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .update(updates)
+    .eq('id', goalId)
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteSavingsGoal = async (id) => {
+  const { error } = await supabase
+    .from('savings_goals')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
+// Goal contributions operations
+export const loadGoalContributions = async (userId) => {
+  const { data, error } = await supabase
+    .from('savings_goal_contributions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('contribution_date', { ascending: false });
+
+  if (error) {
+    // Don't throw error if table doesn't exist yet
+    if (error.code !== '42P01') {
+      throw error;
+    }
+    return [];
+  }
+
+  return data || [];
+};
+
+export const addGoalContribution = async (contribution, userId) => {
+  const { data, error } = await supabase
+    .from('savings_goal_contributions')
+    .insert([{
+      user_id: userId,
+      goal_id: contribution.goal_id,
+      amount: contribution.amount,
+      contribution_date: contribution.contribution_date || new Date().toISOString().split('T')[0],
+      transaction_id: contribution.transaction_id || null,
+      contribution_type: contribution.contribution_type || 'manual',
+      note: contribution.note || null
+    }])
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteGoalContribution = async (id) => {
+  const { error } = await supabase
+    .from('savings_goal_contributions')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
+// ============================================================================
+// Analytics Snapshots operations
+// ============================================================================
+export const loadAnalyticsSnapshots = async (userId) => {
+  const { data, error } = await supabase
+    .from('analytics_snapshots')
+    .select('*')
+    .eq('user_id', userId)
+    .order('snapshot_date', { ascending: false });
+
+  if (error) {
+    // Don't throw error if table doesn't exist yet
+    if (error.code !== '42P01') {
+      throw error;
+    }
+    return [];
+  }
+
+  return data || [];
+};
+
+export const addAnalyticsSnapshot = async (snapshot, userId) => {
+  const { data, error } = await supabase
+    .from('analytics_snapshots')
+    .insert([{
+      user_id: userId,
+      snapshot_date: snapshot.snapshot_date || new Date().toISOString().split('T')[0],
+      total_income: snapshot.total_income || 0,
+      total_expenses: snapshot.total_expenses || 0,
+      net_worth: snapshot.net_worth || 0,
+      total_assets: snapshot.total_assets || 0,
+      total_liabilities: snapshot.total_liabilities || 0,
+      savings_rate: snapshot.savings_rate || 0,
+      budget_adherence_score: snapshot.budget_adherence_score || 0,
+      categories_over_budget: snapshot.categories_over_budget || 0,
+      total_categories_tracked: snapshot.total_categories_tracked || 0,
+      debt_to_income_ratio: snapshot.debt_to_income_ratio || 0,
+      total_debt_payments: snapshot.total_debt_payments || 0,
+      active_goals_count: snapshot.active_goals_count || 0,
+      total_saved_towards_goals: snapshot.total_saved_towards_goals || 0
+    }])
+    .select();
+
+  if (error) {
+    // If unique constraint violation, update instead
+    if (error.code === '23505') {
+      return updateAnalyticsSnapshot(snapshot.snapshot_date, snapshot, userId);
+    }
+    throw error;
+  }
+  return data[0];
+};
+
+export const updateAnalyticsSnapshot = async (snapshotDate, updates, userId) => {
+  const { data, error } = await supabase
+    .from('analytics_snapshots')
+    .update(updates)
+    .eq('user_id', userId)
+    .eq('snapshot_date', snapshotDate)
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteAnalyticsSnapshot = async (id) => {
+  const { error } = await supabase
+    .from('analytics_snapshots')
     .delete()
     .eq('id', id);
 
