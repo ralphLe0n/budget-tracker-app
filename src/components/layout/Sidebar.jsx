@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, Receipt, GripVertical, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, Receipt, GripVertical, CreditCard, Target, TrendingUp } from 'lucide-react';
 import { THEME } from '../../config/theme';
 
 const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMobileMenuOpen }) => {
@@ -9,6 +9,8 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMo
     { id: 'accounts', label: 'Konta', icon: Wallet },
     { id: 'categories', label: 'Kategorie', icon: Tag },
     { id: 'budgets', label: 'Budżety', icon: DollarSign },
+    { id: 'savings-goals', label: 'Cele Oszczędnościowe', icon: Target },
+    { id: 'analytics', label: 'Analityka', icon: TrendingUp },
     { id: 'recurring', label: 'Cykliczne', icon: Repeat },
     { id: 'debts', label: 'Długi', icon: CreditCard },
   ];

@@ -21,6 +21,8 @@ import BudgetsTab from './components/tabs/BudgetsTab';
 import AccountsTab from './components/tabs/AccountsTab';
 import RecurringTab from './components/tabs/RecurringTab';
 import DebtsTab from './components/tabs/DebtsTab';
+import SavingsGoalsTab from './components/tabs/SavingsGoalsTab';
+import AnalyticsTab from './components/tabs/AnalyticsTab';
 import CSVImport from './components/CSVImport';
 
 const BudgetApp = ({ session }) => {
@@ -38,6 +40,9 @@ const BudgetApp = ({ session }) => {
   const [categoryRules, setCategoryRules] = useState([]);
   const [debts, setDebts] = useState([]);
   const [debtPayments, setDebtPayments] = useState([]);
+  const [savingsGoals, setSavingsGoals] = useState([]);
+  const [goalContributions, setGoalContributions] = useState([]);
+  const [celebrationMessage, setCelebrationMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -147,6 +152,8 @@ const BudgetApp = ({ session }) => {
       setCategoryRules(data.categoryRules);
       setDebts(data.debts);
       setDebtPayments(data.debtPayments);
+      setSavingsGoals(data.savingsGoals);
+      setGoalContributions(data.goalContributions);
 
       // Check and reset budgets if needed
       await checkAndResetBudgets(data.budgets);
@@ -1542,6 +1549,77 @@ const BudgetApp = ({ session }) => {
     }
   };
 
+  // Savings Goals handlers
+  const handleAddSavingsGoal = async (goalData) => {
+    try {
+      setIsLoading(true);
+      const data = await dataService.addSavingsGoal(goalData, session.user.id);
+      setSavingsGoals([...savingsGoals, data]);
+    } catch (error) {
+      console.error('Error adding savings goal:', error);
+      alert('Failed to add savings goal: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateSavingsGoal = async (goalId, updates) => {
+    try {
+      setIsLoading(true);
+      const updatedGoal = await dataService.updateSavingsGoal(goalId, updates);
+      setSavingsGoals(savingsGoals.map(g => g.id === goalId ? updatedGoal : g));
+    } catch (error) {
+      console.error('Error updating savings goal:', error);
+      alert('Failed to update savings goal: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteSavingsGoal = async (goalId) => {
+    try {
+      setIsLoading(true);
+      await dataService.deleteSavingsGoal(goalId);
+      setSavingsGoals(savingsGoals.filter(g => g.id !== goalId));
+      // Also remove associated contributions
+      setGoalContributions(goalContributions.filter(c => c.goal_id !== goalId));
+    } catch (error) {
+      console.error('Error deleting savings goal:', error);
+      alert('Failed to delete savings goal: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddGoalContribution = async (contributionData) => {
+    try {
+      setIsLoading(true);
+      const data = await dataService.addGoalContribution(contributionData, session.user.id);
+      setGoalContributions([...goalContributions, data]);
+    } catch (error) {
+      console.error('Error adding goal contribution:', error);
+      alert('Failed to add contribution: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleShowCelebration = (milestone) => {
+    setCelebrationMessage(milestone);
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+      setCelebrationMessage(null);
+    }, 5000);
+  };
+
+  // Calculate monthly income for analytics
+  const monthlyIncome = useMemo(() => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentTransactions = transactions.filter(t => new Date(t.date) >= thirtyDaysAgo);
+    return recentTransactions.reduce((sum, t) => sum + (t.amount > 0 ? t.amount : 0), 0);
+  }, [transactions]);
+
   // Category change handler
   const handleCategoryChange = async (transaction, newCategory) => {
     if (!transaction || !newCategory) return;
@@ -1848,6 +1926,29 @@ const BudgetApp = ({ session }) => {
           />
         )}
 
+        {activeTab === 'savings-goals' && (
+          <SavingsGoalsTab
+            savingsGoals={savingsGoals}
+            accounts={accounts}
+            monthlyIncome={monthlyIncome}
+            onAddGoal={handleAddSavingsGoal}
+            onUpdateGoal={handleUpdateSavingsGoal}
+            onDeleteGoal={handleDeleteSavingsGoal}
+            onAddContribution={handleAddGoalContribution}
+            onShowCelebration={handleShowCelebration}
+          />
+        )}
+
+        {activeTab === 'analytics' && (
+          <AnalyticsTab
+            transactions={transactions}
+            budgets={budgets}
+            accounts={accounts}
+            debts={debts}
+            savingsGoals={savingsGoals}
+          />
+        )}
+
         {/* CSV Import Modal */}
         {showCSVImport && (
           <CSVImport
@@ -1875,6 +1976,20 @@ const BudgetApp = ({ session }) => {
 
         {/* Error Display */}
         <ErrorDisplay error={error} onDismiss={() => setError(null)} />
+
+        {/* Celebration Message */}
+        {celebrationMessage && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-8 py-6 rounded-2xl shadow-2xl transform scale-110 animate-bounce pointer-events-auto">
+              <div className="text-3xl font-bold text-center mb-2">
+                {celebrationMessage.message}
+              </div>
+              <div className="text-center text-sm opacity-90">
+                Milestone: {celebrationMessage.percentage}%
+              </div>
+            </div>
+          </div>
+        )}
         </div>
       </div>
     </div>
