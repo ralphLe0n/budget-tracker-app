@@ -18,30 +18,30 @@ const AccountsTab = ({
   setDeleteConfirm
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Manage Accounts</h2>
-        <div className="flex gap-3">
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Zarządzanie Kontami</h2>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => setShowTransfer(!showTransfer)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
             style={{ backgroundColor: THEME.success }}
             onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.successHover}
             onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
-            title="Transfer money between accounts"
+            title="Przelej pieniądze między kontami"
           >
             <ArrowLeftRight size={20} />
-            Transfer
+            Przelew
           </button>
           <button
             onClick={() => setShowAddAccount(!showAddAccount)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
             style={{ backgroundColor: THEME.primary }}
             onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
             onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
           >
             <PlusCircle size={20} />
-            Add Account
+            Dodaj Konto
           </button>
         </div>
       </div>
@@ -49,33 +49,33 @@ const AccountsTab = ({
       {/* Add Account Form */}
       {showAddAccount && (
         <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
-          <h3 className="font-semibold text-gray-800 mb-4">New Account</h3>
+          <h3 className="font-semibold text-gray-800 mb-4">Nowe Konto</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Nazwa Konta</label>
               <input
                 type="text"
                 value={newAccount.name}
                 onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
-                placeholder="e.g., Main Wallet, Savings Account"
+                placeholder="np. Główny Portfel, Konto Oszczędnościowe"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Typ Konta</label>
               <select
                 value={newAccount.type}
                 onChange={(e) => setNewAccount({ ...newAccount, type: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               >
-                <option value="wallet">Wallet</option>
-                <option value="current">Current Account</option>
-                <option value="savings">Savings Account</option>
-                <option value="credit">Credit Card</option>
+                <option value="wallet">Portfel</option>
+                <option value="current">Konto Bieżące</option>
+                <option value="savings">Konto Oszczędnościowe</option>
+                <option value="credit">Karta Kredytowa</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Starting Balance</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Saldo Początkowe</label>
               <input
                 type="number"
                 step="0.01"
@@ -86,21 +86,21 @@ const AccountsTab = ({
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={handleAddAccount}
-              className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
             >
-              Save Account
+              Zapisz Konto
             </button>
             <button
               onClick={() => setShowAddAccount(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
             >
-              Cancel
+              Anuluj
             </button>
           </div>
         </div>
@@ -109,17 +109,17 @@ const AccountsTab = ({
       {/* Transfer Form */}
       {showTransfer && (
         <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: '#d1fae5', borderColor: THEME.success }}>
-          <h3 className="font-semibold text-gray-800 mb-4">Transfer Between Accounts</h3>
+          <h3 className="font-semibold text-gray-800 mb-4">Przelew między Kontami</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">From Account *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Z Konta *</label>
               <select
                 value={transfer.fromAccountId}
                 onChange={(e) => setTransfer({ ...transfer, fromAccountId: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 required
               >
-                <option value="">Select source account</option>
+                <option value="">Wybierz konto źródłowe</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.name} ({formatCurrency(account.balance)})
@@ -128,14 +128,14 @@ const AccountsTab = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">To Account *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Na Konto *</label>
               <select
                 value={transfer.toAccountId}
                 onChange={(e) => setTransfer({ ...transfer, toAccountId: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 required
               >
-                <option value="">Select destination account</option>
+                <option value="">Wybierz konto docelowe</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.name} ({formatCurrency(account.balance)})
@@ -144,7 +144,7 @@ const AccountsTab = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Kwota *</label>
               <input
                 type="number"
                 step="0.01"
@@ -156,31 +156,31 @@ const AccountsTab = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Opis (Opcjonalny)</label>
               <input
                 type="text"
                 value={transfer.description}
                 onChange={(e) => setTransfer({ ...transfer, description: e.target.value })}
-                placeholder="Transfer description..."
+                placeholder="Opis przelewu..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={handleTransfer}
-              className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
               style={{ backgroundColor: THEME.success }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.successHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
             >
-              Transfer Money
+              Przelej Pieniądze
             </button>
             <button
               onClick={() => setShowTransfer(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
             >
-              Cancel
+              Anuluj
             </button>
           </div>
         </div>
@@ -191,8 +191,8 @@ const AccountsTab = ({
         {accounts.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-500">
             <Wallet size={48} className="mx-auto mb-4 opacity-50" />
-            <p className="text-lg">No accounts yet</p>
-            <p className="text-sm">Create accounts to track your money</p>
+            <p className="text-lg">Brak kont</p>
+            <p className="text-sm">Utwórz konta aby śledzić swoje pieniądze</p>
           </div>
         ) : (
           accounts.map((account) => {
@@ -214,7 +214,7 @@ const AccountsTab = ({
                     style={{ color: THEME.danger }}
                     onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
                     onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
-                    title="Delete account"
+                    title="Usuń konto"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -222,12 +222,12 @@ const AccountsTab = ({
                 <h3 className="text-lg font-bold text-gray-800 mb-1">{account.name}</h3>
                 <p className="text-xs text-gray-600 mb-3 capitalize">{account.type}</p>
                 <div className="border-t border-blue-200 pt-3">
-                  <p className="text-xs text-gray-600 mb-1">Current Balance</p>
+                  <p className="text-xs text-gray-600 mb-1">Aktualne Saldo</p>
                   <p className="text-2xl font-bold" style={{ color: account.balance >= 0 ? THEME.success : THEME.danger }}>
                     {formatCurrency(account.balance)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Started with: {formatCurrency(account.starting_balance)}
+                    Saldo początkowe: {formatCurrency(account.starting_balance)}
                   </p>
                 </div>
               </div>

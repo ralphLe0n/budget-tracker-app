@@ -64,35 +64,35 @@ const CategoriesTab = ({
     handleCancelEdit();
   };
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Categories Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Manage Categories</h2>
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Zarządzanie Kategoriami</h2>
         <button
           onClick={() => setShowAddCategory(!showAddCategory)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
           style={{ backgroundColor: THEME.primary }}
           onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
           onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
         >
           <Icons.PlusCircle size={20} />
-          Add Category
+          Dodaj Kategorię
         </button>
       </div>
 
       {/* Add Category Form */}
       {showAddCategory && (
         <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
-          <h3 className="font-semibold text-gray-800 mb-4">New Category</h3>
+          <h3 className="font-semibold text-gray-800 mb-4">Nowa Kategoria</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Nazwa Kategorii</label>
               <input
                 type="text"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="e.g., Healthcare, Utilities, Groceries"
+                placeholder="np. Zdrowie, Media, Zakupy spożywcze"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               />
             </div>
@@ -119,13 +119,13 @@ const CategoriesTab = ({
                 style={{ accentColor: THEME.primary }}
               />
               <label htmlFor="addBudgetCheckbox" className="text-sm font-medium text-gray-700 cursor-pointer">
-                Also create a budget for this category
+                Utwórz również budżet dla tej kategorii
               </label>
             </div>
 
             {addBudgetWithCategory && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Budget Limit</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Miesięczny Limit Budżetu</label>
                 <input
                   type="number"
                   step="0.01"
@@ -137,15 +137,15 @@ const CategoriesTab = ({
               </div>
             )}
           </div>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={onAddCategory}
-              className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
             >
-              Save Category
+              Zapisz Kategorię
             </button>
             <button
               onClick={() => {
@@ -153,9 +153,9 @@ const CategoriesTab = ({
                 setAddBudgetWithCategory(false);
                 setNewCategoryLimit('');
               }}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
             >
-              Cancel
+              Anuluj
             </button>
           </div>
         </div>
@@ -166,8 +166,8 @@ const CategoriesTab = ({
         {categories.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <Icons.Tag size={48} className="mx-auto mb-4 opacity-50" />
-            <p className="text-lg">No categories yet</p>
-            <p className="text-sm">Create categories to organize your transactions</p>
+            <p className="text-lg">Brak kategorii</p>
+            <p className="text-sm">Utwórz kategorie aby uporządkować swoje transakcje</p>
           </div>
         ) : (
           categories.map((category) => {
@@ -181,7 +181,7 @@ const CategoriesTab = ({
                 // Edit mode
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nazwa Kategorii</label>
                     <input
                       type="text"
                       value={editedCategoryName}
@@ -210,18 +210,18 @@ const CategoriesTab = ({
                       onClick={handleSaveEdit}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white"
                       style={{ backgroundColor: THEME.success }}
-                      title="Save changes"
+                      title="Zapisz zmiany"
                     >
                       <Icons.Save size={18} />
-                      Save
+                      Zapisz
                     </button>
                     <button
                       onClick={handleCancelEdit}
                       className="flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-gray-700"
-                      title="Cancel"
+                      title="Anuluj"
                     >
                       <Icons.X size={18} />
-                      Cancel
+                      Anuluj
                     </button>
                   </div>
                 </div>
@@ -235,7 +235,7 @@ const CategoriesTab = ({
                     <div>
                       <p className="font-semibold text-gray-800 text-lg">{category.name}</p>
                       <p className="text-sm text-gray-600">
-                        {transactions.filter(t => t.category === category.name).length} transaction(s)
+                        {transactions.filter(t => t.category === category.name).length} transakcji
                       </p>
                     </div>
                   </div>
@@ -246,7 +246,7 @@ const CategoriesTab = ({
                       style={{ color: THEME.primary }}
                       onMouseOver={(e) => e.currentTarget.style.color = THEME.primaryHover}
                       onMouseOut={(e) => e.currentTarget.style.color = THEME.primary}
-                      title="Edit category"
+                      title="Edytuj kategorię"
                     >
                       <Icons.Edit2 size={18} />
                     </button>
@@ -256,7 +256,7 @@ const CategoriesTab = ({
                       style={{ color: THEME.danger }}
                       onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
                       onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
-                      title="Delete category"
+                      title="Usuń kategorię"
                     >
                       <Icons.Trash2 size={18} />
                     </button>
@@ -271,7 +271,7 @@ const CategoriesTab = ({
       </div>
 
       {/* Auto-Categorization Rules Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
         <CategoryRulesManager
           rules={categoryRules || []}
           categories={categories}

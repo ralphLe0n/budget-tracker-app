@@ -106,19 +106,21 @@ const TransactionsTab = ({
   return (
     <>
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Transactions & Analytics</h1>
-        <p className="text-gray-600 mt-2">Comprehensive view of your financial data</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transakcje i Analityka</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-2">Kompleksowy widok Twoich danych finansowych</p>
       </div>
 
       {/* Charts Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
         <button
           onClick={() => setChartsExpanded(!chartsExpanded)}
           className="w-full flex justify-between items-center mb-4"
         >
-          <h2 className="text-2xl font-bold text-gray-800">
-            Charts & Trends {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
+            <span className="hidden sm:inline">Wykresy i Trendy</span>
+            <span className="sm:hidden">Wykresy</span>
+            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
           </h2>
           {chartsExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
         </button>
@@ -127,7 +129,7 @@ const TransactionsTab = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Pie Chart */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Spending by Category</h3>
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">Wydatki według Kategorii</h3>
               {categorySpendingData.length > 0 ? (
                 <div>
                   <ResponsiveContainer width="100%" height={300}>
@@ -163,14 +165,14 @@ const TransactionsTab = ({
                 </div>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-gray-500">
-                  <p>No expense data to display</p>
+                  <p>Brak danych o wydatkach do wyświetlenia</p>
                 </div>
               )}
             </div>
 
             {/* Line Chart */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Trends</h3>
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">Trendy Miesięczne</h3>
               {monthlyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={monthlyData}>
@@ -185,7 +187,7 @@ const TransactionsTab = ({
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip
                       formatter={(value) => formatCurrency(value)}
-                      labelFormatter={(label) => `Month: ${label}`}
+                      labelFormatter={(label) => `Miesiąc: ${label}`}
                     />
                     <Legend />
                     <Line
@@ -193,7 +195,7 @@ const TransactionsTab = ({
                       dataKey="income"
                       stroke={THEME.success}
                       strokeWidth={2}
-                      name="Income"
+                      name="Przychód"
                       dot={{ r: 4 }}
                     />
                     <Line
@@ -201,7 +203,7 @@ const TransactionsTab = ({
                       dataKey="expenses"
                       stroke={THEME.danger}
                       strokeWidth={2}
-                      name="Expenses"
+                      name="Wydatki"
                       dot={{ r: 4 }}
                     />
                     <Line
@@ -209,7 +211,7 @@ const TransactionsTab = ({
                       dataKey="balance"
                       stroke={THEME.primary}
                       strokeWidth={2}
-                      name="Balance"
+                      name="Saldo"
                       dot={{ r: 4 }}
                     />
                     <Line
@@ -217,14 +219,14 @@ const TransactionsTab = ({
                       dataKey="savings"
                       stroke="#10b981"
                       strokeWidth={2}
-                      name="Savings"
+                      name="Oszczędności"
                       dot={{ r: 4 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-gray-500">
-                  <p>No data to display</p>
+                  <p>Brak danych do wyświetlenia</p>
                 </div>
               )}
             </div>
@@ -233,13 +235,15 @@ const TransactionsTab = ({
       </div>
 
       {/* Budget vs Actual Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
         <button
           onClick={() => setBudgetExpanded(!budgetExpanded)}
           className="w-full flex justify-between items-center mb-4"
         >
-          <h2 className="text-2xl font-bold text-gray-800">
-            Budget vs Actual {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
+            <span className="hidden sm:inline">Budżet vs Rzeczywiste</span>
+            <span className="sm:hidden">Budżet</span>
+            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
           </h2>
           {budgetExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
         </button>
@@ -269,44 +273,44 @@ const TransactionsTab = ({
                 <YAxis dataKey="category" type="category" width={100} />
                 <Tooltip formatter={(value) => formatCurrency(value)} />
                 <Legend />
-                <Bar dataKey="spent" stackId="a" fill={THEME.primary} name="Spent" />
-                <Bar dataKey="remaining" stackId="a" fill={THEME.success} name="Remaining" radius={[0, 8, 8, 0]} />
-                <Bar dataKey="overspent" stackId="a" fill={THEME.danger} name="Over Budget" radius={[0, 8, 8, 0]} />
+                <Bar dataKey="spent" stackId="a" fill={THEME.primary} name="Wydane" />
+                <Bar dataKey="remaining" stackId="a" fill={THEME.success} name="Pozostało" radius={[0, 8, 8, 0]} />
+                <Bar dataKey="overspent" stackId="a" fill={THEME.danger} name="Przekroczenie" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-[400px] flex items-center justify-center text-gray-500">
-              <p>No budget data to display</p>
+              <p>Brak danych budżetowych do wyświetlenia</p>
             </div>
           )
         )}
       </div>
 
       {/* Filters Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex-1 flex justify-between items-center"
+            className="flex-1 flex justify-between items-center w-full"
           >
-            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Filter size={20} />
-              Filters
+            <h3 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
+              <Filter size={18} className="sm:w-5 sm:h-5" />
+              Filtry
               {hasActiveFilters && (
                 <span className="ml-2 px-2 py-0.5 rounded-full text-xs text-white" style={{ backgroundColor: THEME.primary }}>
-                  Active
+                  Aktywne
                 </span>
               )}
             </h3>
-            {showFilters ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+            {showFilters ? <ChevronUp size={20} className="sm:w-6 sm:h-6" /> : <ChevronDown size={20} className="sm:w-6 sm:h-6" />}
           </button>
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="ml-4 text-sm font-medium hover:opacity-80"
+              className="text-xs sm:text-sm font-medium hover:opacity-80 w-full sm:w-auto text-left sm:text-center py-2 sm:py-0"
               style={{ color: THEME.danger }}
             >
-              Clear All
+              Wyczyść wszystko
             </button>
           )}
         </div>
@@ -315,8 +319,8 @@ const TransactionsTab = ({
           <div>
             {/* Quick Date Range Buttons */}
             <div className="mb-4">
-              <h4 className="font-semibold text-gray-700 mb-3">Quick Filters</h4>
-              <div className="flex flex-wrap gap-2">
+              <h4 className="font-semibold text-gray-700 mb-3 text-sm sm:text-base">Szybkie Filtry</h4>
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                 <button
                   onClick={() => {
                     const today = new Date();
@@ -324,9 +328,9 @@ const TransactionsTab = ({
                     setFilterStartDate(firstDay.toISOString().split('T')[0]);
                     setFilterEndDate(today.toISOString().split('T')[0]);
                   }}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                 >
-                  This Month
+                  Ten Miesiąc
                 </button>
                 <button
                   onClick={() => {
@@ -336,9 +340,9 @@ const TransactionsTab = ({
                     setFilterStartDate(firstDay.toISOString().split('T')[0]);
                     setFilterEndDate(lastDay.toISOString().split('T')[0]);
                   }}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                 >
-                  Last Month
+                  Ostatni Miesiąc
                 </button>
                 <button
                   onClick={() => {
@@ -347,9 +351,10 @@ const TransactionsTab = ({
                     setFilterStartDate(threeMonthsAgo.toISOString().split('T')[0]);
                     setFilterEndDate(today.toISOString().split('T')[0]);
                   }}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors col-span-2 sm:col-span-1"
                 >
-                  Last 3 Months
+                  <span className="hidden sm:inline">Ostatnie 3 Miesiące</span>
+                  <span className="sm:hidden">3 Miesiące</span>
                 </button>
                 <button
                   onClick={() => {
@@ -358,19 +363,19 @@ const TransactionsTab = ({
                     setFilterStartDate(firstDay.toISOString().split('T')[0]);
                     setFilterEndDate(today.toISOString().split('T')[0]);
                   }}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors col-span-2 sm:col-span-1"
                 >
-                  This Year
+                  Ten Rok
                 </button>
               </div>
             </div>
 
             {/* Date Range Filter */}
             <div className="mb-6">
-              <h4 className="font-semibold text-gray-700 mb-3">Date Range</h4>
+              <h4 className="font-semibold text-gray-700 mb-3">Zakres Dat</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">Start Date</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">Data Początkowa</label>
                   <input
                     type="date"
                     value={filterStartDate}
@@ -379,7 +384,7 @@ const TransactionsTab = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">End Date</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">Data Końcowa</label>
                   <input
                     type="date"
                     value={filterEndDate}
@@ -392,12 +397,12 @@ const TransactionsTab = ({
 
             {/* Description Filter */}
             <div className="mb-6">
-              <h4 className="font-semibold text-gray-700 mb-3">Search by Description</h4>
+              <h4 className="font-semibold text-gray-700 mb-3">Szukaj według Opisu</h4>
               <input
                 type="text"
                 value={filterDescription}
                 onChange={(e) => setFilterDescription(e.target.value)}
-                placeholder="Search transactions..."
+                placeholder="Szukaj transakcji..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               />
             </div>
@@ -405,20 +410,20 @@ const TransactionsTab = ({
             {/* Category Filter */}
             <div>
               <div className="flex justify-between items-center mb-3">
-                <h4 className="font-semibold text-gray-700">Categories</h4>
+                <h4 className="font-semibold text-gray-700">Kategorie</h4>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedCategories([...categories])}
                     className="text-xs font-medium hover:opacity-80"
                     style={{ color: THEME.primary }}
                   >
-                    Select All
+                    Zaznacz wszystkie
                   </button>
                   <button
                     onClick={() => setSelectedCategories([])}
                     className="text-xs text-gray-600 hover:text-gray-700 font-medium"
                   >
-                    Clear All
+                    Wyczyść wszystko
                   </button>
                 </div>
               </div>
@@ -448,12 +453,12 @@ const TransactionsTab = ({
           <div className="mt-4 flex flex-wrap gap-2">
             {filterStartDate && (
               <span className="px-3 py-1 rounded-full text-sm" style={{ backgroundColor: THEME.primaryLight, color: THEME.primary }}>
-                From: {filterStartDate}
+                Od: {filterStartDate}
               </span>
             )}
             {filterEndDate && (
               <span className="px-3 py-1 rounded-full text-sm" style={{ backgroundColor: THEME.primaryLight, color: THEME.primary }}>
-                To: {filterEndDate}
+                Do: {filterEndDate}
               </span>
             )}
             {selectedCategories.map((cat) => (
@@ -466,15 +471,16 @@ const TransactionsTab = ({
       </div>
 
       {/* Transactions List */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
         <button
           onClick={() => setTransactionsExpanded(!transactionsExpanded)}
           className="w-full flex justify-between items-center mb-4"
         >
-          <h2 className="text-2xl font-bold text-gray-800">
-            All Transactions
-            <span className="ml-3 text-sm text-gray-500 font-normal">
-              ({filteredTransactions.length} total)
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
+            <span className="hidden sm:inline">Wszystkie Transakcje</span>
+            <span className="sm:hidden">Transakcje</span>
+            <span className="ml-2 sm:ml-3 text-xs sm:text-sm text-gray-500 font-normal">
+              ({filteredTransactions.length})
             </span>
           </h2>
           {transactionsExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
@@ -483,16 +489,16 @@ const TransactionsTab = ({
         {transactionsExpanded && (
           <>
             {/* Action Buttons */}
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 {selectedTransactions.size > 0 && (
                   <>
                     <span className="text-sm font-medium text-gray-700">
-                      {selectedTransactions.size} selected
+                      {selectedTransactions.size} zaznaczonych
                     </span>
                     <button
                       onClick={() => setShowBulkEdit(true)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto"
                       style={{ borderColor: THEME.primary, color: THEME.primary }}
                       onMouseOver={(e) => {
                         e.currentTarget.style.backgroundColor = THEME.primary;
@@ -504,31 +510,33 @@ const TransactionsTab = ({
                       }}
                     >
                       <Edit2 size={18} />
-                      Bulk Edit
+                      <span className="hidden sm:inline">Edycja Zbiorcza</span>
+                      <span className="sm:hidden">Edytuj</span>
                     </button>
                     <button
                       onClick={() => setSelectedTransactions(new Set())}
-                      className="text-sm text-gray-600 hover:text-gray-800"
+                      className="text-sm text-gray-600 hover:text-gray-800 w-full sm:w-auto text-center"
                     >
-                      Clear Selection
+                      Wyczyść Zaznaczenie
                     </button>
                   </>
                 )}
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
                 <button
                   onClick={() => setShowAddTransaction(!showAddTransaction)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
                   style={{ backgroundColor: THEME.primary }}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
                   onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
                 >
                   <PlusCircle size={20} />
-                  Add Transaction
+                  <span className="hidden sm:inline">Dodaj Transakcję</span>
+                  <span className="sm:hidden">Dodaj</span>
                 </button>
                 <button
                   onClick={() => setShowCSVImport(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto"
                   style={{ borderColor: THEME.primary, color: THEME.primary }}
                   onMouseOver={(e) => {
                     e.currentTarget.style.backgroundColor = THEME.primary;
@@ -540,7 +548,8 @@ const TransactionsTab = ({
                   }}
                 >
                   <Upload size={20} />
-                  Import CSV
+                  <span className="hidden sm:inline">Importuj CSV</span>
+                  <span className="sm:hidden">Import</span>
                 </button>
               </div>
             </div>
@@ -548,10 +557,10 @@ const TransactionsTab = ({
             {/* Add Transaction Form */}
             {showAddTransaction && (
               <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
-                <h3 className="font-semibold text-gray-800 mb-4">New Transaction</h3>
+                <h3 className="font-semibold text-gray-800 mb-4">Nowa Transakcja</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Data</label>
                     <input
                       type="date"
                       value={newTransaction.date}
@@ -560,14 +569,14 @@ const TransactionsTab = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Account *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Konto *</label>
                     <select
                       value={newTransaction.account_id}
                       onChange={(e) => setNewTransaction({ ...newTransaction, account_id: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                       required
                     >
-                      <option value="">Select Account</option>
+                      <option value="">Wybierz Konto</option>
                       {accounts.map((account) => (
                         <option key={account.id} value={account.id}>
                           {account.name} ({formatCurrency(account.balance)})
@@ -576,13 +585,13 @@ const TransactionsTab = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Kategoria (Opcjonalna)</label>
                     <select
                       value={newTransaction.category}
                       onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     >
-                      <option value="">No Category</option>
+                      <option value="">Brak Kategorii</option>
                       {categories.map((cat) => (
                         <option key={cat.name} value={cat.name}>
                           {cat.name}
@@ -591,54 +600,54 @@ const TransactionsTab = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Opis</label>
                     <input
                       type="text"
                       value={newTransaction.description}
                       onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
-                      placeholder="Coffee shop, rent, etc."
+                      placeholder="Kawiarnia, czynsz, itp."
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Amount (negative for expenses)
+                      Kwota (ujemna dla wydatków)
                     </label>
                     <input
                       type="number"
                       step="0.01"
                       value={newTransaction.amount}
                       onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
-                      placeholder="-50.00 or 3000.00"
+                      placeholder="-50.00 lub 3000.00"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Comment (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Komentarz (Opcjonalny)</label>
                     <textarea
                       value={newTransaction.comment || ''}
                       onChange={(e) => setNewTransaction({ ...newTransaction, comment: e.target.value })}
-                      placeholder="Additional notes or details..."
+                      placeholder="Dodatkowe notatki lub szczegóły..."
                       rows="2"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent resize-none"
                     />
                   </div>
                 </div>
-                <div className="flex gap-3 mt-4">
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
                   <button
                     onClick={handleAddTransaction}
-                    className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+                    className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
                     style={{ backgroundColor: THEME.primary }}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
                   >
-                    Save Transaction
+                    Zapisz Transakcję
                   </button>
                   <button
                     onClick={() => setShowAddTransaction(false)}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+                    className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
                   >
-                    Cancel
+                    Anuluj
                   </button>
                 </div>
               </div>
@@ -647,50 +656,52 @@ const TransactionsTab = ({
         )}
 
         {transactionsExpanded && (
-          <div className="overflow-x-auto">
+          <>
             {filteredTransactions.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
-                <p className="text-lg">No transactions found</p>
-                <p className="text-sm">Try adjusting your filters</p>
+                <p className="text-lg">Nie znaleziono transakcji</p>
+                <p className="text-sm">Spróbuj dostosować filtry</p>
               </div>
             ) : (
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
-                      <input
-                        type="checkbox"
-                        checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
-                        onChange={toggleSelectAll}
-                        className="cursor-pointer"
-                      />
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Category</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Description</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Date</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Type</th>
-                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Amount</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTransactions.map((transaction, index) => (
-                    <tr
+              <>
+                {/* Select All Button */}
+                <div className="mb-4 flex items-center gap-2 px-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
+                    onChange={toggleSelectAll}
+                    className="cursor-pointer w-4 h-4"
+                  />
+                  <span className="text-sm text-gray-600 font-medium">
+                    Zaznacz wszystkie
+                  </span>
+                </div>
+
+                {/* Transaction Cards */}
+                <div className="space-y-3">
+                  {filteredTransactions.map((transaction) => (
+                    <div
                       key={transaction.id}
-                      className={`border-b border-gray-200 hover:bg-blue-50 transition-colors ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                      className={`relative rounded-xl transition-colors p-4 ${
+                        selectedTransactions.has(transaction.id)
+                          ? 'bg-blue-50 border-2 border-blue-300'
+                          : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
                       }`}
                     >
-                      <td className="px-3 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedTransactions.has(transaction.id)}
-                          onChange={() => toggleSelectTransaction(transaction.id)}
-                          className="cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center justify-center">
+                      {/* Top Row: Checkbox, Icon, Description/Edit, Amount, Actions */}
+                      <div className="flex items-start gap-3 mb-2">
+                        {/* Checkbox */}
+                        <div className="flex-shrink-0 pt-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedTransactions.has(transaction.id)}
+                            onChange={() => toggleSelectTransaction(transaction.id)}
+                            className="cursor-pointer w-4 h-4"
+                          />
+                        </div>
+
+                        {/* Icon */}
+                        <div className="flex-shrink-0">
                           <CategoryIconSelector
                             transaction={transaction}
                             categories={categories}
@@ -698,97 +709,108 @@ const TransactionsTab = ({
                             onAddCategory={onAddCategory}
                           />
                         </div>
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-800 font-medium">
-                        {editingDescriptionId === transaction.id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={editingDescription}
-                              onChange={(e) => setEditingDescription(e.target.value)}
-                              className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:border-transparent"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveDescription(transaction.id);
-                                if (e.key === 'Escape') handleCancelEditDescription();
-                              }}
-                              autoFocus
-                            />
+
+                        {/* Description with inline editing */}
+                        <div className="flex-1 min-w-0">
+                          {editingDescriptionId === transaction.id ? (
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                              <input
+                                type="text"
+                                value={editingDescription}
+                                onChange={(e) => setEditingDescription(e.target.value)}
+                                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:border-transparent text-sm"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveDescription(transaction.id);
+                                  if (e.key === 'Escape') handleCancelEditDescription();
+                                }}
+                                autoFocus
+                              />
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleSaveDescription(transaction.id)}
+                                  className="p-1.5 hover:bg-green-100 rounded"
+                                  title="Zapisz"
+                                >
+                                  <Check size={16} style={{ color: THEME.success }} />
+                                </button>
+                                <button
+                                  onClick={handleCancelEditDescription}
+                                  className="p-1.5 hover:bg-red-100 rounded"
+                                  title="Anuluj"
+                                >
+                                  <X size={16} style={{ color: THEME.danger }} />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 group">
+                              <p className="font-semibold text-gray-800 text-base leading-tight break-words">
+                                {transaction.description}
+                              </p>
+                              <button
+                                onClick={() => handleStartEditDescription(transaction)}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity flex-shrink-0"
+                                title="Edytuj opis"
+                              >
+                                <Edit2 size={14} className="text-gray-500" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Amount and Action Buttons */}
+                        <div className="flex items-start gap-2 flex-shrink-0">
+                          <span
+                            className="text-xl font-bold whitespace-nowrap"
+                            style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+                          >
+                            {formatCurrency(transaction.amount)}
+                          </span>
+                          <div className="flex gap-1">
+                            {transaction.category !== 'Transfer' && (
+                              <button
+                                onClick={() => {
+                                  setConvertingTransactionId(transaction.id);
+                                  setShowConvertTransfer(true);
+                                }}
+                                className="transition-colors p-1.5 hover:bg-blue-100 rounded-lg flex-shrink-0"
+                                style={{ color: THEME.primary }}
+                                title="Konwertuj na Przelew"
+                              >
+                                <ArrowLeftRight size={16} />
+                              </button>
+                            )}
                             <button
-                              onClick={() => handleSaveDescription(transaction.id)}
-                              className="p-1 hover:bg-green-100 rounded"
-                              title="Save"
+                              onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                              className="transition-colors p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0"
+                              style={{ color: THEME.danger }}
+                              title="Usuń transakcję"
                             >
-                              <Check size={16} style={{ color: THEME.success }} />
-                            </button>
-                            <button
-                              onClick={handleCancelEditDescription}
-                              className="p-1 hover:bg-red-100 rounded"
-                              title="Cancel"
-                            >
-                              <X size={16} style={{ color: THEME.danger }} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2 group">
-                            <span>{transaction.description}</span>
-                            <button
-                              onClick={() => handleStartEditDescription(transaction)}
-                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity"
-                              title="Edit description"
-                            >
-                              <Edit2 size={14} className="text-gray-500" />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-600 whitespace-nowrap">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={14} />
+                        </div>
+                      </div>
+
+                      {/* Bottom Row: Date and Type Badge */}
+                      <div className="flex items-center gap-3 ml-12">
+                        <span className="flex items-center gap-1 text-xs text-gray-600">
+                          <Calendar size={12} />
                           {transaction.date}
                         </span>
-                      </td>
-                      <td className="px-3 py-2 text-sm">
-                        <span className="inline-flex text-xs font-medium px-2 py-1 rounded-full" style={{
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
                           backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
                           color: transaction.amount > 0 ? THEME.success : THEME.danger
                         }}>
-                          {transaction.amount > 0 ? 'Income' : 'Expense'}
+                          {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
                         </span>
-                      </td>
-                      <td className="px-3 py-2 text-sm font-semibold text-right whitespace-nowrap" style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}>
-                        {formatCurrency(transaction.amount)}
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center justify-center gap-1">
-                          {transaction.category !== 'Transfer' && (
-                            <button
-                              onClick={() => {
-                                setConvertingTransactionId(transaction.id);
-                                setShowConvertTransfer(true);
-                              }}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-blue-100"
-                              style={{ color: THEME.primary }}
-                              title="Convert to Transfer"
-                            >
-                              <ArrowLeftRight size={16} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-red-100"
-                            style={{ color: THEME.danger }}
-                            title="Delete transaction"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </>
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -797,19 +819,19 @@ const TransactionsTab = ({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-800 mb-4">
-              Bulk Edit ({selectedTransactions.size} transactions)
+              Edycja Zbiorcza ({selectedTransactions.size} transakcji)
             </h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category (leave empty to keep current)
+                  Kategoria (zostaw puste aby zachować obecną)
                 </label>
                 <select
                   value={bulkEditData.category}
                   onChange={(e) => setBulkEditData({ ...bulkEditData, category: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 >
-                  <option value="">Don't change</option>
+                  <option value="">Nie zmieniaj</option>
                   {categories.map((cat) => (
                     <option key={cat.name} value={cat.name}>{cat.name}</option>
                   ))}
@@ -817,7 +839,7 @@ const TransactionsTab = ({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date (leave empty to keep current)
+                  Data (zostaw puste aby zachować obecną)
                 </label>
                 <input
                   type="date"
@@ -828,13 +850,13 @@ const TransactionsTab = ({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description (leave empty to keep current)
+                  Opis (zostaw puste aby zachować obecny)
                 </label>
                 <input
                   type="text"
                   value={bulkEditData.description}
                   onChange={(e) => setBulkEditData({ ...bulkEditData, description: e.target.value })}
-                  placeholder="New description for all selected"
+                  placeholder="Nowy opis dla wszystkich zaznaczonych"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 />
               </div>
@@ -847,7 +869,7 @@ const TransactionsTab = ({
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
               >
-                Update All
+                Aktualizuj Wszystkie
               </button>
               <button
                 onClick={() => {
@@ -856,7 +878,7 @@ const TransactionsTab = ({
                 }}
                 className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
               >
-                Cancel
+                Anuluj
               </button>
             </div>
           </div>
@@ -868,15 +890,15 @@ const TransactionsTab = ({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-800 mb-4">
-              Convert to Transfer
+              Konwertuj na Przelew
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              This will create a linked transaction in the destination account and mark both as transfers.
+              Spowoduje to utworzenie powiązanej transakcji na koncie docelowym i oznaczenie obu jako przelewy.
             </p>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Destination Account *
+                  Konto Docelowe *
                 </label>
                 <select
                   onChange={(e) => {
@@ -889,7 +911,7 @@ const TransactionsTab = ({
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                   defaultValue=""
                 >
-                  <option value="">Select account...</option>
+                  <option value="">Wybierz konto...</option>
                   {accounts.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name} ({account.type})
@@ -906,7 +928,7 @@ const TransactionsTab = ({
                 }}
                 className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
               >
-                Cancel
+                Anuluj
               </button>
             </div>
           </div>

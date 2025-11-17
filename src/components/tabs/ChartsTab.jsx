@@ -17,11 +17,13 @@ const ChartsTab = ({
   return (
     <>
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {/* Pie Chart */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Spending by Category {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
+            <span className="hidden sm:inline">Wydatki według Kategorii</span>
+            <span className="sm:hidden">Wydatki</span>
+            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
           </h3>
           {categorySpendingData.length > 0 ? (
             <div>
@@ -58,15 +60,17 @@ const ChartsTab = ({
             </div>
           ) : (
             <div className="h-[300px] flex items-center justify-center text-gray-500">
-              <p>No expense data to display</p>
+              <p>Brak danych o wydatkach do wyświetlenia</p>
             </div>
           )}
         </div>
 
         {/* Line Chart */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Monthly Trends {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
+            <span className="hidden sm:inline">Trendy Miesięczne</span>
+            <span className="sm:hidden">Trendy</span>
+            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
           </h3>
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -82,7 +86,7 @@ const ChartsTab = ({
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip
                   formatter={(value) => formatCurrency(value)}
-                  labelFormatter={(label) => `Month: ${label}`}
+                  labelFormatter={(label) => `Miesiąc: ${label}`}
                 />
                 <Legend />
                 <Line
@@ -90,7 +94,7 @@ const ChartsTab = ({
                   dataKey="income"
                   stroke={THEME.success}
                   strokeWidth={2}
-                  name="Income"
+                  name="Przychód"
                   dot={{ r: 4 }}
                 />
                 <Line
@@ -98,7 +102,7 @@ const ChartsTab = ({
                   dataKey="expenses"
                   stroke={THEME.danger}
                   strokeWidth={2}
-                  name="Expenses"
+                  name="Wydatki"
                   dot={{ r: 4 }}
                 />
                 <Line
@@ -106,23 +110,25 @@ const ChartsTab = ({
                   dataKey="balance"
                   stroke={THEME.primary}
                   strokeWidth={2}
-                  name="Balance"
+                  name="Saldo"
                   dot={{ r: 4 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-[300px] flex items-center justify-center text-gray-500">
-              <p>No data to display</p>
+              <p>Brak danych do wyświetlenia</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Budget vs Actual Chart */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">
-          Budget vs Actual Spending {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
+          <span className="hidden sm:inline">Budżet vs Rzeczywiste Wydatki</span>
+          <span className="sm:hidden">Budżet vs Wydatki</span>
+          {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
         </h3>
         {categorySpendingData.length > 0 ? (
           <ResponsiveContainer width="100%" height={400}>
@@ -148,14 +154,14 @@ const ChartsTab = ({
               <YAxis dataKey="category" type="category" width={100} />
               <Tooltip formatter={(value) => formatCurrency(value)} />
               <Legend />
-              <Bar dataKey="spent" stackId="a" fill={THEME.primary} name="Spent" />
-              <Bar dataKey="remaining" stackId="a" fill={THEME.success} name="Remaining" radius={[0, 8, 8, 0]} />
-              <Bar dataKey="overspent" stackId="a" fill={THEME.danger} name="Over Budget" radius={[0, 8, 8, 0]} />
+              <Bar dataKey="spent" stackId="a" fill={THEME.primary} name="Wydane" />
+              <Bar dataKey="remaining" stackId="a" fill={THEME.success} name="Pozostało" radius={[0, 8, 8, 0]} />
+              <Bar dataKey="overspent" stackId="a" fill={THEME.danger} name="Przekroczenie" radius={[0, 8, 8, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
           <div className="h-[400px] flex items-center justify-center text-gray-500">
-            <p>No budget data to display</p>
+            <p>Brak danych budżetowych do wyświetlenia</p>
           </div>
         )}
       </div>

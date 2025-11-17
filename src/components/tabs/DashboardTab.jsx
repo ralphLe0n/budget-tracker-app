@@ -1,10 +1,11 @@
-import React from 'react';
-import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Wallet, Calendar, Trash2, Upload } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Wallet, Calendar, Trash2, Upload, AlertTriangle, Activity, Target, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
 import CategorySelector from '../CategorySelector';
 import CategoryIconSelector from '../CategoryIconSelector';
+import { BudgetForecaster } from '../../utils/budgetForecasting';
 
 const DashboardTab = ({
   totalIncome,
@@ -50,79 +51,391 @@ const DashboardTab = ({
   const displayedTransactions = filteredTransactions.slice(0, 10);
   const hasMoreTransactions = filteredTransactions.length > 10;
 
+  // Prediction settings state
+  const [showPredictionSettings, setShowPredictionSettings] = useState(false);
+  const [selectedPredictionCategories, setSelectedPredictionCategories] = useState([]);
+
+  // Load prediction preferences from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('predictionCategories');
+    if (saved) {
+      try {
+        setSelectedPredictionCategories(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load prediction preferences:', e);
+      }
+    }
+  }, []);
+
+  // Save prediction preferences to localStorage
+  useEffect(() => {
+    if (selectedPredictionCategories.length > 0) {
+      localStorage.setItem('predictionCategories', JSON.stringify(selectedPredictionCategories));
+    }
+  }, [selectedPredictionCategories]);
+
+  // Get all categories with spending, sorted by amount
+  const categoriesWithSpending = useMemo(() => {
+    const spending = {};
+    filteredTransactions.forEach(t => {
+      if (t.category && t.category !== 'Transfer' && t.amount < 0) {
+        spending[t.category] = (spending[t.category] || 0) + Math.abs(t.amount);
+      }
+    });
+
+    return Object.entries(spending)
+      .sort((a, b) => b[1] - a[1])
+      .map(([category, amount]) => ({ category, amount }));
+  }, [filteredTransactions]);
+
+  // Get AI forecasting insights
+  const insights = useMemo(() => {
+    return BudgetForecaster.getSpendingInsights(filteredTransactions, budgets, categories);
+  }, [filteredTransactions, budgets, categories]);
+
+  // Filter predictions based on user selection
+  const displayedPredictions = useMemo(() => {
+    if (selectedPredictionCategories.length === 0) {
+      // If no categories selected, show top 5 by spending
+      const topCategories = categoriesWithSpending.slice(0, 5).map(c => c.category);
+      return insights.predictions.filter(p => topCategories.includes(p.category));
+    }
+    // Show only selected categories
+    return insights.predictions.filter(p => selectedPredictionCategories.includes(p.category));
+  }, [insights.predictions, selectedPredictionCategories, categoriesWithSpending]);
+
+  // Toggle category selection
+  const togglePredictionCategory = (category) => {
+    setSelectedPredictionCategories(prev => {
+      if (prev.includes(category)) {
+        return prev.filter(c => c !== category);
+      } else {
+        return [...prev, category];
+      }
+    });
+  };
+
+  // Select all categories
+  const selectAllPredictionCategories = () => {
+    setSelectedPredictionCategories(categoriesWithSpending.map(c => c.category));
+  };
+
+  // Clear all selections
+  const clearPredictionCategories = () => {
+    setSelectedPredictionCategories([]);
+  };
+
   return (
     <>
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.success}` }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6" style={{ borderLeft: `4px solid ${THEME.success}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
-              Total Income {hasActiveFilters && <span className="text-xs">(Filtered)</span>}
+              Całkowity Przychód {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
             <TrendingUp style={{ color: THEME.success }} size={24} />
           </div>
-          <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalIncome)}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-800">{formatCurrency(totalIncome)}</p>
           {hasActiveFilters && (
             <p className="text-xs text-gray-500 mt-1">
-              {filteredTransactions.filter(t => t.amount > 0 && t.category !== 'Transfer').length} transaction(s)
+              {filteredTransactions.filter(t => t.amount > 0 && t.category !== 'Transfer').length} transakcj(e/i)
             </p>
           )}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.danger}` }}>
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6" style={{ borderLeft: `4px solid ${THEME.danger}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
-              Total Expenses {hasActiveFilters && <span className="text-xs">(Filtered)</span>}
+              Całkowite Wydatki {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
             <TrendingDown style={{ color: THEME.danger }} size={24} />
           </div>
-          <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalExpenses)}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-800">{formatCurrency(totalExpenses)}</p>
           {hasActiveFilters && (
             <p className="text-xs text-gray-500 mt-1">
-              {filteredTransactions.filter(t => t.amount < 0 && t.category !== 'Transfer').length} transaction(s)
+              {filteredTransactions.filter(t => t.amount < 0 && t.category !== 'Transfer').length} transakcj(e/i)
             </p>
           )}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.primary}` }}>
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6" style={{ borderLeft: `4px solid ${THEME.primary}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
-              Account Balance
+              Saldo Konta
             </span>
             <Wallet style={{ color: THEME.primary }} size={24} />
           </div>
-          <p className="text-3xl font-bold" style={{ color: totalAccountBalance >= 0 ? THEME.success : THEME.danger }}>
+          <p className="text-2xl sm:text-3xl font-bold" style={{ color: totalAccountBalance >= 0 ? THEME.success : THEME.danger }}>
             {formatCurrency(totalAccountBalance)}
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            {accounts.filter(a => a.type !== 'savings').length} account(s)
+            {accounts.filter(a => a.type !== 'savings').length} kont(o/a)
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 border-2 border-green-200">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-4 sm:p-6 border-2 border-green-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-700 text-sm font-medium">
-              Total Savings
+              Całkowite Oszczędności
             </span>
             <DollarSign style={{ color: THEME.success }} size={24} />
           </div>
-          <p className="text-3xl font-bold" style={{ color: THEME.success }}>
+          <p className="text-2xl sm:text-3xl font-bold" style={{ color: THEME.success }}>
             {formatCurrency(totalSavings)}
           </p>
           <p className="text-xs text-gray-600 mt-1">
-            {savingsAccounts.length} savings account(s)
+            {savingsAccounts.length} kont(o/a) oszczędnościow(ych/e)
           </p>
         </div>
       </div>
 
+      {/* Budget Warnings */}
+      {insights.budgetWarnings.length > 0 && (
+        <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-2 border-red-200">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle style={{ color: THEME.danger }} size={28} />
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800">Ostrzeżenia Budżetowe</h3>
+          </div>
+          <div className="space-y-3">
+            {insights.budgetWarnings.map((warning, index) => (
+              <div key={index} className="bg-white rounded-xl p-4 border-l-4" style={{ borderColor: THEME.danger }}>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800 text-base">{warning.budget}</p>
+                    <p className="text-sm text-gray-600 mt-1">{warning.recommendation}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xl font-bold" style={{ color: THEME.danger }}>
+                      {formatCurrency(warning.projectedAmount)}
+                    </p>
+                    <p className="text-xs text-gray-500">przewidywane</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 text-xs">
+                  <div className="bg-gray-50 rounded p-2">
+                    <p className="text-gray-600">Obecne wydatki</p>
+                    <p className="font-bold text-gray-800">{formatCurrency(warning.currentSpending)}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded p-2">
+                    <p className="text-gray-600">Przekroczenie</p>
+                    <p className="font-bold" style={{ color: THEME.danger }}>
+                      {formatCurrency(warning.projectedOverage)}
+                    </p>
+                  </div>
+                  {warning.daysUntilOverrun > 0 && (
+                    <div className="bg-gray-50 rounded p-2">
+                      <p className="text-gray-600">Dni do przekroczenia</p>
+                      <p className="font-bold text-gray-800">{warning.daysUntilOverrun}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Prediction Settings */}
+      {categoriesWithSpending.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+          <button
+            onClick={() => setShowPredictionSettings(!showPredictionSettings)}
+            className="w-full flex justify-between items-center mb-2"
+          >
+            <div className="flex items-center gap-3">
+              <Settings style={{ color: THEME.primary }} size={24} />
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800">Ustawienia Prognoz</h3>
+              {selectedPredictionCategories.length > 0 && (
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+                  {selectedPredictionCategories.length} wybran(ych/e)
+                </span>
+              )}
+            </div>
+            {showPredictionSettings ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+          </button>
+
+          {showPredictionSettings && (
+            <div className="mt-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                <p className="text-sm text-gray-600">
+                  Wybierz kategorie, dla których chcesz widzieć prognozy wydatków
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={selectAllPredictionCategories}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    style={{ color: THEME.primary }}
+                  >
+                    Zaznacz wszystkie
+                  </button>
+                  <button
+                    onClick={clearPredictionCategories}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+                  >
+                    Wyczyść
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {categoriesWithSpending.map(({ category, amount }) => {
+                  const prediction = insights.predictions.find(p => p.category === category);
+                  const hasEnoughData = prediction && prediction.confidence !== 'insufficient_data';
+                  const isSelected = selectedPredictionCategories.includes(category);
+
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => hasEnoughData && togglePredictionCategory(category)}
+                      disabled={!hasEnoughData}
+                      className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
+                        !hasEnoughData
+                          ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-purple-50 border-purple-400 shadow-md'
+                          : 'bg-white border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={!hasEnoughData}
+                          onChange={() => {}}
+                          className="cursor-pointer flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="font-semibold text-gray-800 text-sm truncate">{category}</p>
+                          <p className="text-xs text-gray-500">
+                            {hasEnoughData ? formatCurrency(amount) : 'Brak danych'}
+                          </p>
+                        </div>
+                      </div>
+                      {hasEnoughData && prediction && (
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <p className="text-xs font-bold text-purple-600">
+                            {formatCurrency(prediction.forecast)}
+                          </p>
+                          <p className="text-xs text-gray-500">prognoza</p>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedPredictionCategories.length === 0 && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    💡 <strong>Wskazówka:</strong> Nie wybrano żadnych kategorii. Domyślnie wyświetlane są top 5 kategorii według wydatków.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AI Spending Forecasts */}
+      {displayedPredictions.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Activity style={{ color: THEME.primary }} size={24} />
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800">Prognoza Wydatków AI</h3>
+            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+              {selectedPredictionCategories.length > 0
+                ? `${displayedPredictions.length} wybran(ych/e)`
+                : 'Top 5 kategorii'}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayedPredictions.map((prediction, index) => {
+              const trendIcon = prediction.trend === 'increasing' ? '📈' : prediction.trend === 'decreasing' ? '📉' : '➡️';
+              const trendColor = prediction.trend === 'increasing' ? THEME.danger : prediction.trend === 'decreasing' ? THEME.success : THEME.primary;
+
+              return (
+                <div
+                  key={index}
+                  className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl shadow-lg p-4 sm:p-6 border-2 border-purple-200"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">{prediction.category}</span>
+                    <Target style={{ color: THEME.primary }} size={20} />
+                  </div>
+                  <p className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">
+                    {formatCurrency(prediction.forecast)}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
+                    <span className="text-lg">{trendIcon}</span>
+                    <span style={{ color: trendColor }} className="font-medium">
+                      {prediction.trend === 'increasing' ? 'Wzrost' : prediction.trend === 'decreasing' ? 'Spadek' : 'Stabilne'}
+                    </span>
+                    <span>•</span>
+                    <span className={`font-medium ${
+                      prediction.confidence === 'high' ? 'text-green-600' :
+                      prediction.confidence === 'medium' ? 'text-yellow-600' : 'text-gray-500'
+                    }`}>
+                      {prediction.confidence === 'high' ? 'Wysoka pewność' :
+                       prediction.confidence === 'medium' ? 'Średnia pewność' : 'Niska pewność'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Średnia historyczna: {formatCurrency(prediction.historicalAverage)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Anomaly Detection */}
+      {insights.anomalies.length > 0 && (
+        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-2 border-yellow-300">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle style={{ color: THEME.warning }} size={24} />
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800">Nietypowe Wydatki</h3>
+            <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full font-medium">
+              Ostatnie 30 dni
+            </span>
+          </div>
+          <div className="space-y-3">
+            {insights.anomalies.map((anomaly, index) => (
+              <div key={index} className="bg-white rounded-xl p-4 border-l-4" style={{ borderColor: THEME.warning }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800">{anomaly.transaction.description}</p>
+                    <p className="text-sm text-gray-600 mt-1">{anomaly.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {anomaly.transaction.date} • {anomaly.transaction.category}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-lg font-bold" style={{ color: THEME.danger }}>
+                      {formatCurrency(anomaly.transaction.amount)}
+                    </p>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      anomaly.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {anomaly.severity === 'high' ? 'Wysoka' : 'Średnia'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Transactions */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Recent Transactions</h2>
-          <div className="flex gap-2">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Ostatnie Transakcje</h2>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
               onClick={() => setShowCSVImport(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto"
               style={{ borderColor: THEME.primary, color: THEME.primary }}
               onMouseOver={(e) => {
                 e.currentTarget.style.backgroundColor = THEME.primary;
@@ -134,17 +447,19 @@ const DashboardTab = ({
               }}
             >
               <Upload size={20} />
-              Import CSV
+              <span className="hidden sm:inline">Importuj CSV</span>
+              <span className="sm:hidden">Import</span>
             </button>
             <button
               onClick={() => setShowAddTransaction(!showAddTransaction)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
             >
               <PlusCircle size={20} />
-              Add Transaction
+              <span className="hidden sm:inline">Dodaj Transakcję</span>
+              <span className="sm:hidden">Dodaj</span>
             </button>
           </div>
         </div>
@@ -152,10 +467,10 @@ const DashboardTab = ({
         {/* Add Transaction Form */}
         {showAddTransaction && (
           <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
-            <h3 className="font-semibold text-gray-800 mb-4">New Transaction</h3>
+            <h3 className="font-semibold text-gray-800 mb-4">Nowa Transakcja</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data</label>
                 <input
                   type="date"
                   value={newTransaction.date}
@@ -164,14 +479,14 @@ const DashboardTab = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Account *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Konto *</label>
                 <select
                   value={newTransaction.account_id}
                   onChange={(e) => setNewTransaction({ ...newTransaction, account_id: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                   required
                 >
-                  <option value="">Select Account</option>
+                  <option value="">Wybierz Konto</option>
                   {accounts.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name} ({formatCurrency(account.balance)})
@@ -180,13 +495,13 @@ const DashboardTab = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Kategoria (Opcjonalna)</label>
                 <select
                   value={newTransaction.category}
                   onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 >
-                  <option value="">No Category</option>
+                  <option value="">Bez Kategorii</option>
                   {categories.map((cat) => (
                     <option key={cat.name} value={cat.name}>
                       {cat.name}
@@ -195,44 +510,44 @@ const DashboardTab = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Opis</label>
                 <input
                   type="text"
                   value={newTransaction.description}
                   onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
-                  placeholder="Coffee shop, rent, etc."
+                  placeholder="Kawiarnia, czynsz, itp."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Amount (negative for expenses)
+                  Kwota (ujemna dla wydatków)
                 </label>
                 <input
                   type="number"
                   step="0.01"
                   value={newTransaction.amount}
                   onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
-                  placeholder="-50.00 or 3000.00"
+                  placeholder="-50.00 lub 3000.00"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 />
               </div>
             </div>
-            <div className="flex gap-3 mt-4">
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <button
                 onClick={handleAddTransaction}
-                className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+                className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
                 style={{ backgroundColor: THEME.primary }}
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
               >
-                Save Transaction
+                Zapisz Transakcję
               </button>
               <button
                 onClick={() => setShowAddTransaction(false)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
               >
-                Cancel
+                Anuluj
               </button>
             </div>
           </div>
@@ -242,55 +557,62 @@ const DashboardTab = ({
         <div className="space-y-3">
           {filteredTransactions.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">No transactions found</p>
-              <p className="text-sm">Try adjusting your filters or add a new transaction</p>
+              <p className="text-lg">Nie znaleziono transakcji</p>
+              <p className="text-sm">Spróbuj dostosować filtry lub dodaj nową transakcję</p>
             </div>
           ) : (
             <>
               {displayedTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  className="relative bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors p-4"
                 >
-                  <div className="flex items-center gap-4 flex-1">
-                    <CategoryIconSelector
-                      transaction={transaction}
-                      categories={categories}
-                      onCategoryChange={onCategoryChange}
-                      onAddCategory={onAddCategory}
-                    />
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{transaction.description}</p>
-                      <div className="flex gap-4 text-sm text-gray-600 mt-1 items-center">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={14} />
-                          {transaction.date}
-                        </span>
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{
-                          backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
-                          color: transaction.amount > 0 ? THEME.success : THEME.danger
-                        }}>
-                          {transaction.amount > 0 ? 'Income' : 'Expense'}
-                        </span>
+                  {/* Top Row: Icon, Amount, Delete */}
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0">
+                        <CategoryIconSelector
+                          transaction={transaction}
+                          categories={categories}
+                          onCategoryChange={onCategoryChange}
+                          onAddCategory={onAddCategory}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 text-base leading-tight">{transaction.description}</p>
                       </div>
                     </div>
+                    <div className="flex items-start gap-2 flex-shrink-0">
+                      <span
+                        className="text-xl font-bold whitespace-nowrap"
+                        style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+                      >
+                        {formatCurrency(transaction.amount)}
+                      </span>
+                      <button
+                        onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                        className="transition-colors p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0"
+                        style={{ color: THEME.danger }}
+                        onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
+                        onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span
-                      className="text-xl font-bold"
-                      style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-                    >
-                      {formatCurrency(transaction.amount)}
+
+                  {/* Bottom Row: Date and Category Badge */}
+                  <div className="flex items-center gap-3 ml-12">
+                    <span className="flex items-center gap-1 text-xs text-gray-600">
+                      <Calendar size={12} />
+                      {transaction.date}
                     </span>
-                    <button
-                      onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                      className="transition-colors p-2"
-                      style={{ color: THEME.danger }}
-                      onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
-                      onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
+                      backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
+                      color: transaction.amount > 0 ? THEME.success : THEME.danger
+                    }}>
+                      {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -300,7 +622,7 @@ const DashboardTab = ({
                 <div className="text-center pt-4">
                   <button
                     onClick={() => setActiveTab('transactions')}
-                    className="px-6 py-3 rounded-lg transition-colors font-medium"
+                    className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium"
                     style={{
                       backgroundColor: THEME.primaryLight,
                       color: THEME.primary,
@@ -315,7 +637,8 @@ const DashboardTab = ({
                       e.currentTarget.style.color = THEME.primary;
                     }}
                   >
-                    Show More Transactions ({filteredTransactions.length - 10} more)
+                    <span className="hidden sm:inline">Pokaż Więcej Transakcji ({filteredTransactions.length - 10} więcej)</span>
+                    <span className="sm:hidden">Więcej ({filteredTransactions.length - 10})</span>
                   </button>
                 </div>
               )}
@@ -325,9 +648,9 @@ const DashboardTab = ({
       </div>
 
       {/* Budget Categories */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">
-          Budget Overview {hasActiveFilters && <span className="text-sm text-gray-500">(Filtered)</span>}
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">
+          Przegląd Budżetu {hasActiveFilters && <span className="text-sm text-gray-500">(Filtrowane)</span>}
         </h2>
         <div className="space-y-4">
           {budgets
