@@ -15,7 +15,6 @@ import * as recurringService from './services/recurringService';
 import { categorizeDescription } from './services/categorizationService';
 import DashboardTab from './components/tabs/DashboardTab';
 import TransactionsTab from './components/tabs/TransactionsTab';
-import ChartsTab from './components/tabs/ChartsTab';
 import CategoriesTab from './components/tabs/CategoriesTab';
 import BudgetsTab from './components/tabs/BudgetsTab';
 import AccountsTab from './components/tabs/AccountsTab';
@@ -23,6 +22,8 @@ import RecurringTab from './components/tabs/RecurringTab';
 import DebtsTab from './components/tabs/DebtsTab';
 import SavingsGoalsTab from './components/tabs/SavingsGoalsTab';
 import AnalyticsTab from './components/tabs/AnalyticsTab';
+import BudgetsCategoriesTab from './components/tabs/BudgetsCategoriesTab';
+import FinancialGoalsTab from './components/tabs/FinancialGoalsTab';
 import CSVImport from './components/CSVImport';
 
 const BudgetApp = ({ session }) => {
@@ -1804,18 +1805,6 @@ const BudgetApp = ({ session }) => {
           />
         )}
 
-        {activeTab === 'charts' && (
-          <ChartsTab
-            hasActiveFilters={hasActiveFilters}
-            categorySpendingData={categorySpendingData}
-            monthlyData={monthlyData}
-            budgets={budgets}
-            spendingByCategory={spendingByCategory}
-            spendingByBudgetPeriod={spendingByBudgetPeriod}
-            selectedCategories={selectedCategories}
-          />
-        )}
-
         {activeTab === 'categories' && (
           <CategoriesTab
             categories={categories}
@@ -1946,6 +1935,74 @@ const BudgetApp = ({ session }) => {
             accounts={accounts}
             debts={debts}
             savingsGoals={savingsGoals}
+          />
+        )}
+
+        {/* Combined Tabs - UX Audit Improvements */}
+        {activeTab === 'budgets-categories' && (
+          <BudgetsCategoriesTab
+            budgets={budgets}
+            categories={categories}
+            showAddBudget={showAddBudget}
+            setShowAddBudget={setShowAddBudget}
+            newCategoryName={newCategoryName}
+            setNewCategoryName={setNewCategoryName}
+            newCategoryLimit={newCategoryLimit}
+            setNewCategoryLimit={setNewCategoryLimit}
+            newRecurrenceFrequency={newRecurrenceFrequency}
+            setNewRecurrenceFrequency={setNewRecurrenceFrequency}
+            newPeriodStartDate={newPeriodStartDate}
+            setNewPeriodStartDate={setNewPeriodStartDate}
+            editingCategory={editingCategory}
+            editingCategoryName={editingCategoryName}
+            setEditingCategoryName={setEditingCategoryName}
+            editingCategoryLimit={editingCategoryLimit}
+            setEditingCategoryLimit={setEditingCategoryLimit}
+            editingRecurrenceFrequency={editingRecurrenceFrequency}
+            setEditingRecurrenceFrequency={setEditingRecurrenceFrequency}
+            editingPeriodStartDate={editingPeriodStartDate}
+            setEditingPeriodStartDate={setEditingPeriodStartDate}
+            onAddBudget={handleAddBudget}
+            onStartEditing={startEditingCategory}
+            onSaveEdit={handleUpdateCategory}
+            onCancelEdit={cancelEditingCategory}
+            onDeleteBudget={(category) => setDeleteConfirm({ show: true, type: 'category', id: category, name: category })}
+            showAddCategory={showAddCategory}
+            setShowAddCategory={setShowAddCategory}
+            newCategoryIcon={newCategoryIcon}
+            setNewCategoryIcon={setNewCategoryIcon}
+            newCategoryColor={newCategoryColor}
+            setNewCategoryColor={setNewCategoryColor}
+            addBudgetWithCategory={addBudgetWithCategory}
+            setAddBudgetWithCategory={setAddBudgetWithCategory}
+            onAddCategory={handleAddCategory}
+            onDeleteCategory={(category) => setDeleteConfirm({ show: true, type: 'category-only', id: category, name: category })}
+            onRenameCategory={handleRenameCategory}
+            onUpdateCustomization={handleUpdateCategoryCustomization}
+            categoryRules={categoryRules}
+            onAddRule={handleAddCategoryRule}
+            onUpdateRule={handleUpdateCategoryRule}
+            onDeleteRule={handleDeleteCategoryRule}
+            transactions={transactions}
+          />
+        )}
+
+        {activeTab === 'financial-goals' && (
+          <FinancialGoalsTab
+            savingsGoals={savingsGoals}
+            accounts={accounts}
+            monthlyIncome={monthlyIncome}
+            onAddGoal={handleAddSavingsGoal}
+            onUpdateGoal={handleUpdateSavingsGoal}
+            onDeleteGoal={handleDeleteSavingsGoal}
+            onAddContribution={handleAddGoalContribution}
+            onShowCelebration={handleShowCelebration}
+            debts={debts}
+            debtPayments={debtPayments}
+            onAddDebt={handleAddDebt}
+            onDeleteDebt={handleDeleteDebt}
+            onRecordPayment={handleRecordPayment}
+            onUpdateDebt={handleUpdateDebt}
           />
         )}
 
