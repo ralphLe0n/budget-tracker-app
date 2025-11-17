@@ -95,13 +95,20 @@ const DashboardTab = ({
 
   // Filter predictions based on user selection
   const displayedPredictions = useMemo(() => {
+    // Always filter out predictions with insufficient data
+    const validPredictions = insights.predictions.filter(p =>
+      p.trend !== 'insufficient_data' &&
+      p.forecast > 0 &&
+      p.historicalAverage !== undefined
+    );
+
     if (selectedPredictionCategories.length === 0) {
       // If no categories selected, show top 5 by spending
       const topCategories = categoriesWithSpending.slice(0, 5).map(c => c.category);
-      return insights.predictions.filter(p => topCategories.includes(p.category));
+      return validPredictions.filter(p => topCategories.includes(p.category));
     }
     // Show only selected categories
-    return insights.predictions.filter(p => selectedPredictionCategories.includes(p.category));
+    return validPredictions.filter(p => selectedPredictionCategories.includes(p.category));
   }, [insights.predictions, selectedPredictionCategories, categoriesWithSpending]);
 
   // Toggle category selection

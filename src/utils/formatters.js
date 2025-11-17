@@ -1,6 +1,14 @@
 export const formatCurrency = (amount) => {
-  if (amount < 0) {
-    return `- ${Math.abs(amount).toFixed(2)} PLN`;
+  // Handle undefined, null, or NaN values
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    return '0.00 PLN';
   }
-  return `${amount.toFixed(2)} PLN`;
+
+  // Convert to number if it's a string
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+  if (numAmount < 0) {
+    return `- ${Math.abs(numAmount).toFixed(2)} PLN`;
+  }
+  return `${numAmount.toFixed(2)} PLN`;
 };
