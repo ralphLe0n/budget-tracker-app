@@ -18,13 +18,13 @@ const AccountsTab = ({
   setDeleteConfirm
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Zarządzanie Kontami</h2>
-        <div className="flex gap-3">
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Zarządzanie Kontami</h2>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => setShowTransfer(!showTransfer)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
             style={{ backgroundColor: THEME.success }}
             onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.successHover}
             onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
@@ -35,7 +35,7 @@ const AccountsTab = ({
           </button>
           <button
             onClick={() => setShowAddAccount(!showAddAccount)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
             style={{ backgroundColor: THEME.primary }}
             onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
             onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -86,10 +86,10 @@ const AccountsTab = ({
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={handleAddAccount}
-              className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -98,7 +98,7 @@ const AccountsTab = ({
             </button>
             <button
               onClick={() => setShowAddAccount(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
             >
               Anuluj
             </button>
@@ -166,10 +166,10 @@ const AccountsTab = ({
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={handleTransfer}
-              className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
               style={{ backgroundColor: THEME.success }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.successHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
@@ -178,7 +178,7 @@ const AccountsTab = ({
             </button>
             <button
               onClick={() => setShowTransfer(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
             >
               Anuluj
             </button>

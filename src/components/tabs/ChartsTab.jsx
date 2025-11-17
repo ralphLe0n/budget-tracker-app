@@ -17,11 +17,13 @@ const ChartsTab = ({
   return (
     <>
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {/* Pie Chart */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Wydatki według Kategorii {hasActiveFilters && <span className="text-sm text-gray-500">(Filtrowane)</span>}
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
+            <span className="hidden sm:inline">Wydatki według Kategorii</span>
+            <span className="sm:hidden">Wydatki</span>
+            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
           </h3>
           {categorySpendingData.length > 0 ? (
             <div>
@@ -64,9 +66,11 @@ const ChartsTab = ({
         </div>
 
         {/* Line Chart */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Trendy Miesięczne {hasActiveFilters && <span className="text-sm text-gray-500">(Filtrowane)</span>}
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
+            <span className="hidden sm:inline">Trendy Miesięczne</span>
+            <span className="sm:hidden">Trendy</span>
+            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
           </h3>
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -120,9 +124,11 @@ const ChartsTab = ({
       </div>
 
       {/* Budget vs Actual Chart */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">
-          Budżet vs Rzeczywiste Wydatki {hasActiveFilters && <span className="text-sm text-gray-500">(Filtrowane)</span>}
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
+          <span className="hidden sm:inline">Budżet vs Rzeczywiste Wydatki</span>
+          <span className="sm:hidden">Budżet vs Wydatki</span>
+          {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
         </h3>
         {categorySpendingData.length > 0 ? (
           <ResponsiveContainer width="100%" height={400}>

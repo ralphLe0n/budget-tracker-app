@@ -298,13 +298,13 @@ const DebtsTab = ({
   }, [debts]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Zarządzanie Długami</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Zarządzanie Długami</h2>
         <button
           onClick={() => setShowAddDebt(!showAddDebt)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
           style={{ backgroundColor: THEME.primary }}
           onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
           onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -315,7 +315,7 @@ const DebtsTab = ({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="rounded-xl p-4 border-2" style={{ borderColor: THEME.danger, backgroundColor: `${THEME.danger}10` }}>
           <div className="flex items-center justify-between">
             <div>
@@ -365,7 +365,7 @@ const DebtsTab = ({
           {/* Calculation Mode Selector */}
           <div className="mb-6 p-4 bg-white rounded-lg border border-gray-300">
             <label className="block text-sm font-medium text-gray-700 mb-3">Tryb Kalkulacji</label>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <label className="flex items-center cursor-pointer">
                 <input
                   type="radio"
@@ -375,7 +375,7 @@ const DebtsTab = ({
                   onChange={(e) => setCalculationMode(e.target.value)}
                   className="mr-2"
                 />
-                <span className="text-sm">
+                <span className="text-sm text-gray-800">
                   Znam oprocentowanie → oblicz ratę
                 </span>
               </label>
@@ -388,7 +388,7 @@ const DebtsTab = ({
                   onChange={(e) => setCalculationMode(e.target.value)}
                   className="mr-2"
                 />
-                <span className="text-sm">
+                <span className="text-sm text-gray-800">
                   Znam ratę → oblicz oprocentowanie
                 </span>
               </label>
@@ -567,10 +567,10 @@ const DebtsTab = ({
             </div>
           )}
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={handleAddDebt}
-              className="flex-1 text-white py-2 rounded-lg font-medium transition-colors"
+              className="flex-1 text-white py-3 rounded-lg font-medium transition-colors"
               style={{ backgroundColor: THEME.success }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.successHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
@@ -580,7 +580,7 @@ const DebtsTab = ({
             </button>
             <button
               onClick={() => setShowAddDebt(false)}
-              className="px-6 py-2 border-2 rounded-lg font-medium transition-colors"
+              className="w-full sm:w-auto px-6 py-3 border-2 rounded-lg font-medium transition-colors"
               style={{ borderColor: THEME.danger, color: THEME.danger }}
             >
               <X className="inline mr-2" size={18} />

@@ -53,15 +53,15 @@ const DashboardTab = ({
   return (
     <>
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.success}` }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6" style={{ borderLeft: `4px solid ${THEME.success}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
               Całkowity Przychód {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
             <TrendingUp style={{ color: THEME.success }} size={24} />
           </div>
-          <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalIncome)}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-800">{formatCurrency(totalIncome)}</p>
           {hasActiveFilters && (
             <p className="text-xs text-gray-500 mt-1">
               {filteredTransactions.filter(t => t.amount > 0 && t.category !== 'Transfer').length} transakcj(e/i)
@@ -69,14 +69,14 @@ const DashboardTab = ({
           )}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.danger}` }}>
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6" style={{ borderLeft: `4px solid ${THEME.danger}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
               Całkowite Wydatki {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
             <TrendingDown style={{ color: THEME.danger }} size={24} />
           </div>
-          <p className="text-3xl font-bold text-gray-800">{formatCurrency(totalExpenses)}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-800">{formatCurrency(totalExpenses)}</p>
           {hasActiveFilters && (
             <p className="text-xs text-gray-500 mt-1">
               {filteredTransactions.filter(t => t.amount < 0 && t.category !== 'Transfer').length} transakcj(e/i)
@@ -84,14 +84,14 @@ const DashboardTab = ({
           )}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6" style={{ borderLeft: `4px solid ${THEME.primary}` }}>
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6" style={{ borderLeft: `4px solid ${THEME.primary}` }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">
               Saldo Konta
             </span>
             <Wallet style={{ color: THEME.primary }} size={24} />
           </div>
-          <p className="text-3xl font-bold" style={{ color: totalAccountBalance >= 0 ? THEME.success : THEME.danger }}>
+          <p className="text-2xl sm:text-3xl font-bold" style={{ color: totalAccountBalance >= 0 ? THEME.success : THEME.danger }}>
             {formatCurrency(totalAccountBalance)}
           </p>
           <p className="text-xs text-gray-500 mt-1">
@@ -99,14 +99,14 @@ const DashboardTab = ({
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 border-2 border-green-200">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-4 sm:p-6 border-2 border-green-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-700 text-sm font-medium">
               Całkowite Oszczędności
             </span>
             <DollarSign style={{ color: THEME.success }} size={24} />
           </div>
-          <p className="text-3xl font-bold" style={{ color: THEME.success }}>
+          <p className="text-2xl sm:text-3xl font-bold" style={{ color: THEME.success }}>
             {formatCurrency(totalSavings)}
           </p>
           <p className="text-xs text-gray-600 mt-1">
@@ -116,13 +116,13 @@ const DashboardTab = ({
       </div>
 
       {/* Transactions */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Ostatnie Transakcje</h2>
-          <div className="flex gap-2">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Ostatnie Transakcje</h2>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
               onClick={() => setShowCSVImport(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto"
               style={{ borderColor: THEME.primary, color: THEME.primary }}
               onMouseOver={(e) => {
                 e.currentTarget.style.backgroundColor = THEME.primary;
@@ -134,17 +134,19 @@ const DashboardTab = ({
               }}
             >
               <Upload size={20} />
-              Importuj CSV
+              <span className="hidden sm:inline">Importuj CSV</span>
+              <span className="sm:hidden">Import</span>
             </button>
             <button
               onClick={() => setShowAddTransaction(!showAddTransaction)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
             >
               <PlusCircle size={20} />
-              Dodaj Transakcję
+              <span className="hidden sm:inline">Dodaj Transakcję</span>
+              <span className="sm:hidden">Dodaj</span>
             </button>
           </div>
         </div>
@@ -218,10 +220,10 @@ const DashboardTab = ({
                 />
               </div>
             </div>
-            <div className="flex gap-3 mt-4">
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <button
                 onClick={handleAddTransaction}
-                className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+                className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
                 style={{ backgroundColor: THEME.primary }}
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -230,7 +232,7 @@ const DashboardTab = ({
               </button>
               <button
                 onClick={() => setShowAddTransaction(false)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
               >
                 Anuluj
               </button>
@@ -250,23 +252,26 @@ const DashboardTab = ({
               {displayedTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors gap-3"
                 >
-                  <div className="flex items-center gap-4 flex-1">
-                    <CategoryIconSelector
-                      transaction={transaction}
-                      categories={categories}
-                      onCategoryChange={onCategoryChange}
-                      onAddCategory={onAddCategory}
-                    />
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{transaction.description}</p>
-                      <div className="flex gap-4 text-sm text-gray-600 mt-1 items-center">
+                  <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div className="flex-shrink-0 mt-1 sm:mt-0">
+                      <CategoryIconSelector
+                        transaction={transaction}
+                        categories={categories}
+                        onCategoryChange={onCategoryChange}
+                        onAddCategory={onAddCategory}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 text-sm sm:text-base truncate">{transaction.description}</p>
+                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mt-1 items-center">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
-                          {transaction.date}
+                          <span className="hidden sm:inline">{transaction.date}</span>
+                          <span className="sm:hidden">{transaction.date.substring(5)}</span>
                         </span>
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
                           backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
                           color: transaction.amount > 0 ? THEME.success : THEME.danger
                         }}>
@@ -275,16 +280,16 @@ const DashboardTab = ({
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
                     <span
-                      className="text-xl font-bold"
+                      className="text-lg sm:text-xl font-bold"
                       style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
                     >
                       {formatCurrency(transaction.amount)}
                     </span>
                     <button
                       onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                      className="transition-colors p-2"
+                      className="transition-colors p-2 hover:bg-red-100 rounded-lg flex-shrink-0"
                       style={{ color: THEME.danger }}
                       onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
                       onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
@@ -300,7 +305,7 @@ const DashboardTab = ({
                 <div className="text-center pt-4">
                   <button
                     onClick={() => setActiveTab('transactions')}
-                    className="px-6 py-3 rounded-lg transition-colors font-medium"
+                    className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium"
                     style={{
                       backgroundColor: THEME.primaryLight,
                       color: THEME.primary,
@@ -315,7 +320,8 @@ const DashboardTab = ({
                       e.currentTarget.style.color = THEME.primary;
                     }}
                   >
-                    Pokaż Więcej Transakcji ({filteredTransactions.length - 10} więcej)
+                    <span className="hidden sm:inline">Pokaż Więcej Transakcji ({filteredTransactions.length - 10} więcej)</span>
+                    <span className="sm:hidden">Więcej ({filteredTransactions.length - 10})</span>
                   </button>
                 </div>
               )}
@@ -325,8 +331,8 @@ const DashboardTab = ({
       </div>
 
       {/* Budget Categories */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">
           Przegląd Budżetu {hasActiveFilters && <span className="text-sm text-gray-500">(Filtrowane)</span>}
         </h2>
         <div className="space-y-4">

@@ -64,14 +64,14 @@ const CategoriesTab = ({
     handleCancelEdit();
   };
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Categories Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Zarządzanie Kategoriami</h2>
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Zarządzanie Kategoriami</h2>
         <button
           onClick={() => setShowAddCategory(!showAddCategory)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
           style={{ backgroundColor: THEME.primary }}
           onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
           onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -137,10 +137,10 @@ const CategoriesTab = ({
               </div>
             )}
           </div>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={onAddCategory}
-              className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -153,7 +153,7 @@ const CategoriesTab = ({
                 setAddBudgetWithCategory(false);
                 setNewCategoryLimit('');
               }}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
             >
               Anuluj
             </button>
@@ -271,7 +271,7 @@ const CategoriesTab = ({
       </div>
 
       {/* Auto-Categorization Rules Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
         <CategoryRulesManager
           rules={categoryRules || []}
           categories={categories}

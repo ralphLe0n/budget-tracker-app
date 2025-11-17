@@ -33,12 +33,12 @@ const BudgetsTab = ({
   onDeleteBudget
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Zarządzanie Budżetami</h2>
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Zarządzanie Budżetami</h2>
         <button
           onClick={() => setShowAddBudget(!showAddBudget)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
           style={{ backgroundColor: THEME.primary }}
           onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
           onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -108,10 +108,10 @@ const BudgetsTab = ({
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={onAddBudget}
-              className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -120,7 +120,7 @@ const BudgetsTab = ({
             </button>
             <button
               onClick={() => setShowAddBudget(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
             >
               Anuluj
             </button>

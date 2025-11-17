@@ -106,19 +106,21 @@ const TransactionsTab = ({
   return (
     <>
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Transakcje i Analityka</h1>
-        <p className="text-gray-600 mt-2">Kompleksowy widok Twoich danych finansowych</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transakcje i Analityka</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-2">Kompleksowy widok Twoich danych finansowych</p>
       </div>
 
       {/* Charts Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
         <button
           onClick={() => setChartsExpanded(!chartsExpanded)}
           className="w-full flex justify-between items-center mb-4"
         >
-          <h2 className="text-2xl font-bold text-gray-800">
-            Wykresy i Trendy {hasActiveFilters && <span className="text-sm text-gray-500">(Filtrowane)</span>}
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
+            <span className="hidden sm:inline">Wykresy i Trendy</span>
+            <span className="sm:hidden">Wykresy</span>
+            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
           </h2>
           {chartsExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
         </button>
@@ -233,13 +235,15 @@ const TransactionsTab = ({
       </div>
 
       {/* Budget vs Actual Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
         <button
           onClick={() => setBudgetExpanded(!budgetExpanded)}
           className="w-full flex justify-between items-center mb-4"
         >
-          <h2 className="text-2xl font-bold text-gray-800">
-            Budżet vs Rzeczywiste {hasActiveFilters && <span className="text-sm text-gray-500">(Filtrowane)</span>}
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
+            <span className="hidden sm:inline">Budżet vs Rzeczywiste</span>
+            <span className="sm:hidden">Budżet</span>
+            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
           </h2>
           {budgetExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
         </button>
@@ -283,14 +287,14 @@ const TransactionsTab = ({
       </div>
 
       {/* Filters Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex-1 flex justify-between items-center"
+            className="flex-1 flex justify-between items-center w-full"
           >
-            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Filter size={20} />
+            <h3 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
+              <Filter size={18} className="sm:w-5 sm:h-5" />
               Filtry
               {hasActiveFilters && (
                 <span className="ml-2 px-2 py-0.5 rounded-full text-xs text-white" style={{ backgroundColor: THEME.primary }}>
@@ -298,12 +302,12 @@ const TransactionsTab = ({
                 </span>
               )}
             </h3>
-            {showFilters ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+            {showFilters ? <ChevronUp size={20} className="sm:w-6 sm:h-6" /> : <ChevronDown size={20} className="sm:w-6 sm:h-6" />}
           </button>
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="ml-4 text-sm font-medium hover:opacity-80"
+              className="text-xs sm:text-sm font-medium hover:opacity-80 w-full sm:w-auto text-left sm:text-center py-2 sm:py-0"
               style={{ color: THEME.danger }}
             >
               Wyczyść wszystko
@@ -315,8 +319,8 @@ const TransactionsTab = ({
           <div>
             {/* Quick Date Range Buttons */}
             <div className="mb-4">
-              <h4 className="font-semibold text-gray-700 mb-3">Szybkie Filtry</h4>
-              <div className="flex flex-wrap gap-2">
+              <h4 className="font-semibold text-gray-700 mb-3 text-sm sm:text-base">Szybkie Filtry</h4>
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                 <button
                   onClick={() => {
                     const today = new Date();
@@ -324,7 +328,7 @@ const TransactionsTab = ({
                     setFilterStartDate(firstDay.toISOString().split('T')[0]);
                     setFilterEndDate(today.toISOString().split('T')[0]);
                   }}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                 >
                   Ten Miesiąc
                 </button>
@@ -336,7 +340,7 @@ const TransactionsTab = ({
                     setFilterStartDate(firstDay.toISOString().split('T')[0]);
                     setFilterEndDate(lastDay.toISOString().split('T')[0]);
                   }}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                 >
                   Ostatni Miesiąc
                 </button>
@@ -347,9 +351,10 @@ const TransactionsTab = ({
                     setFilterStartDate(threeMonthsAgo.toISOString().split('T')[0]);
                     setFilterEndDate(today.toISOString().split('T')[0]);
                   }}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors col-span-2 sm:col-span-1"
                 >
-                  Ostatnie 3 Miesiące
+                  <span className="hidden sm:inline">Ostatnie 3 Miesiące</span>
+                  <span className="sm:hidden">3 Miesiące</span>
                 </button>
                 <button
                   onClick={() => {
@@ -358,7 +363,7 @@ const TransactionsTab = ({
                     setFilterStartDate(firstDay.toISOString().split('T')[0]);
                     setFilterEndDate(today.toISOString().split('T')[0]);
                   }}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors col-span-2 sm:col-span-1"
                 >
                   Ten Rok
                 </button>
@@ -466,15 +471,16 @@ const TransactionsTab = ({
       </div>
 
       {/* Transactions List */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
         <button
           onClick={() => setTransactionsExpanded(!transactionsExpanded)}
           className="w-full flex justify-between items-center mb-4"
         >
-          <h2 className="text-2xl font-bold text-gray-800">
-            Wszystkie Transakcje
-            <span className="ml-3 text-sm text-gray-500 font-normal">
-              ({filteredTransactions.length} łącznie)
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
+            <span className="hidden sm:inline">Wszystkie Transakcje</span>
+            <span className="sm:hidden">Transakcje</span>
+            <span className="ml-2 sm:ml-3 text-xs sm:text-sm text-gray-500 font-normal">
+              ({filteredTransactions.length})
             </span>
           </h2>
           {transactionsExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
@@ -483,8 +489,8 @@ const TransactionsTab = ({
         {transactionsExpanded && (
           <>
             {/* Action Buttons */}
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 {selectedTransactions.size > 0 && (
                   <>
                     <span className="text-sm font-medium text-gray-700">
@@ -492,7 +498,7 @@ const TransactionsTab = ({
                     </span>
                     <button
                       onClick={() => setShowBulkEdit(true)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto"
                       style={{ borderColor: THEME.primary, color: THEME.primary }}
                       onMouseOver={(e) => {
                         e.currentTarget.style.backgroundColor = THEME.primary;
@@ -504,31 +510,33 @@ const TransactionsTab = ({
                       }}
                     >
                       <Edit2 size={18} />
-                      Edycja Zbiorcza
+                      <span className="hidden sm:inline">Edycja Zbiorcza</span>
+                      <span className="sm:hidden">Edytuj</span>
                     </button>
                     <button
                       onClick={() => setSelectedTransactions(new Set())}
-                      className="text-sm text-gray-600 hover:text-gray-800"
+                      className="text-sm text-gray-600 hover:text-gray-800 w-full sm:w-auto text-center"
                     >
                       Wyczyść Zaznaczenie
                     </button>
                   </>
                 )}
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
                 <button
                   onClick={() => setShowAddTransaction(!showAddTransaction)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
                   style={{ backgroundColor: THEME.primary }}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
                   onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
                 >
                   <PlusCircle size={20} />
-                  Dodaj Transakcję
+                  <span className="hidden sm:inline">Dodaj Transakcję</span>
+                  <span className="sm:hidden">Dodaj</span>
                 </button>
                 <button
                   onClick={() => setShowCSVImport(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium border-2"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto"
                   style={{ borderColor: THEME.primary, color: THEME.primary }}
                   onMouseOver={(e) => {
                     e.currentTarget.style.backgroundColor = THEME.primary;
@@ -540,7 +548,8 @@ const TransactionsTab = ({
                   }}
                 >
                   <Upload size={20} />
-                  Importuj CSV
+                  <span className="hidden sm:inline">Importuj CSV</span>
+                  <span className="sm:hidden">Import</span>
                 </button>
               </div>
             </div>
@@ -624,10 +633,10 @@ const TransactionsTab = ({
                     />
                   </div>
                 </div>
-                <div className="flex gap-3 mt-4">
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
                   <button
                     onClick={handleAddTransaction}
-                    className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+                    className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
                     style={{ backgroundColor: THEME.primary }}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -636,7 +645,7 @@ const TransactionsTab = ({
                   </button>
                   <button
                     onClick={() => setShowAddTransaction(false)}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+                    className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
                   >
                     Anuluj
                   </button>

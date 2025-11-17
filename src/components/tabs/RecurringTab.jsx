@@ -24,33 +24,35 @@ const RecurringTab = ({
   handleSaveEditRecurring
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Transakcje Cykliczne</h2>
-          <p className="text-gray-600 text-sm mt-1">Konfiguruj automatyczne transakcje cykliczne</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Transakcje Cykliczne</h2>
+          <p className="text-gray-600 text-xs sm:text-sm mt-1">Konfiguruj automatyczne transakcje cykliczne</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button
             onClick={generateTransactionsFromRules}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
             style={{ backgroundColor: THEME.success }}
             onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.successHover}
             onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.success}
             title="Wygeneruj wszystkie oczekujące transakcje z aktywnych reguł"
           >
             <Calendar size={20} />
-            Generuj Teraz
+            <span className="hidden sm:inline">Generuj Teraz</span>
+            <span className="sm:hidden">Generuj</span>
           </button>
           <button
             onClick={() => setShowAddRecurring(!showAddRecurring)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-white"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
             style={{ backgroundColor: THEME.primary }}
             onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
             onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
           >
             <PlusCircle size={20} />
-            Dodaj Regułę
+            <span className="hidden sm:inline">Dodaj Regułę</span>
+            <span className="sm:hidden">Dodaj</span>
           </button>
         </div>
       </div>
@@ -166,10 +168,10 @@ const RecurringTab = ({
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={handleAddRecurring}
-              className="px-6 py-2 rounded-lg transition-colors font-medium text-white"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg transition-colors font-medium text-white"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
@@ -178,7 +180,7 @@ const RecurringTab = ({
             </button>
             <button
               onClick={() => setShowAddRecurring(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors font-medium"
+              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg transition-colors font-medium"
             >
               Anuluj
             </button>
