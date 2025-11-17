@@ -1,9 +1,9 @@
-import React from 'react';
-import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, Receipt, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, Receipt, GripVertical, CreditCard } from 'lucide-react';
 import { THEME } from '../../config/theme';
 
 const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMobileMenuOpen }) => {
-  const navItems = [
+  const defaultNavItems = [
     { id: 'dashboard', label: 'Panel Główny', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transakcje', icon: Receipt },
     { id: 'accounts', label: 'Konta', icon: Wallet },
@@ -13,12 +13,83 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMo
     { id: 'debts', label: 'Długi', icon: CreditCard },
   ];
 
+  const [navItems, setNavItems] = useState(() => {
+    // Load saved order from localStorage
+    const savedOrder = localStorage.getItem('navTabOrder');
+    if (savedOrder) {
+      try {
+        const orderIds = JSON.parse(savedOrder);
+        // Reorder navItems based on saved order
+        const orderedItems = orderIds
+          .map(id => defaultNavItems.find(item => item.id === id))
+          .filter(Boolean);
+
+        // Add any new items that weren't in the saved order
+        defaultNavItems.forEach(item => {
+          if (!orderedItems.find(ordered => ordered.id === item.id)) {
+            orderedItems.push(item);
+          }
+        });
+
+        return orderedItems;
+      } catch (e) {
+        return defaultNavItems;
+      }
+    }
+    return defaultNavItems;
+  });
+
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [draggedOverItem, setDraggedOverItem] = useState(null);
+
   const handleTabClick = (tabId) => {
     setActiveTab(tabId);
     // Close mobile menu when a tab is selected
     if (setIsMobileMenuOpen) {
       setIsMobileMenuOpen(false);
     }
+  };
+
+  const handleDragStart = (e, item) => {
+    setDraggedItem(item);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, item) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDraggedOverItem(item);
+  };
+
+  const handleDrop = (e, targetItem) => {
+    e.preventDefault();
+
+    if (!draggedItem || draggedItem.id === targetItem.id) {
+      setDraggedItem(null);
+      setDraggedOverItem(null);
+      return;
+    }
+
+    const draggedIndex = navItems.findIndex(item => item.id === draggedItem.id);
+    const targetIndex = navItems.findIndex(item => item.id === targetItem.id);
+
+    const newNavItems = [...navItems];
+    newNavItems.splice(draggedIndex, 1);
+    newNavItems.splice(targetIndex, 0, draggedItem);
+
+    setNavItems(newNavItems);
+
+    // Save to localStorage
+    const orderIds = newNavItems.map(item => item.id);
+    localStorage.setItem('navTabOrder', JSON.stringify(orderIds));
+
+    setDraggedItem(null);
+    setDraggedOverItem(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDraggedOverItem(null);
   };
 
   return (
@@ -57,20 +128,32 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMo
         {/* Navigation - Scrollable */}
         <nav className="flex-1 p-4 overflow-y-auto">
           {navItems.map(({ id, label, icon: Icon }) => (
-            <button
+            <div
               key={id}
-              onClick={() => handleTabClick(id)}
-              style={{
-                backgroundColor: activeTab === id ? THEME.primaryLight : 'transparent',
-                color: activeTab === id ? THEME.primary : '#4b5563'
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all mb-2 ${
-                activeTab === id ? 'shadow-sm' : 'hover:bg-gray-100'
+              draggable
+              onDragStart={(e) => handleDragStart(e, { id, label, icon: Icon })}
+              onDragOver={(e) => handleDragOver(e, { id, label, icon: Icon })}
+              onDrop={(e) => handleDrop(e, { id, label, icon: Icon })}
+              onDragEnd={handleDragEnd}
+              className={`mb-2 rounded-lg transition-all ${
+                draggedOverItem?.id === id ? 'border-2 border-dashed border-blue-400' : ''
               }`}
             >
-              <Icon size={20} />
-              {label}
-            </button>
+              <button
+                onClick={() => handleTabClick(id)}
+                style={{
+                  backgroundColor: activeTab === id ? THEME.primaryLight : 'transparent',
+                  color: activeTab === id ? THEME.primary : '#4b5563'
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${
+                  activeTab === id ? 'shadow-sm' : 'hover:bg-gray-100'
+                }`}
+              >
+                <GripVertical size={16} className="text-gray-400 cursor-grab active:cursor-grabbing" />
+                <Icon size={20} />
+                {label}
+              </button>
+            </div>
           ))}
         </nav>
 
