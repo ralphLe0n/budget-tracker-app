@@ -18,13 +18,17 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
   const [step, setStep] = useState(1); // 1: Upload, 2: Map, 3: Review
   const [error, setError] = useState('');
   const [importing, setImporting] = useState(false);
-  const [separator, setSeparator] = useState(',');
+  const [separator, setSeparator] = useState(';');
   const [headerRowNumber, setHeaderRowNumber] = useState(1);
   const [rawFileData, setRawFileData] = useState(null);
   const [duplicateOption, setDuplicateOption] = useState('skip'); // 'skip', 'import', 'review'
   const [duplicates, setDuplicates] = useState([]);
   const [newTransactions, setNewTransactions] = useState([]);
   const [selectedDuplicates, setSelectedDuplicates] = useState(new Set());
+  const [lastImportDate, setLastImportDate] = useState(() => {
+    const saved = localStorage.getItem('lastImportDate');
+    return saved || null;
+  });
 
   const parseCSVFile = (fileData, delimiter, skipRows) => {
     Papa.parse(fileData, {
@@ -338,6 +342,11 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
 
       await onImport(transactionsToImport);
 
+      // Save import timestamp
+      const now = new Date().toISOString();
+      localStorage.setItem('lastImportDate', now);
+      setLastImportDate(now);
+
       // Reset form
       setFile(null);
       setCsvData([]);
@@ -362,20 +371,41 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
     }));
   };
 
+  const formatLastImportDate = (isoString) => {
+    if (!isoString) return null;
+    const date = new Date(isoString);
+    return date.toLocaleString('pl-PL', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold" style={{ color: THEME.primary }}>
-            Import Transactions from CSV
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <X size={24} />
-          </button>
+        <div className="p-6 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold" style={{ color: THEME.primary }}>
+                Import transakcji z pliku CSV
+              </h2>
+              {lastImportDate && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Ostatni import: {formatLastImportDate(lastImportDate)}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -388,7 +418,7 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                   <Upload size={48} style={{ color: THEME.primary }} />
                 </div>
                 <p className="text-gray-600 mb-4">
-                  Upload a CSV file from your bank account
+                  Prześlij plik CSV z danymi transakcji z banku
                 </p>
               </div>
 
@@ -405,11 +435,11 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                   className="cursor-pointer inline-flex items-center px-6 py-3 rounded-lg text-white font-medium transition-colors"
                   style={{ backgroundColor: THEME.primary }}
                 >
-                  Choose CSV File
+                  Wybierz plik CSV
                 </label>
                 {file && (
                   <p className="mt-4 text-sm text-gray-600">
-                    Selected: {file.name}
+                    Wybrany plik: {file.name}
                   </p>
                 )}
               </div>
@@ -417,30 +447,30 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
               {/* CSV Settings */}
               {file && (
                 <div className="space-y-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <h3 className="font-semibold text-gray-800 mb-2">CSV Settings</h3>
+                  <h3 className="font-semibold text-gray-800 mb-2">Ustawienia CSV</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Separator Selection */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Column Separator
+                        Separator kolumn
                       </label>
                       <select
                         value={separator}
                         onChange={(e) => setSeparator(e.target.value)}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
                       >
-                        <option value=",">Comma (,)</option>
-                        <option value=";">Semicolon (;)</option>
-                        <option value="\t">Tab</option>
-                        <option value="|">Pipe (|)</option>
+                        <option value=";">Średnik (;)</option>
+                        <option value=",">Przecinek (,)</option>
+                        <option value="\t">Tabulator</option>
+                        <option value="|">Kreska (|)</option>
                       </select>
                     </div>
 
                     {/* Header Row Selection */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Header Row Number
+                        Numer wiersza z nagłówkami
                       </label>
                       <input
                         type="number"
@@ -451,7 +481,7 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        Which row contains the column headers?
+                        Który wiersz zawiera nazwy kolumn?
                       </p>
                     </div>
                   </div>
@@ -470,7 +500,7 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                       e.currentTarget.style.color = THEME.primary;
                     }}
                   >
-                    Apply Settings & Re-parse
+                    Zastosuj ustawienia i ponownie przetworz
                   </button>
                 </div>
               )}
@@ -488,19 +518,27 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                   <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
                     <CheckCircle size={20} className="text-green-500" />
                     <span className="text-green-700">
-                      Successfully parsed {csvData.length} rows with {headers.length} columns
+                      Pomyślnie przetworzono {csvData.length} wierszy z {headers.length} kolumnami
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => setStep(2)}
-                    className="w-full px-6 py-3 rounded-lg text-white font-medium transition-colors"
-                    style={{ backgroundColor: THEME.primary }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
-                  >
-                    Continue to Column Mapping
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={onClose}
+                      className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Wstecz
+                    </button>
+                    <button
+                      onClick={() => setStep(2)}
+                      className="flex-1 px-6 py-3 rounded-lg text-white font-medium transition-colors"
+                      style={{ backgroundColor: THEME.primary }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
+                    >
+                      Dalej do mapowania kolumn
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -510,16 +548,16 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-4">Map Your Columns</h3>
+                <h3 className="text-lg font-semibold mb-4">Mapowanie kolumn</h3>
                 <p className="text-gray-600 mb-6">
-                  Match the columns from your CSV file to the transaction fields
+                  Dopasuj kolumny z pliku CSV do pól transakcji
                 </p>
               </div>
 
               {/* Account Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Account <span className="text-red-500">*</span>
+                  Konto <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={selectedAccount}
@@ -527,7 +565,7 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
                   style={{ focusRing: THEME.primary }}
                 >
-                  <option value="">Select account...</option>
+                  <option value="">Wybierz konto...</option>
                   {accounts.map(account => (
                     <option key={account.id} value={account.id}>
                       {account.name} ({account.type})
@@ -541,14 +579,14 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                 {/* Date Mapping */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date Column <span className="text-red-500">*</span>
+                    Kolumna z datą <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={columnMapping.date}
                     onChange={(e) => handleMappingChange('date', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
                   >
-                    <option value="">Select column...</option>
+                    <option value="">Wybierz kolumnę...</option>
                     {headers.map(header => (
                       <option key={header} value={header}>{header}</option>
                     ))}
@@ -558,14 +596,14 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                 {/* Description Mapping */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description Column <span className="text-red-500">*</span>
+                    Kolumna z opisem <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={columnMapping.description}
                     onChange={(e) => handleMappingChange('description', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
                   >
-                    <option value="">Select column...</option>
+                    <option value="">Wybierz kolumnę...</option>
                     {headers.map(header => (
                       <option key={header} value={header}>{header}</option>
                     ))}
@@ -575,14 +613,14 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                 {/* Amount Mapping */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Amount Column <span className="text-red-500">*</span>
+                    Kolumna z kwotą <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={columnMapping.amount}
                     onChange={(e) => handleMappingChange('amount', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
                   >
-                    <option value="">Select column...</option>
+                    <option value="">Wybierz kolumnę...</option>
                     {headers.map(header => (
                       <option key={header} value={header}>{header}</option>
                     ))}
@@ -592,20 +630,20 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                 {/* Category Mapping (Optional) */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category Column (Optional)
+                    Kolumna z kategorią (opcjonalnie)
                   </label>
                   <select
                     value={columnMapping.category}
                     onChange={(e) => handleMappingChange('category', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
                   >
-                    <option value="">Select column or leave empty...</option>
+                    <option value="">Wybierz kolumnę lub pozostaw puste...</option>
                     {headers.map(header => (
                       <option key={header} value={header}>{header}</option>
                     ))}
                   </select>
                   <p className="mt-1 text-sm text-gray-500">
-                    If not mapped, categories will be assigned based on amount (Income/Other)
+                    Jeśli nie zmapowane, kategorie zostaną przypisane na podstawie kwoty (Przychód/Inne)
                   </p>
                 </div>
               </div>
@@ -622,14 +660,14 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                   onClick={() => setStep(1)}
                   className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Back
+                  Wstecz
                 </button>
                 <button
                   onClick={handleNextStep}
                   className="px-6 py-2 rounded-lg text-white font-medium transition-colors"
                   style={{ backgroundColor: THEME.primary }}
                 >
-                  Next: Review
+                  Dalej: Podgląd
                 </button>
               </div>
             </div>
@@ -639,9 +677,9 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-2">Review Import</h3>
+                <h3 className="text-lg font-semibold mb-2">Podgląd importu</h3>
                 <p className="text-gray-600">
-                  Found {newTransactions.length} new transaction(s) and {duplicates.length} duplicate(s)
+                  Znaleziono {newTransactions.length} nowych transakcji i {duplicates.length} duplikatów
                 </p>
               </div>
 
@@ -651,8 +689,8 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                   <div className="flex items-center gap-2">
                     <CheckCircle size={20} className="text-green-600" />
                     <div>
-                      <p className="font-semibold text-green-900">{newTransactions.length} New</p>
-                      <p className="text-sm text-green-700">Unique transactions</p>
+                      <p className="font-semibold text-green-900">{newTransactions.length} Nowych</p>
+                      <p className="text-sm text-green-700">Unikalne transakcje</p>
                     </div>
                   </div>
                 </div>
@@ -660,8 +698,8 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                   <div className="flex items-center gap-2">
                     <AlertCircle size={20} className="text-orange-600" />
                     <div>
-                      <p className="font-semibold text-orange-900">{duplicates.length} Duplicates</p>
-                      <p className="text-sm text-orange-700">Already exist in system</p>
+                      <p className="font-semibold text-orange-900">{duplicates.length} Duplikatów</p>
+                      <p className="text-sm text-orange-700">Już istnieją w systemie</p>
                     </div>
                   </div>
                 </div>
@@ -670,7 +708,7 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
               {/* Duplicate Handling Options */}
               {duplicates.length > 0 && (
                 <div className="border border-gray-300 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-800 mb-3">How to handle duplicates?</h4>
+                  <h4 className="font-semibold text-gray-800 mb-3">Jak obsłużyć duplikaty?</h4>
                   <div className="space-y-2">
                     <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                       <input
@@ -682,8 +720,8 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                         className="mt-1"
                       />
                       <div>
-                        <p className="font-medium text-gray-900">Skip duplicates (Recommended)</p>
-                        <p className="text-sm text-gray-600">Import only {newTransactions.length} new transactions</p>
+                        <p className="font-medium text-gray-900">Pomiń duplikaty (Zalecane)</p>
+                        <p className="text-sm text-gray-600">Importuj tylko {newTransactions.length} nowych transakcji</p>
                       </div>
                     </label>
                     <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -696,8 +734,8 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                         className="mt-1"
                       />
                       <div>
-                        <p className="font-medium text-gray-900">Import all anyway</p>
-                        <p className="text-sm text-gray-600">Import all {newTransactions.length + duplicates.length} transactions (including duplicates)</p>
+                        <p className="font-medium text-gray-900">Importuj wszystkie</p>
+                        <p className="text-sm text-gray-600">Importuj wszystkie {newTransactions.length + duplicates.length} transakcji (łącznie z duplikatami)</p>
                       </div>
                     </label>
                     <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -710,8 +748,8 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                         className="mt-1"
                       />
                       <div>
-                        <p className="font-medium text-gray-900">Let me review duplicates</p>
-                        <p className="text-sm text-gray-600">Choose which duplicates to import</p>
+                        <p className="font-medium text-gray-900">Pozwól mi przejrzeć duplikaty</p>
+                        <p className="text-sm text-gray-600">Wybierz które duplikaty zaimportować</p>
                       </div>
                     </label>
                   </div>
@@ -721,7 +759,7 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
               {/* Review Duplicates Table */}
               {duplicateOption === 'review' && duplicates.length > 0 && (
                 <div className="border border-orange-300 rounded-lg p-4 bg-orange-50">
-                  <h4 className="font-semibold text-gray-800 mb-3">Select duplicates to import:</h4>
+                  <h4 className="font-semibold text-gray-800 mb-3">Wybierz duplikaty do importu:</h4>
                   <div className="overflow-x-auto bg-white rounded border border-gray-200">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
@@ -739,9 +777,9 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                               checked={selectedDuplicates.size === duplicates.length}
                             />
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Opis</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kwota</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -776,15 +814,15 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
               {/* Preview New Transactions */}
               {newTransactions.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-gray-800 mb-3">Preview of new transactions (first 5):</h4>
+                  <h4 className="font-semibold text-gray-800 mb-3">Podgląd nowych transakcji (pierwsze 5):</h4>
                   <div className="overflow-x-auto border border-gray-200 rounded-lg">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Opis</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kwota</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategoria</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -807,12 +845,12 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                 <div className="flex items-start gap-2">
                   <CheckCircle size={20} className="text-blue-500 mt-0.5" />
                   <div>
-                    <p className="font-medium text-blue-900">Ready to import</p>
+                    <p className="font-medium text-blue-900">Gotowe do importu</p>
                     <p className="text-sm text-blue-700 mt-1">
-                      {duplicateOption === 'skip' && `${newTransactions.length} new transaction(s) will be imported`}
-                      {duplicateOption === 'import' && `${newTransactions.length + duplicates.length} transaction(s) will be imported (including ${duplicates.length} duplicate(s))`}
-                      {duplicateOption === 'review' && `${newTransactions.length + selectedDuplicates.size} transaction(s) will be imported (${newTransactions.length} new + ${selectedDuplicates.size} selected duplicate(s))`}
-                      {' '}to <strong>{accounts.find(a => a.id === selectedAccount)?.name}</strong>
+                      {duplicateOption === 'skip' && `${newTransactions.length} nowych transakcji zostanie zaimportowanych`}
+                      {duplicateOption === 'import' && `${newTransactions.length + duplicates.length} transakcji zostanie zaimportowanych (w tym ${duplicates.length} duplikatów)`}
+                      {duplicateOption === 'review' && `${newTransactions.length + selectedDuplicates.size} transakcji zostanie zaimportowanych (${newTransactions.length} nowych + ${selectedDuplicates.size} wybranych duplikatów)`}
+                      {' '}do <strong>{accounts.find(a => a.id === selectedAccount)?.name}</strong>
                     </p>
                   </div>
                 </div>
@@ -831,7 +869,7 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                   className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   disabled={importing}
                 >
-                  Back
+                  Wstecz
                 </button>
                 <button
                   onClick={handleImport}
@@ -839,11 +877,11 @@ const CSVImport = ({ accounts, categories, categoryRules, onImport, onClose, exi
                   className="px-6 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: THEME.primary }}
                 >
-                  {importing ? 'Importing...' : duplicateOption === 'skip'
-                    ? `Import ${newTransactions.length} New Transaction${newTransactions.length !== 1 ? 's' : ''}`
+                  {importing ? 'Importowanie...' : duplicateOption === 'skip'
+                    ? `Importuj ${newTransactions.length} ${newTransactions.length === 1 ? 'nową transakcję' : 'nowych transakcji'}`
                     : duplicateOption === 'import'
-                    ? `Import All ${newTransactions.length + duplicates.length} Transaction${newTransactions.length + duplicates.length !== 1 ? 's' : ''}`
-                    : `Import ${newTransactions.length + selectedDuplicates.size} Transaction${newTransactions.length + selectedDuplicates.size !== 1 ? 's' : ''}`
+                    ? `Importuj wszystkie ${newTransactions.length + duplicates.length} ${newTransactions.length + duplicates.length === 1 ? 'transakcję' : 'transakcji'}`
+                    : `Importuj ${newTransactions.length + selectedDuplicates.size} ${newTransactions.length + selectedDuplicates.size === 1 ? 'transakcję' : 'transakcji'}`
                   }
                 </button>
               </div>
