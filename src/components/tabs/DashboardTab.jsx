@@ -252,50 +252,54 @@ const DashboardTab = ({
               {displayedTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors gap-3"
+                  className="relative bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors p-4"
                 >
-                  <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                    <div className="flex-shrink-0 mt-1 sm:mt-0">
-                      <CategoryIconSelector
-                        transaction={transaction}
-                        categories={categories}
-                        onCategoryChange={onCategoryChange}
-                        onAddCategory={onAddCategory}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 text-sm sm:text-base truncate">{transaction.description}</p>
-                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mt-1 items-center">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={14} />
-                          <span className="hidden sm:inline">{transaction.date}</span>
-                          <span className="sm:hidden">{transaction.date.substring(5)}</span>
-                        </span>
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
-                          backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
-                          color: transaction.amount > 0 ? THEME.success : THEME.danger
-                        }}>
-                          {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
-                        </span>
+                  {/* Top Row: Icon, Amount, Delete */}
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0">
+                        <CategoryIconSelector
+                          transaction={transaction}
+                          categories={categories}
+                          onCategoryChange={onCategoryChange}
+                          onAddCategory={onAddCategory}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 text-base leading-tight">{transaction.description}</p>
                       </div>
                     </div>
+                    <div className="flex items-start gap-2 flex-shrink-0">
+                      <span
+                        className="text-xl font-bold whitespace-nowrap"
+                        style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+                      >
+                        {formatCurrency(transaction.amount)}
+                      </span>
+                      <button
+                        onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                        className="transition-colors p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0"
+                        style={{ color: THEME.danger }}
+                        onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
+                        onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
-                    <span
-                      className="text-lg sm:text-xl font-bold"
-                      style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-                    >
-                      {formatCurrency(transaction.amount)}
+
+                  {/* Bottom Row: Date and Category Badge */}
+                  <div className="flex items-center gap-3 ml-12">
+                    <span className="flex items-center gap-1 text-xs text-gray-600">
+                      <Calendar size={12} />
+                      {transaction.date}
                     </span>
-                    <button
-                      onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                      className="transition-colors p-2 hover:bg-red-100 rounded-lg flex-shrink-0"
-                      style={{ color: THEME.danger }}
-                      onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
-                      onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
+                      backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
+                      color: transaction.amount > 0 ? THEME.success : THEME.danger
+                    }}>
+                      {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
+                    </span>
                   </div>
                 </div>
               ))}

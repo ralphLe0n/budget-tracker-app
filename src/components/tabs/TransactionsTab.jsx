@@ -656,50 +656,52 @@ const TransactionsTab = ({
         )}
 
         {transactionsExpanded && (
-          <div className="overflow-x-auto">
+          <>
             {filteredTransactions.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <p className="text-lg">Nie znaleziono transakcji</p>
                 <p className="text-sm">Spróbuj dostosować filtry</p>
               </div>
             ) : (
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
-                      <input
-                        type="checkbox"
-                        checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
-                        onChange={toggleSelectAll}
-                        className="cursor-pointer"
-                      />
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Kategoria</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Opis</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Data</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Typ</th>
-                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Kwota</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">Akcje</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTransactions.map((transaction, index) => (
-                    <tr
+              <>
+                {/* Select All Button */}
+                <div className="mb-4 flex items-center gap-2 px-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
+                    onChange={toggleSelectAll}
+                    className="cursor-pointer w-4 h-4"
+                  />
+                  <span className="text-sm text-gray-600 font-medium">
+                    Zaznacz wszystkie
+                  </span>
+                </div>
+
+                {/* Transaction Cards */}
+                <div className="space-y-3">
+                  {filteredTransactions.map((transaction) => (
+                    <div
                       key={transaction.id}
-                      className={`border-b border-gray-200 hover:bg-blue-50 transition-colors ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                      className={`relative rounded-xl transition-colors p-4 ${
+                        selectedTransactions.has(transaction.id)
+                          ? 'bg-blue-50 border-2 border-blue-300'
+                          : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
                       }`}
                     >
-                      <td className="px-3 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedTransactions.has(transaction.id)}
-                          onChange={() => toggleSelectTransaction(transaction.id)}
-                          className="cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center justify-center">
+                      {/* Top Row: Checkbox, Icon, Description/Edit, Amount, Actions */}
+                      <div className="flex items-start gap-3 mb-2">
+                        {/* Checkbox */}
+                        <div className="flex-shrink-0 pt-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedTransactions.has(transaction.id)}
+                            onChange={() => toggleSelectTransaction(transaction.id)}
+                            className="cursor-pointer w-4 h-4"
+                          />
+                        </div>
+
+                        {/* Icon */}
+                        <div className="flex-shrink-0">
                           <CategoryIconSelector
                             transaction={transaction}
                             categories={categories}
@@ -707,97 +709,108 @@ const TransactionsTab = ({
                             onAddCategory={onAddCategory}
                           />
                         </div>
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-800 font-medium">
-                        {editingDescriptionId === transaction.id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={editingDescription}
-                              onChange={(e) => setEditingDescription(e.target.value)}
-                              className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:border-transparent"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveDescription(transaction.id);
-                                if (e.key === 'Escape') handleCancelEditDescription();
-                              }}
-                              autoFocus
-                            />
+
+                        {/* Description with inline editing */}
+                        <div className="flex-1 min-w-0">
+                          {editingDescriptionId === transaction.id ? (
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                              <input
+                                type="text"
+                                value={editingDescription}
+                                onChange={(e) => setEditingDescription(e.target.value)}
+                                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:border-transparent text-sm"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveDescription(transaction.id);
+                                  if (e.key === 'Escape') handleCancelEditDescription();
+                                }}
+                                autoFocus
+                              />
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleSaveDescription(transaction.id)}
+                                  className="p-1.5 hover:bg-green-100 rounded"
+                                  title="Zapisz"
+                                >
+                                  <Check size={16} style={{ color: THEME.success }} />
+                                </button>
+                                <button
+                                  onClick={handleCancelEditDescription}
+                                  className="p-1.5 hover:bg-red-100 rounded"
+                                  title="Anuluj"
+                                >
+                                  <X size={16} style={{ color: THEME.danger }} />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 group">
+                              <p className="font-semibold text-gray-800 text-base leading-tight break-words">
+                                {transaction.description}
+                              </p>
+                              <button
+                                onClick={() => handleStartEditDescription(transaction)}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity flex-shrink-0"
+                                title="Edytuj opis"
+                              >
+                                <Edit2 size={14} className="text-gray-500" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Amount and Action Buttons */}
+                        <div className="flex items-start gap-2 flex-shrink-0">
+                          <span
+                            className="text-xl font-bold whitespace-nowrap"
+                            style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+                          >
+                            {formatCurrency(transaction.amount)}
+                          </span>
+                          <div className="flex gap-1">
+                            {transaction.category !== 'Transfer' && (
+                              <button
+                                onClick={() => {
+                                  setConvertingTransactionId(transaction.id);
+                                  setShowConvertTransfer(true);
+                                }}
+                                className="transition-colors p-1.5 hover:bg-blue-100 rounded-lg flex-shrink-0"
+                                style={{ color: THEME.primary }}
+                                title="Konwertuj na Przelew"
+                              >
+                                <ArrowLeftRight size={16} />
+                              </button>
+                            )}
                             <button
-                              onClick={() => handleSaveDescription(transaction.id)}
-                              className="p-1 hover:bg-green-100 rounded"
-                              title="Zapisz"
+                              onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                              className="transition-colors p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0"
+                              style={{ color: THEME.danger }}
+                              title="Usuń transakcję"
                             >
-                              <Check size={16} style={{ color: THEME.success }} />
-                            </button>
-                            <button
-                              onClick={handleCancelEditDescription}
-                              className="p-1 hover:bg-red-100 rounded"
-                              title="Anuluj"
-                            >
-                              <X size={16} style={{ color: THEME.danger }} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2 group">
-                            <span>{transaction.description}</span>
-                            <button
-                              onClick={() => handleStartEditDescription(transaction)}
-                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity"
-                              title="Edytuj opis"
-                            >
-                              <Edit2 size={14} className="text-gray-500" />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-600 whitespace-nowrap">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={14} />
+                        </div>
+                      </div>
+
+                      {/* Bottom Row: Date and Type Badge */}
+                      <div className="flex items-center gap-3 ml-12">
+                        <span className="flex items-center gap-1 text-xs text-gray-600">
+                          <Calendar size={12} />
                           {transaction.date}
                         </span>
-                      </td>
-                      <td className="px-3 py-2 text-sm">
-                        <span className="inline-flex text-xs font-medium px-2 py-1 rounded-full" style={{
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
                           backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
                           color: transaction.amount > 0 ? THEME.success : THEME.danger
                         }}>
                           {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
                         </span>
-                      </td>
-                      <td className="px-3 py-2 text-sm font-semibold text-right whitespace-nowrap" style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}>
-                        {formatCurrency(transaction.amount)}
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center justify-center gap-1">
-                          {transaction.category !== 'Transfer' && (
-                            <button
-                              onClick={() => {
-                                setConvertingTransactionId(transaction.id);
-                                setShowConvertTransfer(true);
-                              }}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-blue-100"
-                              style={{ color: THEME.primary }}
-                              title="Konwertuj na Przelew"
-                            >
-                              <ArrowLeftRight size={16} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-red-100"
-                            style={{ color: THEME.danger }}
-                            title="Usuń transakcję"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </>
             )}
-          </div>
+          </>
         )}
       </div>
 
