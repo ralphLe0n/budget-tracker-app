@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Wallet, Calendar, Trash2, Upload, AlertTriangle, Activity, Target } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Wallet, Calendar, Trash2, Upload, AlertTriangle, Activity, Target, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
@@ -51,10 +51,79 @@ const DashboardTab = ({
   const displayedTransactions = filteredTransactions.slice(0, 10);
   const hasMoreTransactions = filteredTransactions.length > 10;
 
+  // Prediction settings state
+  const [showPredictionSettings, setShowPredictionSettings] = useState(false);
+  const [selectedPredictionCategories, setSelectedPredictionCategories] = useState([]);
+
+  // Load prediction preferences from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('predictionCategories');
+    if (saved) {
+      try {
+        setSelectedPredictionCategories(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load prediction preferences:', e);
+      }
+    }
+  }, []);
+
+  // Save prediction preferences to localStorage
+  useEffect(() => {
+    if (selectedPredictionCategories.length > 0) {
+      localStorage.setItem('predictionCategories', JSON.stringify(selectedPredictionCategories));
+    }
+  }, [selectedPredictionCategories]);
+
+  // Get all categories with spending, sorted by amount
+  const categoriesWithSpending = useMemo(() => {
+    const spending = {};
+    filteredTransactions.forEach(t => {
+      if (t.category && t.category !== 'Transfer' && t.amount < 0) {
+        spending[t.category] = (spending[t.category] || 0) + Math.abs(t.amount);
+      }
+    });
+
+    return Object.entries(spending)
+      .sort((a, b) => b[1] - a[1])
+      .map(([category, amount]) => ({ category, amount }));
+  }, [filteredTransactions]);
+
   // Get AI forecasting insights
   const insights = useMemo(() => {
     return BudgetForecaster.getSpendingInsights(filteredTransactions, budgets, categories);
   }, [filteredTransactions, budgets, categories]);
+
+  // Filter predictions based on user selection
+  const displayedPredictions = useMemo(() => {
+    if (selectedPredictionCategories.length === 0) {
+      // If no categories selected, show top 5 by spending
+      const topCategories = categoriesWithSpending.slice(0, 5).map(c => c.category);
+      return insights.predictions.filter(p => topCategories.includes(p.category));
+    }
+    // Show only selected categories
+    return insights.predictions.filter(p => selectedPredictionCategories.includes(p.category));
+  }, [insights.predictions, selectedPredictionCategories, categoriesWithSpending]);
+
+  // Toggle category selection
+  const togglePredictionCategory = (category) => {
+    setSelectedPredictionCategories(prev => {
+      if (prev.includes(category)) {
+        return prev.filter(c => c !== category);
+      } else {
+        return [...prev, category];
+      }
+    });
+  };
+
+  // Select all categories
+  const selectAllPredictionCategories = () => {
+    setSelectedPredictionCategories(categoriesWithSpending.map(c => c.category));
+  };
+
+  // Clear all selections
+  const clearPredictionCategories = () => {
+    setSelectedPredictionCategories([]);
+  };
 
   return (
     <>
@@ -167,18 +236,121 @@ const DashboardTab = ({
         </div>
       )}
 
+      {/* Prediction Settings */}
+      {categoriesWithSpending.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+          <button
+            onClick={() => setShowPredictionSettings(!showPredictionSettings)}
+            className="w-full flex justify-between items-center mb-2"
+          >
+            <div className="flex items-center gap-3">
+              <Settings style={{ color: THEME.primary }} size={24} />
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800">Ustawienia Prognoz</h3>
+              {selectedPredictionCategories.length > 0 && (
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+                  {selectedPredictionCategories.length} wybran(ych/e)
+                </span>
+              )}
+            </div>
+            {showPredictionSettings ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+          </button>
+
+          {showPredictionSettings && (
+            <div className="mt-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                <p className="text-sm text-gray-600">
+                  Wybierz kategorie, dla których chcesz widzieć prognozy wydatków
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={selectAllPredictionCategories}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    style={{ color: THEME.primary }}
+                  >
+                    Zaznacz wszystkie
+                  </button>
+                  <button
+                    onClick={clearPredictionCategories}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+                  >
+                    Wyczyść
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {categoriesWithSpending.map(({ category, amount }) => {
+                  const prediction = insights.predictions.find(p => p.category === category);
+                  const hasEnoughData = prediction && prediction.confidence !== 'insufficient_data';
+                  const isSelected = selectedPredictionCategories.includes(category);
+
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => hasEnoughData && togglePredictionCategory(category)}
+                      disabled={!hasEnoughData}
+                      className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
+                        !hasEnoughData
+                          ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-purple-50 border-purple-400 shadow-md'
+                          : 'bg-white border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={!hasEnoughData}
+                          onChange={() => {}}
+                          className="cursor-pointer flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="font-semibold text-gray-800 text-sm truncate">{category}</p>
+                          <p className="text-xs text-gray-500">
+                            {hasEnoughData ? formatCurrency(amount) : 'Brak danych'}
+                          </p>
+                        </div>
+                      </div>
+                      {hasEnoughData && prediction && (
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <p className="text-xs font-bold text-purple-600">
+                            {formatCurrency(prediction.forecast)}
+                          </p>
+                          <p className="text-xs text-gray-500">prognoza</p>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedPredictionCategories.length === 0 && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    💡 <strong>Wskazówka:</strong> Nie wybrano żadnych kategorii. Domyślnie wyświetlane są top 5 kategorii według wydatków.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* AI Spending Forecasts */}
-      {insights.predictions.length > 0 && (
+      {displayedPredictions.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Activity style={{ color: THEME.primary }} size={24} />
             <h3 className="text-lg sm:text-xl font-bold text-gray-800">Prognoza Wydatków AI</h3>
             <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
-              Oparte na historii
+              {selectedPredictionCategories.length > 0
+                ? `${displayedPredictions.length} wybran(ych/e)`
+                : 'Top 5 kategorii'}
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {insights.predictions.slice(0, 3).map((prediction, index) => {
+            {displayedPredictions.map((prediction, index) => {
               const trendIcon = prediction.trend === 'increasing' ? '📈' : prediction.trend === 'decreasing' ? '📉' : '➡️';
               const trendColor = prediction.trend === 'increasing' ? THEME.danger : prediction.trend === 'decreasing' ? THEME.success : THEME.primary;
 

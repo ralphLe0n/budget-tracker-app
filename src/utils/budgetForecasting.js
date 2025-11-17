@@ -366,19 +366,17 @@ export class BudgetForecaster {
       budgetWarnings: []
     };
 
-    // Get predictions for top categories
-    const topCategories = [...new Set(transactions.map(t => t.category))]
-      .filter(cat => cat && cat !== 'Transfer')
-      .slice(0, 5);
+    // Get predictions for ALL categories with data (not just top 5)
+    const allCategories = [...new Set(transactions.map(t => t.category))]
+      .filter(cat => cat && cat !== 'Transfer');
 
-    topCategories.forEach(category => {
+    allCategories.forEach(category => {
       const prediction = this.predictCategorySpending(transactions, category);
-      if (prediction.forecast > 0) {
-        insights.predictions.push({
-          category,
-          ...prediction
-        });
-      }
+      // Include all predictions, even with insufficient data (UI will handle display)
+      insights.predictions.push({
+        category,
+        ...prediction
+      });
     });
 
     // Get anomalies
