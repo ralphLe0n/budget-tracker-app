@@ -1,6 +1,12 @@
 # Budget Tracker - Product Roadmap
 
 ## Recent Improvements ✅
+- **AI Budget Forecasting** - Client-side predictions using statistical methods (NEW!)
+  - Spending predictions by category using exponential smoothing
+  - Anomaly detection for unusual transactions
+  - Budget overrun warnings with daily spending recommendations
+  - Trend analysis (increasing/decreasing/stable)
+  - Confidence levels for predictions
 - Mobile-responsive design across all tabs
 - Debt tracking with Polish financial standards (RRSO)
 - Reverse interest rate calculation
@@ -129,14 +135,14 @@
 
 ---
 
-### 🎯 Budget Forecasting
-**Priority: MEDIUM**
+### 🎯 Advanced Budget Forecasting
+**Priority: LOW-MEDIUM** *(Basic forecasting already implemented)*
 
-- Predictive spending based on historical data
 - "What-if" scenarios for budget planning
-- Income vs. expense projections
-- Seasonal spending pattern recognition
+- Advanced seasonal pattern recognition (holidays, quarterly patterns)
 - Budget recommendations based on spending habits
+- Monte Carlo simulations for financial planning
+- Integration with external economic indicators
 
 ---
 

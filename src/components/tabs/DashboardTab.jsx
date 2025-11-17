@@ -1,10 +1,11 @@
-import React from 'react';
-import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Wallet, Calendar, Trash2, Upload } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { PlusCircle, TrendingUp, TrendingDown, DollarSign, Wallet, Calendar, Trash2, Upload, AlertTriangle, Activity, Target } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
 import CategorySelector from '../CategorySelector';
 import CategoryIconSelector from '../CategoryIconSelector';
+import { BudgetForecaster } from '../../utils/budgetForecasting';
 
 const DashboardTab = ({
   totalIncome,
@@ -49,6 +50,11 @@ const DashboardTab = ({
   // Show only last 10 transactions on dashboard
   const displayedTransactions = filteredTransactions.slice(0, 10);
   const hasMoreTransactions = filteredTransactions.length > 10;
+
+  // Get AI forecasting insights
+  const insights = useMemo(() => {
+    return BudgetForecaster.getSpendingInsights(filteredTransactions, budgets, categories);
+  }, [filteredTransactions, budgets, categories]);
 
   return (
     <>
@@ -114,6 +120,141 @@ const DashboardTab = ({
           </p>
         </div>
       </div>
+
+      {/* Budget Warnings */}
+      {insights.budgetWarnings.length > 0 && (
+        <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-2 border-red-200">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle style={{ color: THEME.danger }} size={28} />
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800">Ostrzeżenia Budżetowe</h3>
+          </div>
+          <div className="space-y-3">
+            {insights.budgetWarnings.map((warning, index) => (
+              <div key={index} className="bg-white rounded-xl p-4 border-l-4" style={{ borderColor: THEME.danger }}>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800 text-base">{warning.budget}</p>
+                    <p className="text-sm text-gray-600 mt-1">{warning.recommendation}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xl font-bold" style={{ color: THEME.danger }}>
+                      {formatCurrency(warning.projectedAmount)}
+                    </p>
+                    <p className="text-xs text-gray-500">przewidywane</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 text-xs">
+                  <div className="bg-gray-50 rounded p-2">
+                    <p className="text-gray-600">Obecne wydatki</p>
+                    <p className="font-bold text-gray-800">{formatCurrency(warning.currentSpending)}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded p-2">
+                    <p className="text-gray-600">Przekroczenie</p>
+                    <p className="font-bold" style={{ color: THEME.danger }}>
+                      {formatCurrency(warning.projectedOverage)}
+                    </p>
+                  </div>
+                  {warning.daysUntilOverrun > 0 && (
+                    <div className="bg-gray-50 rounded p-2">
+                      <p className="text-gray-600">Dni do przekroczenia</p>
+                      <p className="font-bold text-gray-800">{warning.daysUntilOverrun}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* AI Spending Forecasts */}
+      {insights.predictions.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Activity style={{ color: THEME.primary }} size={24} />
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800">Prognoza Wydatków AI</h3>
+            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+              Oparte na historii
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {insights.predictions.slice(0, 3).map((prediction, index) => {
+              const trendIcon = prediction.trend === 'increasing' ? '📈' : prediction.trend === 'decreasing' ? '📉' : '➡️';
+              const trendColor = prediction.trend === 'increasing' ? THEME.danger : prediction.trend === 'decreasing' ? THEME.success : THEME.primary;
+
+              return (
+                <div
+                  key={index}
+                  className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl shadow-lg p-4 sm:p-6 border-2 border-purple-200"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">{prediction.category}</span>
+                    <Target style={{ color: THEME.primary }} size={20} />
+                  </div>
+                  <p className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">
+                    {formatCurrency(prediction.forecast)}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
+                    <span className="text-lg">{trendIcon}</span>
+                    <span style={{ color: trendColor }} className="font-medium">
+                      {prediction.trend === 'increasing' ? 'Wzrost' : prediction.trend === 'decreasing' ? 'Spadek' : 'Stabilne'}
+                    </span>
+                    <span>•</span>
+                    <span className={`font-medium ${
+                      prediction.confidence === 'high' ? 'text-green-600' :
+                      prediction.confidence === 'medium' ? 'text-yellow-600' : 'text-gray-500'
+                    }`}>
+                      {prediction.confidence === 'high' ? 'Wysoka pewność' :
+                       prediction.confidence === 'medium' ? 'Średnia pewność' : 'Niska pewność'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Średnia historyczna: {formatCurrency(prediction.historicalAverage)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Anomaly Detection */}
+      {insights.anomalies.length > 0 && (
+        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-2 border-yellow-300">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle style={{ color: THEME.warning }} size={24} />
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800">Nietypowe Wydatki</h3>
+            <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full font-medium">
+              Ostatnie 30 dni
+            </span>
+          </div>
+          <div className="space-y-3">
+            {insights.anomalies.map((anomaly, index) => (
+              <div key={index} className="bg-white rounded-xl p-4 border-l-4" style={{ borderColor: THEME.warning }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800">{anomaly.transaction.description}</p>
+                    <p className="text-sm text-gray-600 mt-1">{anomaly.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {anomaly.transaction.date} • {anomaly.transaction.category}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-lg font-bold" style={{ color: THEME.danger }}>
+                      {formatCurrency(anomaly.transaction.amount)}
+                    </p>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      anomaly.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {anomaly.severity === 'high' ? 'Wysoka' : 'Średnia'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Transactions */}
       <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
