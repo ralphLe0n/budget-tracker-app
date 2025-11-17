@@ -16,6 +16,7 @@ const DebtsTab = ({
   const [editingDebtId, setEditingDebtId] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedDebtForPayment, setSelectedDebtForPayment] = useState(null);
+  const [calculationMode, setCalculationMode] = useState('from_rate'); // 'from_rate' or 'from_installment'
 
   // New debt form state
   const [newDebt, setNewDebt] = useState({
@@ -23,6 +24,7 @@ const DebtsTab = ({
     principal_amount: '',
     interest_rate: '',
     rrso: '',
+    installment_amount: '', // For reverse calculation
     total_installments: '',
     start_date: new Date().toISOString().split('T')[0],
     creditor: '',
@@ -59,6 +61,68 @@ const DebtsTab = ({
     return installment;
   };
 
+  // Calculate interest rate from installment amount using Newton-Raphson method
+  const calculateInterestRate = (principal, installment, months) => {
+    if (!principal || !installment || !months) return 0;
+
+    // Check if it's a 0% loan (installment = principal/months)
+    const simpleInstallment = principal / months;
+    if (Math.abs(installment - simpleInstallment) < 0.01) {
+      return 0;
+    }
+
+    // Check if installment is too small (would result in negative or impossible rate)
+    if (installment <= simpleInstallment * 0.99) {
+      return 0; // Impossible - installment too small
+    }
+
+    // Newton-Raphson method to solve for monthly rate
+    // We're solving: installment = principal * [r(1+r)^n] / [(1+r)^n - 1]
+
+    let monthlyRate = 0.005; // Initial guess: 0.5% per month (6% annual)
+    const maxIterations = 100;
+    const tolerance = 0.0001;
+
+    for (let i = 0; i < maxIterations; i++) {
+      if (monthlyRate <= 0) {
+        monthlyRate = 0.001; // Prevent negative or zero rates
+      }
+
+      const onePlusR = 1 + monthlyRate;
+      const onePlusRn = Math.pow(onePlusR, months);
+
+      // Current installment with this rate
+      const f = principal * (monthlyRate * onePlusRn) / (onePlusRn - 1) - installment;
+
+      // Derivative of the function
+      const df = principal * (
+        (onePlusRn * (onePlusRn - 1) - monthlyRate * months * onePlusRn * (onePlusRn - 1) / onePlusR - monthlyRate * onePlusRn) /
+        Math.pow(onePlusRn - 1, 2)
+      );
+
+      if (Math.abs(df) < 0.0000001) break; // Avoid division by very small numbers
+
+      const newRate = monthlyRate - f / df;
+
+      if (Math.abs(newRate - monthlyRate) < tolerance) {
+        monthlyRate = newRate;
+        break;
+      }
+
+      monthlyRate = newRate;
+    }
+
+    // Convert monthly rate to annual percentage
+    const annualRate = monthlyRate * 12 * 100;
+
+    // Sanity check: rate should be between 0% and 100%
+    if (annualRate < 0 || annualRate > 100) {
+      return 0;
+    }
+
+    return annualRate;
+  };
+
   // Calculate next payment date
   const calculateNextPaymentDate = (startDate, paidInstallments) => {
     const date = new Date(startDate);
@@ -86,17 +150,44 @@ const DebtsTab = ({
   };
 
   const handleAddDebt = async () => {
-    if (!newDebt.name || !newDebt.principal_amount || newDebt.interest_rate === '' ||
-        newDebt.rrso === '' || !newDebt.total_installments || !newDebt.start_date) {
-      alert('Proszę wypełnić wszystkie wymagane pola (nazwę, kwotę, oprocentowanie, RRSO, liczbę rat i datę rozpoczęcia)');
-      return;
+    let interestRate, rrso, installmentAmount;
+
+    if (calculationMode === 'from_rate') {
+      // Standard mode: calculate installment from rate
+      if (!newDebt.name || !newDebt.principal_amount || newDebt.interest_rate === '' ||
+          newDebt.rrso === '' || !newDebt.total_installments || !newDebt.start_date) {
+        alert('Proszę wypełnić wszystkie wymagane pola (nazwę, kwotę, oprocentowanie, RRSO, liczbę rat i datę rozpoczęcia)');
+        return;
+      }
+
+      const principal = parseFloat(newDebt.principal_amount);
+      const installments = parseInt(newDebt.total_installments);
+      interestRate = parseFloat(newDebt.interest_rate);
+      rrso = parseFloat(newDebt.rrso);
+
+      installmentAmount = calculateInstallment(principal, interestRate, installments);
+    } else {
+      // Reverse mode: calculate rate from installment
+      if (!newDebt.name || !newDebt.principal_amount || !newDebt.installment_amount ||
+          !newDebt.total_installments || !newDebt.start_date) {
+        alert('Proszę wypełnić wszystkie wymagane pola (nazwę, kwotę, kwotę raty, liczbę rat i datę rozpoczęcia)');
+        return;
+      }
+
+      const principal = parseFloat(newDebt.principal_amount);
+      const installments = parseInt(newDebt.total_installments);
+      installmentAmount = parseFloat(newDebt.installment_amount);
+
+      // Calculate interest rate from installment
+      interestRate = calculateInterestRate(principal, installmentAmount, installments);
+
+      // Estimate RRSO as interest rate + 0.5% (typical margin for fees)
+      // In reality, RRSO includes all costs, but this is a reasonable approximation
+      rrso = interestRate + 0.5;
     }
 
     const principal = parseFloat(newDebt.principal_amount);
     const installments = parseInt(newDebt.total_installments);
-    const interestRate = parseFloat(newDebt.interest_rate);
-
-    const installmentAmount = calculateInstallment(principal, interestRate, installments);
     const endDate = calculateEndDate(newDebt.start_date, installments);
     const nextPaymentDate = calculateNextPaymentDate(newDebt.start_date, 0);
 
@@ -105,7 +196,7 @@ const DebtsTab = ({
       principal_amount: principal,
       current_balance: principal,
       interest_rate: interestRate,
-      rrso: parseFloat(newDebt.rrso),
+      rrso: rrso,
       total_installments: installments,
       paid_installments: 0,
       installment_amount: installmentAmount,
@@ -122,6 +213,7 @@ const DebtsTab = ({
       principal_amount: '',
       interest_rate: '',
       rrso: '',
+      installment_amount: '',
       total_installments: '',
       start_date: new Date().toISOString().split('T')[0],
       creditor: '',
@@ -269,6 +361,40 @@ const DebtsTab = ({
       {showAddDebt && (
         <div className="rounded-xl p-6 mb-6 border-2" style={{ backgroundColor: THEME.primaryLight, borderColor: THEME.primary }}>
           <h3 className="font-semibold text-gray-800 mb-4">Nowy Dług</h3>
+
+          {/* Calculation Mode Selector */}
+          <div className="mb-6 p-4 bg-white rounded-lg border border-gray-300">
+            <label className="block text-sm font-medium text-gray-700 mb-3">Tryb Kalkulacji</label>
+            <div className="flex gap-4">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="calculationMode"
+                  value="from_rate"
+                  checked={calculationMode === 'from_rate'}
+                  onChange={(e) => setCalculationMode(e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-sm">
+                  Znam oprocentowanie → oblicz ratę
+                </span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="calculationMode"
+                  value="from_installment"
+                  checked={calculationMode === 'from_installment'}
+                  onChange={(e) => setCalculationMode(e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-sm">
+                  Znam ratę → oblicz oprocentowanie
+                </span>
+              </label>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Nazwa Długu *</label>
@@ -293,30 +419,47 @@ const DebtsTab = ({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Oprocentowanie Nominalne (%) *</label>
-              <input
-                type="number"
-                step="0.01"
-                value={newDebt.interest_rate}
-                onChange={(e) => setNewDebt({ ...newDebt, interest_rate: e.target.value })}
-                placeholder="5.50"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-              />
-            </div>
+            {calculationMode === 'from_rate' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Oprocentowanie Nominalne (%) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newDebt.interest_rate}
+                    onChange={(e) => setNewDebt({ ...newDebt, interest_rate: e.target.value })}
+                    placeholder="5.50"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">RRSO (%) *</label>
-              <input
-                type="number"
-                step="0.01"
-                value={newDebt.rrso}
-                onChange={(e) => setNewDebt({ ...newDebt, rrso: e.target.value })}
-                placeholder="5.75"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">Rzeczywista Roczna Stopa Oprocentowania</p>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">RRSO (%) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newDebt.rrso}
+                    onChange={(e) => setNewDebt({ ...newDebt, rrso: e.target.value })}
+                    placeholder="5.75"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Rzeczywista Roczna Stopa Oprocentowania</p>
+                </div>
+              </>
+            ) : (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Miesięczna Rata (PLN) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={newDebt.installment_amount}
+                  onChange={(e) => setNewDebt({ ...newDebt, installment_amount: e.target.value })}
+                  placeholder="2000.00"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Podaj znaną kwotę miesięcznej raty - oprocentowanie i RRSO zostaną obliczone automatycznie</p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Liczba Rat *</label>
@@ -378,7 +521,8 @@ const DebtsTab = ({
             </div>
           </div>
 
-          {newDebt.principal_amount && newDebt.interest_rate && newDebt.total_installments && (
+          {/* Preview based on calculation mode */}
+          {calculationMode === 'from_rate' && newDebt.principal_amount && newDebt.interest_rate && newDebt.total_installments && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm font-medium text-gray-700">
                 Szacowana miesięczna rata: {' '}
@@ -389,6 +533,36 @@ const DebtsTab = ({
                     parseInt(newDebt.total_installments)
                   ))}
                 </span>
+              </p>
+            </div>
+          )}
+
+          {calculationMode === 'from_installment' && newDebt.principal_amount && newDebt.installment_amount && newDebt.total_installments && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Obliczone oprocentowanie nominalne:</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {calculateInterestRate(
+                      parseFloat(newDebt.principal_amount),
+                      parseFloat(newDebt.installment_amount),
+                      parseInt(newDebt.total_installments)
+                    ).toFixed(2)}%
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Szacowane RRSO:</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {(calculateInterestRate(
+                      parseFloat(newDebt.principal_amount),
+                      parseFloat(newDebt.installment_amount),
+                      parseInt(newDebt.total_installments)
+                    ) + 0.5).toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                * RRSO jest szacowane jako oprocentowanie nominalne + 0.5% marży na opłaty
               </p>
             </div>
           )}
