@@ -3,16 +3,15 @@ import { LayoutDashboard, Wallet, Tag, DollarSign, Repeat, LogOut, X, Receipt, G
 import { THEME } from '../../config/theme';
 
 const Sidebar = ({ activeTab, setActiveTab, onSignOut, isMobileMenuOpen, setIsMobileMenuOpen }) => {
+  // Updated navigation based on UX audit - consolidated from 10 tabs to 7
   const defaultNavItems = [
     { id: 'dashboard', label: 'Panel Główny', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transakcje', icon: Receipt },
     { id: 'accounts', label: 'Konta', icon: Wallet },
-    { id: 'categories', label: 'Kategorie', icon: Tag },
-    { id: 'budgets', label: 'Budżety', icon: DollarSign },
-    { id: 'savings-goals', label: 'Cele Oszczędnościowe', icon: Target },
+    { id: 'budgets-categories', label: 'Budżety & Kategorie', icon: DollarSign },
+    { id: 'financial-goals', label: 'Cele Finansowe', icon: Target },
     { id: 'analytics', label: 'Analityka', icon: TrendingUp },
     { id: 'recurring', label: 'Cykliczne', icon: Repeat },
-    { id: 'debts', label: 'Długi', icon: CreditCard },
   ];
 
   const [navItems, setNavItems] = useState(() => {

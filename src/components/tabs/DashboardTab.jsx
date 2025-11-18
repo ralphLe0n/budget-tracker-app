@@ -47,9 +47,9 @@ const DashboardTab = ({
 }) => {
   const COLORS = THEME.chartColors;
 
-  // Show only last 10 transactions on dashboard
-  const displayedTransactions = filteredTransactions.slice(0, 10);
-  const hasMoreTransactions = filteredTransactions.length > 10;
+  // Show only last 5 transactions on dashboard (UX audit recommendation)
+  const displayedTransactions = filteredTransactions.slice(0, 5);
+  const hasMoreTransactions = filteredTransactions.length > 5;
 
   // Prediction settings state
   const [showPredictionSettings, setShowPredictionSettings] = useState(false);
@@ -197,15 +197,20 @@ const DashboardTab = ({
         </div>
       </div>
 
-      {/* Budget Warnings */}
+      {/* Budget Warnings - Top 2 Only (UX audit recommendation) */}
       {insights.budgetWarnings.length > 0 && (
         <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-2 border-red-200">
           <div className="flex items-center gap-3 mb-4">
             <AlertTriangle style={{ color: THEME.danger }} size={28} />
             <h3 className="text-lg sm:text-xl font-bold text-gray-800">Ostrzeżenia Budżetowe</h3>
+            {insights.budgetWarnings.length > 2 && (
+              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
+                +{insights.budgetWarnings.length - 2} więcej
+              </span>
+            )}
           </div>
           <div className="space-y-3">
-            {insights.budgetWarnings.map((warning, index) => (
+            {insights.budgetWarnings.slice(0, 2).map((warning, index) => (
               <div key={index} className="bg-white rounded-xl p-4 border-l-4" style={{ borderColor: THEME.danger }}>
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="flex-1">
@@ -240,11 +245,24 @@ const DashboardTab = ({
               </div>
             ))}
           </div>
+          {insights.budgetWarnings.length > 2 && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className="text-sm font-medium px-4 py-2 rounded-lg hover:bg-red-100 transition-colors"
+                style={{ color: THEME.danger }}
+              >
+                Zobacz wszystkie ostrzeżenia →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Prediction Settings */}
-      {categoriesWithSpending.length > 0 && (
+      {/* NOTE: Prediction Settings, AI Forecasts, and Anomaly Detection moved to Analytics tab per UX audit */}
+
+      {/* Prediction Settings - HIDDEN (Moved to Analytics) */}
+      {false && categoriesWithSpending.length > 0 && (
         <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
           <button
             onClick={() => setShowPredictionSettings(!showPredictionSettings)}
@@ -344,8 +362,8 @@ const DashboardTab = ({
         </div>
       )}
 
-      {/* AI Spending Forecasts */}
-      {displayedPredictions.length > 0 && (
+      {/* AI Spending Forecasts - HIDDEN (Moved to Analytics) */}
+      {false && displayedPredictions.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Activity style={{ color: THEME.primary }} size={24} />
@@ -397,8 +415,8 @@ const DashboardTab = ({
         </div>
       )}
 
-      {/* Anomaly Detection */}
-      {insights.anomalies.length > 0 && (
+      {/* Anomaly Detection - HIDDEN (Moved to Analytics) */}
+      {false && insights.anomalies.length > 0 && (
         <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-2 border-yellow-300">
           <div className="flex items-center gap-3 mb-4">
             <AlertTriangle style={{ color: THEME.warning }} size={24} />

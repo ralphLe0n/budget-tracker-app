@@ -197,9 +197,12 @@ const CategoryRulesManager = ({ rules, categories, onAddRule, onUpdateRule, onDe
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-2"
             >
               <option value="">Select category...</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {categories.map(cat => {
+                const categoryName = typeof cat === 'string' ? cat : cat.name;
+                return (
+                  <option key={categoryName} value={categoryName}>{categoryName}</option>
+                );
+              })}
             </select>
           </div>
 

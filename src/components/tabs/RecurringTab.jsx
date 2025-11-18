@@ -104,11 +104,14 @@ const RecurringTab = ({
                 onChange={(e) => setNewRecurring({ ...newRecurring, category: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
               >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
+                {categories.map((cat) => {
+                  const categoryName = typeof cat === 'string' ? cat : cat.name;
+                  return (
+                    <option key={categoryName} value={categoryName}>
+                      {categoryName}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>
@@ -236,11 +239,14 @@ const RecurringTab = ({
                       onChange={(e) => setEditingRecurringData({ ...editingRecurringData, category: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     >
-                      {categories.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
+                      {categories.map((cat) => {
+                        const categoryName = typeof cat === 'string' ? cat : cat.name;
+                        return (
+                          <option key={categoryName} value={categoryName}>
+                            {categoryName}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                   <div>
