@@ -65,17 +65,17 @@ const TransactionEditModal = ({
       onClose={onClose}
       title="Edytuj Transakcję"
       footer={
-        <div className="flex gap-3">
+        <div className="flex gap-3 w-full">
           <button
             onClick={onClose}
-            className="flex-1 px-6 py-3 rounded-lg transition-colors font-medium bg-gray-200 hover:bg-gray-300 text-gray-700"
+            className="flex-1 px-4 py-3 rounded-lg transition-colors font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 touch-manipulation active:scale-95"
           >
             Anuluj
           </button>
           <button
             onClick={handleSubmit}
             disabled={!isValid}
-            className="flex-1 px-6 py-3 rounded-lg transition-colors font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-3 rounded-lg transition-colors font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation active:scale-95"
             style={{
               backgroundColor: isValid ? THEME.primary : '#ccc',
             }}
@@ -85,7 +85,7 @@ const TransactionEditModal = ({
         </div>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-4 pb-2">
         {/* Transaction Type Indicator */}
         <div className="p-3 rounded-lg" style={{
           backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
@@ -137,6 +137,7 @@ const TransactionEditModal = ({
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="np. Zakupy spożywcze"
           required
+          autoComplete="off"
         />
 
         {/* Amount */}
@@ -150,6 +151,7 @@ const TransactionEditModal = ({
           }}
           placeholder="0.00"
           required
+          inputMode="decimal"
         />
       </div>
     </MobileModal>
