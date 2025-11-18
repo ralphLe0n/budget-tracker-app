@@ -5,6 +5,7 @@ import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
 import CategorySelector from '../CategorySelector';
 import CategoryIconSelector from '../CategoryIconSelector';
+import { useMobile } from '../../hooks/useMobile';
 
 const TransactionsTab = ({
   filteredTransactions,
@@ -42,6 +43,10 @@ const TransactionsTab = ({
   onBulkUpdate
 }) => {
   const COLORS = THEME.chartColors;
+
+  // Mobile optimizations
+  const { isMobile, iconSize, iconSizeSmall } = useMobile();
+
   const [chartsExpanded, setChartsExpanded] = useState(true);
   const [budgetExpanded, setBudgetExpanded] = useState(true);
   const [transactionsExpanded, setTransactionsExpanded] = useState(true);
@@ -688,15 +693,40 @@ const TransactionsTab = ({
                           : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
                       }`}
                     >
-                      {/* Top Row: Checkbox, Icon, Description/Edit, Amount, Actions */}
-                      <div className="flex items-start gap-3 mb-2">
+                      {/* Action Buttons - Absolute positioned in top-right */}
+                      <div className="absolute top-3 right-3 flex gap-1">
+                        {transaction.category !== 'Transfer' && (
+                          <button
+                            onClick={() => {
+                              setConvertingTransactionId(transaction.id);
+                              setShowConvertTransfer(true);
+                            }}
+                            className="transition-colors p-2 hover:bg-blue-100 rounded-lg touch-manipulation"
+                            style={{ color: THEME.primary }}
+                            title="Konwertuj na Przelew"
+                          >
+                            <ArrowLeftRight size={iconSize} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                          className="transition-colors p-2 hover:bg-red-100 rounded-lg touch-manipulation"
+                          style={{ color: THEME.danger }}
+                          title="Usuń transakcję"
+                        >
+                          <Trash2 size={iconSize} />
+                        </button>
+                      </div>
+
+                      {/* Row 1: Checkbox + Icon + Description */}
+                      <div className="flex items-start gap-3 mb-3 pr-24">
                         {/* Checkbox */}
                         <div className="flex-shrink-0 pt-1">
                           <input
                             type="checkbox"
                             checked={selectedTransactions.has(transaction.id)}
                             onChange={() => toggleSelectTransaction(transaction.id)}
-                            className="cursor-pointer w-4 h-4"
+                            className="cursor-pointer w-5 h-5 touch-manipulation"
                           />
                         </div>
 
@@ -713,89 +743,67 @@ const TransactionsTab = ({
                         {/* Description with inline editing */}
                         <div className="flex-1 min-w-0">
                           {editingDescriptionId === transaction.id ? (
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                            <div className="flex flex-col gap-2">
                               <input
                                 type="text"
                                 value={editingDescription}
                                 onChange={(e) => setEditingDescription(e.target.value)}
-                                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:border-transparent text-sm"
+                                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:border-transparent text-base"
+                                style={{ fontSize: '16px' }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') handleSaveDescription(transaction.id);
                                   if (e.key === 'Escape') handleCancelEditDescription();
                                 }}
                                 autoFocus
                               />
-                              <div className="flex gap-1">
+                              <div className="flex gap-2">
                                 <button
                                   onClick={() => handleSaveDescription(transaction.id)}
-                                  className="p-1.5 hover:bg-green-100 rounded"
+                                  className="flex-1 p-2 bg-green-100 hover:bg-green-200 rounded-lg touch-manipulation"
                                   title="Zapisz"
                                 >
-                                  <Check size={16} style={{ color: THEME.success }} />
+                                  <Check size={iconSize} style={{ color: THEME.success }} className="mx-auto" />
                                 </button>
                                 <button
                                   onClick={handleCancelEditDescription}
-                                  className="p-1.5 hover:bg-red-100 rounded"
+                                  className="flex-1 p-2 bg-red-100 hover:bg-red-200 rounded-lg touch-manipulation"
                                   title="Anuluj"
                                 >
-                                  <X size={16} style={{ color: THEME.danger }} />
+                                  <X size={iconSize} style={{ color: THEME.danger }} className="mx-auto" />
                                 </button>
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2 group">
-                              <p className="font-semibold text-gray-800 text-base leading-tight break-words">
+                            <div className="flex items-start gap-2 group">
+                              <p className="font-semibold text-gray-800 text-base leading-tight break-words flex-1">
                                 {transaction.description}
                               </p>
                               <button
                                 onClick={() => handleStartEditDescription(transaction)}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity flex-shrink-0"
+                                className="md:opacity-0 group-hover:opacity-100 p-1.5 hover:bg-gray-200 rounded transition-opacity flex-shrink-0 touch-manipulation"
                                 title="Edytuj opis"
                               >
-                                <Edit2 size={14} className="text-gray-500" />
+                                <Edit2 size={iconSizeSmall} className="text-gray-500" />
                               </button>
                             </div>
                           )}
                         </div>
-
-                        {/* Amount and Action Buttons */}
-                        <div className="flex items-start gap-2 flex-shrink-0">
-                          <span
-                            className="text-xl font-bold whitespace-nowrap"
-                            style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-                          >
-                            {formatCurrency(transaction.amount)}
-                          </span>
-                          <div className="flex gap-1">
-                            {transaction.category !== 'Transfer' && (
-                              <button
-                                onClick={() => {
-                                  setConvertingTransactionId(transaction.id);
-                                  setShowConvertTransfer(true);
-                                }}
-                                className="transition-colors p-1.5 hover:bg-blue-100 rounded-lg flex-shrink-0"
-                                style={{ color: THEME.primary }}
-                                title="Konwertuj na Przelew"
-                              >
-                                <ArrowLeftRight size={16} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                              className="transition-colors p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0"
-                              style={{ color: THEME.danger }}
-                              title="Usuń transakcję"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
                       </div>
 
-                      {/* Bottom Row: Date and Type Badge */}
-                      <div className="flex items-center gap-3 ml-12">
+                      {/* Row 2: Amount (large and prominent on mobile) */}
+                      <div className="mb-2 ml-14">
+                        <span
+                          className="text-2xl md:text-xl font-bold"
+                          style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+                        >
+                          {formatCurrency(transaction.amount)}
+                        </span>
+                      </div>
+
+                      {/* Row 3: Date and Type Badge */}
+                      <div className="flex items-center gap-3 ml-14 flex-wrap">
                         <span className="flex items-center gap-1 text-xs text-gray-600">
-                          <Calendar size={12} />
+                          <Calendar size={iconSizeSmall} />
                           {transaction.date}
                         </span>
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{

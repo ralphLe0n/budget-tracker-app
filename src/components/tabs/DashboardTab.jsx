@@ -598,44 +598,48 @@ const DashboardTab = ({
                   key={transaction.id}
                   className="relative bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors p-4"
                 >
-                  {/* Top Row: Icon, Amount, Delete */}
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0">
-                        <CategoryIconSelector
-                          transaction={transaction}
-                          categories={categories}
-                          onCategoryChange={onCategoryChange}
-                          onAddCategory={onAddCategory}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 text-base leading-tight">{transaction.description}</p>
-                      </div>
+                  {/* Delete Button - Absolute positioned in top-right */}
+                  <button
+                    onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                    className="absolute top-3 right-3 transition-colors p-2 hover:bg-red-100 rounded-lg touch-manipulation"
+                    style={{ color: THEME.danger }}
+                    onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
+                    onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
+                  >
+                    <Trash2 size={iconSize} />
+                  </button>
+
+                  {/* Row 1: Icon + Description */}
+                  <div className="flex items-start gap-3 mb-3 pr-12">
+                    <div className="flex-shrink-0">
+                      <CategoryIconSelector
+                        transaction={transaction}
+                        categories={categories}
+                        onCategoryChange={onCategoryChange}
+                        onAddCategory={onAddCategory}
+                      />
                     </div>
-                    <div className="flex items-start gap-2 flex-shrink-0">
-                      <span
-                        className="text-xl font-bold whitespace-nowrap"
-                        style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-                      >
-                        {formatCurrency(transaction.amount)}
-                      </span>
-                      <button
-                        onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                        className="transition-colors p-2 md:p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0 touch-manipulation"
-                        style={{ color: THEME.danger }}
-                        onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
-                        onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
-                      >
-                        <Trash2 size={iconSize} />
-                      </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 text-base leading-tight break-words">
+                        {transaction.description}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Bottom Row: Date and Category Badge */}
-                  <div className="flex items-center gap-3 ml-12">
+                  {/* Row 2: Amount (large and prominent on mobile) */}
+                  <div className="mb-2 ml-12">
+                    <span
+                      className="text-2xl md:text-xl font-bold"
+                      style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+                    >
+                      {formatCurrency(transaction.amount)}
+                    </span>
+                  </div>
+
+                  {/* Row 3: Date and Category Badge */}
+                  <div className="flex items-center gap-3 ml-12 flex-wrap">
                     <span className="flex items-center gap-1 text-xs text-gray-600">
-                      <Calendar size={12} />
+                      <Calendar size={iconSizeSmall} />
                       {transaction.date}
                     </span>
                     <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
