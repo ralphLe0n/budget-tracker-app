@@ -1764,6 +1764,9 @@ const BudgetApp = ({ session }) => {
             setActiveTab={setActiveTab}
             onCategoryChange={handleCategoryChange}
             onAddCategory={handleAddCategory}
+            onUpdateTransaction={handleUpdateTransaction}
+            onConvertToTransfer={handleConvertToTransfer}
+            onBulkUpdate={handleBulkUpdate}
           />
         )}
 
