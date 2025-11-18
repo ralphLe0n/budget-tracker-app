@@ -184,3 +184,41 @@ html {
     height: auto;
   }
 }
+
+/* Swipe Gesture Animations */
+@keyframes swipeHint {
+  0% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(30px);
+  }
+  60% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-swipe-hint {
+  animation: swipeHint 2s ease-in-out;
+}
+
+/* Selection Mode Toolbar Animation */
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Prevent text selection during swipe */
+.swipeable-card {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Smooth transitions for swipeable cards */
+.swipeable-transition {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
