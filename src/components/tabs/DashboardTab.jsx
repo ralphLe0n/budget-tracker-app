@@ -6,6 +6,9 @@ import { formatCurrency } from '../../utils/formatters';
 import CategorySelector from '../CategorySelector';
 import CategoryIconSelector from '../CategoryIconSelector';
 import { BudgetForecaster } from '../../utils/budgetForecasting';
+import { useMobile } from '../../hooks/useMobile';
+import MobileModal from '../ui/MobileModal';
+import { AmountInput, DateInput, SelectInput, TextInput } from '../ui/MobileInput';
 
 const DashboardTab = ({
   totalIncome,
@@ -46,6 +49,9 @@ const DashboardTab = ({
   onAddCategory
 }) => {
   const COLORS = THEME.chartColors;
+
+  // Mobile optimizations
+  const { isMobile, iconSize, iconSizeSmall } = useMobile();
 
   // Show only last 5 transactions on dashboard (UX audit recommendation)
   const displayedTransactions = filteredTransactions.slice(0, 5);
@@ -141,7 +147,7 @@ const DashboardTab = ({
             <span className="text-gray-600 text-sm font-medium">
               Całkowity Przychód {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
-            <TrendingUp style={{ color: THEME.success }} size={24} />
+            <TrendingUp style={{ color: THEME.success }} size={iconSize} />
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-gray-800">{formatCurrency(totalIncome)}</p>
           {hasActiveFilters && (
@@ -156,7 +162,7 @@ const DashboardTab = ({
             <span className="text-gray-600 text-sm font-medium">
               Całkowite Wydatki {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
-            <TrendingDown style={{ color: THEME.danger }} size={24} />
+            <TrendingDown style={{ color: THEME.danger }} size={iconSize} />
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-gray-800">{formatCurrency(totalExpenses)}</p>
           {hasActiveFilters && (
@@ -171,7 +177,7 @@ const DashboardTab = ({
             <span className="text-gray-600 text-sm font-medium">
               Saldo Konta
             </span>
-            <Wallet style={{ color: THEME.primary }} size={24} />
+            <Wallet style={{ color: THEME.primary }} size={iconSize} />
           </div>
           <p className="text-2xl sm:text-3xl font-bold" style={{ color: totalAccountBalance >= 0 ? THEME.success : THEME.danger }}>
             {formatCurrency(totalAccountBalance)}
@@ -186,7 +192,7 @@ const DashboardTab = ({
             <span className="text-gray-700 text-sm font-medium">
               Całkowite Oszczędności
             </span>
-            <DollarSign style={{ color: THEME.success }} size={24} />
+            <DollarSign style={{ color: THEME.success }} size={iconSize} />
           </div>
           <p className="text-2xl sm:text-3xl font-bold" style={{ color: THEME.success }}>
             {formatCurrency(totalSavings)}
@@ -460,7 +466,7 @@ const DashboardTab = ({
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
               onClick={() => setShowCSVImport(true)}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto touch-manipulation"
               style={{ borderColor: THEME.primary, color: THEME.primary }}
               onMouseOver={(e) => {
                 e.currentTarget.style.backgroundColor = THEME.primary;
@@ -471,18 +477,18 @@ const DashboardTab = ({
                 e.currentTarget.style.color = THEME.primary;
               }}
             >
-              <Upload size={20} />
+              <Upload size={iconSize} />
               <span className="hidden sm:inline">Importuj CSV</span>
               <span className="sm:hidden">Import</span>
             </button>
             <button
               onClick={() => setShowAddTransaction(!showAddTransaction)}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto touch-manipulation"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
             >
-              <PlusCircle size={20} />
+              <PlusCircle size={iconSize} />
               <span className="hidden sm:inline">Dodaj Transakcję</span>
               <span className="sm:hidden">Dodaj</span>
             </button>
@@ -616,12 +622,12 @@ const DashboardTab = ({
                       </span>
                       <button
                         onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                        className="transition-colors p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0"
+                        className="transition-colors p-2 md:p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0 touch-manipulation"
                         style={{ color: THEME.danger }}
                         onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
                         onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={iconSize} />
                       </button>
                     </div>
                   </div>
