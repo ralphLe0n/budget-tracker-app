@@ -790,8 +790,8 @@ const TransactionsTab = ({
                         </div>
                       </div>
 
-                      {/* Row 2: Amount (large, prominent, full width on mobile) */}
-                      <div className="mb-2">
+                      {/* Row 2: Amount (large, prominent, with clearance for buttons) */}
+                      <div className="mb-2 pr-20 md:pr-24">
                         <span
                           className="text-2xl md:text-xl font-bold block"
                           style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
@@ -801,7 +801,7 @@ const TransactionsTab = ({
                       </div>
 
                       {/* Row 3: Date and Type Badge */}
-                      <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 md:gap-3 flex-wrap pr-20 md:pr-24">
                         <span className="flex items-center gap-1 text-xs text-gray-600">
                           <Calendar size={iconSizeSmall} />
                           <span>{transaction.date}</span>
