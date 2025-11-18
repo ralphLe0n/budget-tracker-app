@@ -9,7 +9,7 @@ import { useMobile } from '../../hooks/useMobile';
  * - Slides up from bottom on mobile
  * - Full-screen overlay with backdrop
  * - Fixed positioning to avoid scroll issues
- * - Proper keyboard handling
+ * - Proper keyboard handling with viewport units
  * - Easy to dismiss (tap overlay or close button)
  *
  * Addresses CRITICAL mobile UX issue: Modal/Dialog Issues on Mobile
@@ -20,20 +20,34 @@ const MobileModal = ({
   title,
   children,
   footer,
-  maxHeight = '90vh',
+  maxHeight = '85vh',
 }) => {
   const { isMobile } = useMobile();
 
-  // Prevent body scroll when modal is open
+  // Prevent body scroll when modal is open and handle mobile viewport
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+
+      // Prevent iOS bounce scrolling
+      document.body.style.touchAction = 'none';
     } else {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.body.style.touchAction = '';
     }
 
     return () => {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.body.style.touchAction = '';
     };
   }, [isOpen]);
 
@@ -68,10 +82,14 @@ const MobileModal = ({
           transform transition-all duration-300 ease-out
           ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
         `}
-        style={{ maxHeight }}
+        style={{
+          maxHeight: isMobile ? 'calc(100dvh - 2rem)' : maxHeight,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 rounded-t-2xl px-4 sm:px-6 py-4 flex items-center justify-between z-10">
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 rounded-t-2xl px-4 sm:px-6 py-4 flex items-center justify-between">
           <h3 className="text-lg sm:text-xl font-bold text-gray-800">{title}</h3>
           <button
             onClick={onClose}
@@ -83,13 +101,19 @@ const MobileModal = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto px-4 sm:px-6 py-4" style={{ maxHeight: `calc(${maxHeight} - 140px)` }}>
+        <div
+          className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            minHeight: 0, // Important for flex scrolling
+          }}
+        >
           {children}
         </div>
 
         {/* Footer (if provided) */}
         {footer && (
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 sm:px-6 py-4 rounded-b-2xl">
+          <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 sm:px-6 py-4 rounded-b-2xl">
             {footer}
           </div>
         )}

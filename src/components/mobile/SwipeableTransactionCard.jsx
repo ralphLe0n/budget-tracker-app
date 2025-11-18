@@ -113,17 +113,18 @@ const SwipeableTransactionCard = ({
       {/* Left Actions (Swipe Right → to reveal) */}
       {isMobile && !isSelectionMode && (
         <div
-          className="absolute left-0 top-0 bottom-0 flex items-center gap-2 pl-2"
+          className="absolute left-0 top-0 bottom-0 flex items-center gap-2 pl-2 z-0"
           style={{
             transform: `translateX(${Math.min(Math.max(swipeOffset - 80, -80), 0)}px)`,
             transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
+            pointerEvents: swipeOffset > 40 ? 'auto' : 'none', // Only clickable when revealed
           }}
         >
           {/* Edit Button */}
           <button
             onClick={handleEdit}
-            className="h-full px-4 rounded-lg flex items-center justify-center touch-manipulation"
-            style={{ backgroundColor: THEME.primary }}
+            className="h-full px-4 rounded-lg flex items-center justify-center touch-manipulation active:scale-95"
+            style={{ backgroundColor: THEME.primary, minHeight: '60px' }}
           >
             <Edit2 size={iconSize} color="white" />
           </button>
@@ -132,8 +133,8 @@ const SwipeableTransactionCard = ({
           {transaction.category !== 'Transfer' && (
             <button
               onClick={handleConvert}
-              className="h-full px-4 rounded-lg flex items-center justify-center touch-manipulation"
-              style={{ backgroundColor: THEME.warning }}
+              className="h-full px-4 rounded-lg flex items-center justify-center touch-manipulation active:scale-95"
+              style={{ backgroundColor: THEME.warning, minHeight: '60px' }}
             >
               <ArrowLeftRight size={iconSize} color="white" />
             </button>
@@ -144,17 +145,18 @@ const SwipeableTransactionCard = ({
       {/* Right Actions (Swipe Left ← to reveal) */}
       {isMobile && !isSelectionMode && (
         <div
-          className="absolute right-0 top-0 bottom-0 flex items-center pr-2"
+          className="absolute right-0 top-0 bottom-0 flex items-center pr-2 z-0"
           style={{
             transform: `translateX(${Math.max(Math.min(swipeOffset + 80, 80), 0)}px)`,
             transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
+            pointerEvents: swipeOffset < -40 ? 'auto' : 'none', // Only clickable when revealed
           }}
         >
           {/* Delete Button */}
           <button
             onClick={handleDelete}
-            className="h-full px-6 rounded-lg flex items-center justify-center touch-manipulation"
-            style={{ backgroundColor: THEME.danger }}
+            className="h-full px-6 rounded-lg flex items-center justify-center touch-manipulation active:scale-95"
+            style={{ backgroundColor: THEME.danger, minHeight: '60px' }}
           >
             <Trash2 size={iconSize} color="white" />
           </button>
@@ -163,7 +165,7 @@ const SwipeableTransactionCard = ({
 
       {/* Main Card Content */}
       <div
-        className={`relative bg-gray-50 rounded-xl transition-colors p-4 pb-3 ${
+        className={`relative bg-gray-50 rounded-xl transition-colors p-4 pb-3 z-10 ${
           isSelected ? 'bg-blue-50 border-2 border-blue-300' : 'hover:bg-gray-100 border-2 border-transparent'
         } ${showHint ? 'animate-swipe-hint' : ''}`}
         style={{
