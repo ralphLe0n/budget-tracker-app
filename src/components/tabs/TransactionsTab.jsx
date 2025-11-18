@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle, Edit2, Check, X, ArrowLeftRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
 import CategorySelector from '../CategorySelector';
 import CategoryIconSelector from '../CategoryIconSelector';
+import { useMobile } from '../../hooks/useMobile';
+import SwipeableTransactionCard from '../mobile/SwipeableTransactionCard';
+import TransactionEditModal from '../mobile/TransactionEditModal';
+import SelectionModeToolbar from '../mobile/SelectionModeToolbar';
 
 const TransactionsTab = ({
   filteredTransactions,
@@ -42,6 +46,10 @@ const TransactionsTab = ({
   onBulkUpdate
 }) => {
   const COLORS = THEME.chartColors;
+
+  // Mobile optimizations
+  const { isMobile, iconSize, iconSizeSmall } = useMobile();
+
   const [chartsExpanded, setChartsExpanded] = useState(true);
   const [budgetExpanded, setBudgetExpanded] = useState(true);
   const [transactionsExpanded, setTransactionsExpanded] = useState(true);
@@ -52,6 +60,84 @@ const TransactionsTab = ({
   const [showConvertTransfer, setShowConvertTransfer] = useState(false);
   const [convertingTransactionId, setConvertingTransactionId] = useState(null);
   const [bulkEditData, setBulkEditData] = useState({ category: '', date: '', description: '' });
+
+  // Mobile gesture system state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState(new Set());
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+
+  // Show swipe hint on first visit (mobile only)
+  useEffect(() => {
+    if (isMobile && filteredTransactions.length > 0) {
+      const hasSeenHint = localStorage.getItem('hasSeenSwipeHint_transactions');
+      if (!hasSeenHint) {
+        setShowSwipeHint(true);
+        setTimeout(() => {
+          setShowSwipeHint(false);
+          localStorage.setItem('hasSeenSwipeHint_transactions', 'true');
+        }, 3000);
+      }
+    }
+  }, [isMobile, filteredTransactions.length]);
+
+  // Mobile gesture handlers
+  const handleLongPress = (transactionId) => {
+    setIsSelectionMode(true);
+    setSelectedTransactionIds(new Set([transactionId]));
+  };
+
+  const handleSelectTransaction = (transactionId) => {
+    const newSelected = new Set(selectedTransactionIds);
+    if (newSelected.has(transactionId)) {
+      newSelected.delete(transactionId);
+    } else {
+      newSelected.add(transactionId);
+    }
+    setSelectedTransactionIds(newSelected);
+
+    // Exit selection mode if no transactions selected
+    if (newSelected.size === 0) {
+      setIsSelectionMode(false);
+    }
+  };
+
+  const handleSelectAll = () => {
+    setSelectedTransactionIds(new Set(filteredTransactions.map(t => t.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedTransactionIds(new Set());
+  };
+
+  const handleCancelSelection = () => {
+    setIsSelectionMode(false);
+    setSelectedTransactionIds(new Set());
+  };
+
+  const handleBulkEditFromToolbar = () => {
+    // Use existing bulk edit modal
+    setSelectedTransactions(selectedTransactionIds);
+    setShowBulkEdit(true);
+  };
+
+  const handleEditTransaction = (transaction) => {
+    setEditingTransaction(transaction);
+  };
+
+  const handleSaveEdit = (transactionId, updates) => {
+    onUpdateTransaction(transactionId, updates);
+    setEditingTransaction(null);
+  };
+
+  const handleDeleteTransaction = (id, description) => {
+    setDeleteConfirm({ show: true, type: 'transaction', id, name: description });
+  };
+
+  const handleConvertTransaction = (transactionId) => {
+    setConvertingTransactionId(transactionId);
+    setShowConvertTransfer(true);
+  };
 
   const handleStartEditDescription = (transaction) => {
     setEditingDescriptionId(transaction.id);
@@ -664,148 +750,173 @@ const TransactionsTab = ({
               </div>
             ) : (
               <>
-                {/* Select All Button */}
-                <div className="mb-4 flex items-center gap-2 px-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
-                    onChange={toggleSelectAll}
-                    className="cursor-pointer w-4 h-4"
-                  />
-                  <span className="text-sm text-gray-600 font-medium">
-                    Zaznacz wszystkie
-                  </span>
-                </div>
+                {/* Select All Button - Only show on desktop or when not in mobile selection mode */}
+                {!isMobile && (
+                  <div className="mb-4 flex items-center gap-2 px-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
+                      onChange={toggleSelectAll}
+                      className="cursor-pointer w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-600 font-medium">
+                      Zaznacz wszystkie
+                    </span>
+                  </div>
+                )}
 
                 {/* Transaction Cards */}
                 <div className="space-y-3">
-                  {filteredTransactions.map((transaction) => (
-                    <div
-                      key={transaction.id}
-                      className={`relative rounded-xl transition-colors p-4 ${
-                        selectedTransactions.has(transaction.id)
-                          ? 'bg-blue-50 border-2 border-blue-300'
-                          : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-                      }`}
-                    >
-                      {/* Top Row: Checkbox, Icon, Description/Edit, Amount, Actions */}
-                      <div className="flex items-start gap-3 mb-2">
-                        {/* Checkbox */}
-                        <div className="flex-shrink-0 pt-1">
-                          <input
-                            type="checkbox"
-                            checked={selectedTransactions.has(transaction.id)}
-                            onChange={() => toggleSelectTransaction(transaction.id)}
-                            className="cursor-pointer w-4 h-4"
-                          />
+                  {filteredTransactions.map((transaction, index) => (
+                    isMobile ? (
+                      // Mobile: Use SwipeableTransactionCard with gestures
+                      <SwipeableTransactionCard
+                        key={transaction.id}
+                        transaction={transaction}
+                        categories={categories}
+                        onCategoryChange={onCategoryChange}
+                        onAddCategory={onAddCategory}
+                        onEdit={handleEditTransaction}
+                        onDelete={handleDeleteTransaction}
+                        onConvertToTransfer={handleConvertTransaction}
+                        isSelectionMode={isSelectionMode}
+                        isSelected={selectedTransactionIds.has(transaction.id)}
+                        onSelect={handleSelectTransaction}
+                        onLongPress={handleLongPress}
+                        showHint={index === 0 && showSwipeHint}
+                      />
+                    ) : (
+                      // Desktop: Use traditional card with checkboxes
+                      <div
+                        key={transaction.id}
+                        className={`relative rounded-xl transition-colors p-4 pb-3 ${
+                          selectedTransactions.has(transaction.id)
+                            ? 'bg-blue-50 border-2 border-blue-300'
+                            : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                        }`}
+                      >
+                        {/* Desktop Action Buttons */}
+                        <div className="absolute top-2 right-2 md:top-3 md:right-3 flex gap-1 z-10">
+                          {transaction.category !== 'Transfer' && (
+                            <button
+                              onClick={() => {
+                                setConvertingTransactionId(transaction.id);
+                                setShowConvertTransfer(true);
+                              }}
+                              className="transition-colors p-2 hover:bg-blue-100 rounded-lg touch-manipulation"
+                              style={{ color: THEME.primary }}
+                              title="Konwertuj na Przelew"
+                            >
+                              <ArrowLeftRight size={iconSize} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                            className="transition-colors p-2 hover:bg-red-100 rounded-lg touch-manipulation"
+                            style={{ color: THEME.danger }}
+                            title="Usuń transakcję"
+                          >
+                            <Trash2 size={iconSize} />
+                          </button>
                         </div>
 
-                        {/* Icon */}
-                        <div className="flex-shrink-0">
-                          <CategoryIconSelector
-                            transaction={transaction}
-                            categories={categories}
-                            onCategoryChange={onCategoryChange}
-                            onAddCategory={onAddCategory}
-                          />
-                        </div>
+                        {/* Row 1: Checkbox + Icon + Description */}
+                        <div className="flex items-start gap-2 md:gap-3 mb-3 pr-20 md:pr-24">
+                          {/* Checkbox */}
+                          <div className="flex-shrink-0 pt-1">
+                            <input
+                              type="checkbox"
+                              checked={selectedTransactions.has(transaction.id)}
+                              onChange={() => toggleSelectTransaction(transaction.id)}
+                              className="cursor-pointer w-5 h-5 touch-manipulation"
+                            />
+                          </div>
 
-                        {/* Description with inline editing */}
-                        <div className="flex-1 min-w-0">
-                          {editingDescriptionId === transaction.id ? (
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                              <input
-                                type="text"
-                                value={editingDescription}
-                                onChange={(e) => setEditingDescription(e.target.value)}
-                                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:border-transparent text-sm"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleSaveDescription(transaction.id);
-                                  if (e.key === 'Escape') handleCancelEditDescription();
-                                }}
-                                autoFocus
-                              />
-                              <div className="flex gap-1">
+                          {/* Icon */}
+                          <div className="flex-shrink-0 pt-1">
+                            <CategoryIconSelector
+                              transaction={transaction}
+                              categories={categories}
+                              onCategoryChange={onCategoryChange}
+                              onAddCategory={onAddCategory}
+                            />
+                          </div>
+
+                          {/* Description with inline editing */}
+                          <div className="flex-1 min-w-0">
+                            {editingDescriptionId === transaction.id ? (
+                              <div className="flex flex-col gap-2">
+                                <input
+                                  type="text"
+                                  value={editingDescription}
+                                  onChange={(e) => setEditingDescription(e.target.value)}
+                                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:border-transparent text-base"
+                                  style={{ fontSize: '16px' }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveDescription(transaction.id);
+                                    if (e.key === 'Escape') handleCancelEditDescription();
+                                  }}
+                                  autoFocus
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleSaveDescription(transaction.id)}
+                                    className="flex-1 p-2 bg-green-100 hover:bg-green-200 rounded-lg touch-manipulation"
+                                    title="Zapisz"
+                                  >
+                                    <Check size={iconSize} style={{ color: THEME.success }} className="mx-auto" />
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEditDescription}
+                                    className="flex-1 p-2 bg-red-100 hover:bg-red-200 rounded-lg touch-manipulation"
+                                    title="Anuluj"
+                                  >
+                                    <X size={iconSize} style={{ color: THEME.danger }} className="mx-auto" />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-start gap-2 group">
+                                <p className="font-semibold text-gray-800 text-sm md:text-base leading-tight break-words flex-1">
+                                  {transaction.description}
+                                </p>
                                 <button
-                                  onClick={() => handleSaveDescription(transaction.id)}
-                                  className="p-1.5 hover:bg-green-100 rounded"
-                                  title="Zapisz"
+                                  onClick={() => handleStartEditDescription(transaction)}
+                                  className="md:opacity-0 group-hover:opacity-100 p-1.5 hover:bg-gray-200 rounded transition-opacity flex-shrink-0 touch-manipulation"
+                                  title="Edytuj opis"
                                 >
-                                  <Check size={16} style={{ color: THEME.success }} />
-                                </button>
-                                <button
-                                  onClick={handleCancelEditDescription}
-                                  className="p-1.5 hover:bg-red-100 rounded"
-                                  title="Anuluj"
-                                >
-                                  <X size={16} style={{ color: THEME.danger }} />
+                                  <Edit2 size={iconSizeSmall} className="text-gray-500" />
                                 </button>
                               </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2 group">
-                              <p className="font-semibold text-gray-800 text-base leading-tight break-words">
-                                {transaction.description}
-                              </p>
-                              <button
-                                onClick={() => handleStartEditDescription(transaction)}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity flex-shrink-0"
-                                title="Edytuj opis"
-                              >
-                                <Edit2 size={14} className="text-gray-500" />
-                              </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
 
-                        {/* Amount and Action Buttons */}
-                        <div className="flex items-start gap-2 flex-shrink-0">
+                        {/* Row 2: Amount */}
+                        <div className="mb-2 pr-20 md:pr-24">
                           <span
-                            className="text-xl font-bold whitespace-nowrap"
+                            className="text-2xl md:text-xl font-bold block"
                             style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
                           >
                             {formatCurrency(transaction.amount)}
                           </span>
-                          <div className="flex gap-1">
-                            {transaction.category !== 'Transfer' && (
-                              <button
-                                onClick={() => {
-                                  setConvertingTransactionId(transaction.id);
-                                  setShowConvertTransfer(true);
-                                }}
-                                className="transition-colors p-1.5 hover:bg-blue-100 rounded-lg flex-shrink-0"
-                                style={{ color: THEME.primary }}
-                                title="Konwertuj na Przelew"
-                              >
-                                <ArrowLeftRight size={16} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                              className="transition-colors p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0"
-                              style={{ color: THEME.danger }}
-                              title="Usuń transakcję"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
+                        </div>
+
+                        {/* Row 3: Date and Type Badge */}
+                        <div className="flex items-center gap-2 md:gap-3 flex-wrap pr-20 md:pr-24">
+                          <span className="flex items-center gap-1 text-xs text-gray-600">
+                            <Calendar size={iconSizeSmall} />
+                            <span>{transaction.date}</span>
+                          </span>
+                          <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style={{
+                            backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
+                            color: transaction.amount > 0 ? THEME.success : THEME.danger
+                          }}>
+                            {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
+                          </span>
                         </div>
                       </div>
-
-                      {/* Bottom Row: Date and Type Badge */}
-                      <div className="flex items-center gap-3 ml-12">
-                        <span className="flex items-center gap-1 text-xs text-gray-600">
-                          <Calendar size={12} />
-                          {transaction.date}
-                        </span>
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
-                          backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
-                          color: transaction.amount > 0 ? THEME.success : THEME.danger
-                        }}>
-                          {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
-                        </span>
-                      </div>
-                    </div>
+                    )
                   ))}
                 </div>
               </>
@@ -814,12 +925,36 @@ const TransactionsTab = ({
         )}
       </div>
 
+      {/* Mobile Selection Mode Toolbar */}
+      {isMobile && isSelectionMode && (
+        <SelectionModeToolbar
+          selectedCount={selectedTransactionIds.size}
+          totalCount={filteredTransactions.length}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={handleDeselectAll}
+          onBulkEdit={handleBulkEditFromToolbar}
+          onCancel={handleCancelSelection}
+        />
+      )}
+
+      {/* Mobile Transaction Edit Modal */}
+      {editingTransaction && (
+        <TransactionEditModal
+          isOpen={!!editingTransaction}
+          onClose={() => setEditingTransaction(null)}
+          transaction={editingTransaction}
+          categories={categories}
+          accounts={accounts}
+          onSave={handleSaveEdit}
+        />
+      )}
+
       {/* Bulk Edit Modal */}
       {showBulkEdit && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-800 mb-4">
-              Edycja Zbiorcza ({selectedTransactions.size} transakcji)
+              Edycja Zbiorcza ({selectedTransactions.size > 0 ? selectedTransactions.size : selectedTransactionIds.size} transakcji)
             </h3>
             <div className="space-y-4">
               <div>
@@ -875,6 +1010,8 @@ const TransactionsTab = ({
                 onClick={() => {
                   setShowBulkEdit(false);
                   setBulkEditData({ category: '', date: '', description: '' });
+                  setIsSelectionMode(false);
+                  setSelectedTransactionIds(new Set());
                 }}
                 className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
               >

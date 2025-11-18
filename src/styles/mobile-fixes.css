@@ -1,0 +1,224 @@
+/**
+ * Mobile-specific CSS fixes
+ * Addresses HIGH PRIORITY mobile UX issue: iOS-specific issues
+ */
+
+/* Fix iOS viewport height issue (Safari address bar)  */
+.modal-mobile,
+.full-height-mobile {
+  height: 100vh;
+  height: -webkit-fill-available;
+}
+
+/* Prevent iOS zoom on input focus (minimum 16px font-size) */
+input,
+select,
+textarea,
+button {
+  font-size: 16px !important;
+}
+
+/* Better touch targets - minimum 44x44px for WCAG compliance */
+@media (max-width: 768px) {
+  button,
+  a,
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Add touch-manipulation to improve click performance on mobile */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  /* Prevent double-tap zoom on buttons */
+  button,
+  a {
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Fix for iOS Safari's bouncy scrolling */
+  body {
+    position: fixed;
+    overflow: hidden;
+    width: 100%;
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+
+  #root {
+    width: 100%;
+    height: 100vh;
+    height: -webkit-fill-available;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Smooth scrolling for all devices */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Better textarea resizing on mobile */
+@media (max-width: 768px) {
+  textarea {
+    resize: vertical;
+  }
+}
+
+/* Improve select dropdowns on mobile */
+@media (max-width: 768px) {
+  select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+}
+
+/* Loading states - prevent layout shift */
+.loading-skeleton {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Slide-up animation for mobile modals */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+}
+
+/* Safe area insets for devices with notches */
+@supports (padding: max(0px)) {
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .safe-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Improve form field spacing on mobile */
+@media (max-width: 768px) {
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-label {
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .form-input {
+    padding: 0.75rem 1rem;
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+}
+
+/* Better focus states for accessibility */
+@media (max-width: 768px) {
+  input:focus,
+  select:focus,
+  textarea:focus,
+  button:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+}
+
+/* Prevent horizontal scrolling on mobile */
+body,
+html {
+  overflow-x: hidden;
+}
+
+/* Better image handling on mobile */
+@media (max-width: 768px) {
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Swipe Gesture Animations */
+@keyframes swipeHint {
+  0% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(30px);
+  }
+  60% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-swipe-hint {
+  animation: swipeHint 2s ease-in-out;
+}
+
+/* Selection Mode Toolbar Animation */
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Prevent text selection during swipe */
+.swipeable-card {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Smooth transitions for swipeable cards */
+.swipeable-transition {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

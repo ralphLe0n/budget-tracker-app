@@ -6,6 +6,12 @@ import { formatCurrency } from '../../utils/formatters';
 import CategorySelector from '../CategorySelector';
 import CategoryIconSelector from '../CategoryIconSelector';
 import { BudgetForecaster } from '../../utils/budgetForecasting';
+import { useMobile } from '../../hooks/useMobile';
+import MobileModal from '../ui/MobileModal';
+import { AmountInput, DateInput, SelectInput, TextInput } from '../ui/MobileInput';
+import SwipeableTransactionCard from '../mobile/SwipeableTransactionCard';
+import TransactionEditModal from '../mobile/TransactionEditModal';
+import SelectionModeToolbar from '../mobile/SelectionModeToolbar';
 
 const DashboardTab = ({
   totalIncome,
@@ -43,9 +49,15 @@ const DashboardTab = ({
   setShowCSVImport,
   setActiveTab,
   onCategoryChange,
-  onAddCategory
+  onAddCategory,
+  onUpdateTransaction,
+  onConvertToTransfer,
+  onBulkUpdate,
 }) => {
   const COLORS = THEME.chartColors;
+
+  // Mobile optimizations
+  const { isMobile, iconSize, iconSizeSmall } = useMobile();
 
   // Show only last 5 transactions on dashboard (UX audit recommendation)
   const displayedTransactions = filteredTransactions.slice(0, 5);
@@ -54,6 +66,26 @@ const DashboardTab = ({
   // Prediction settings state
   const [showPredictionSettings, setShowPredictionSettings] = useState(false);
   const [selectedPredictionCategories, setSelectedPredictionCategories] = useState([]);
+
+  // Mobile selection mode state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState(new Set());
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+
+  // Show swipe hint on first visit (mobile only)
+  useEffect(() => {
+    if (isMobile && displayedTransactions.length > 0) {
+      const hasSeenHint = localStorage.getItem('hasSeenSwipeHint');
+      if (!hasSeenHint) {
+        setShowSwipeHint(true);
+        setTimeout(() => {
+          setShowSwipeHint(false);
+          localStorage.setItem('hasSeenSwipeHint', 'true');
+        }, 3000);
+      }
+    }
+  }, [isMobile, displayedTransactions.length]);
 
   // Load prediction preferences from localStorage
   useEffect(() => {
@@ -132,6 +164,70 @@ const DashboardTab = ({
     setSelectedPredictionCategories([]);
   };
 
+  // Selection mode handlers
+  const handleLongPress = (transactionId) => {
+    setIsSelectionMode(true);
+    setSelectedTransactionIds(new Set([transactionId]));
+  };
+
+  const handleSelectTransaction = (transactionId) => {
+    setSelectedTransactionIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(transactionId)) {
+        newSet.delete(transactionId);
+      } else {
+        newSet.add(transactionId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedTransactionIds(new Set(displayedTransactions.map(t => t.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedTransactionIds(new Set());
+  };
+
+  const handleCancelSelection = () => {
+    setIsSelectionMode(false);
+    setSelectedTransactionIds(new Set());
+  };
+
+  const handleBulkEdit = () => {
+    if (selectedTransactionIds.size > 0 && onBulkUpdate) {
+      // For now, just show an alert - you can implement full bulk edit modal later
+      alert(`Bulk edit for ${selectedTransactionIds.size} transactions - Feature coming soon!`);
+    }
+  };
+
+  // Transaction action handlers
+  const handleEditTransaction = (transaction) => {
+    setEditingTransaction(transaction);
+  };
+
+  const handleSaveEdit = (transactionId, updates) => {
+    if (onUpdateTransaction) {
+      onUpdateTransaction(transactionId, updates);
+    }
+  };
+
+  const handleDeleteTransaction = (transactionId, description) => {
+    setDeleteConfirm({
+      show: true,
+      type: 'transaction',
+      id: transactionId,
+      name: description,
+    });
+  };
+
+  const handleConvertTransaction = (transactionId) => {
+    if (onConvertToTransfer) {
+      onConvertToTransfer(transactionId);
+    }
+  };
+
   return (
     <>
       {/* Summary Cards */}
@@ -141,7 +237,7 @@ const DashboardTab = ({
             <span className="text-gray-600 text-sm font-medium">
               Całkowity Przychód {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
-            <TrendingUp style={{ color: THEME.success }} size={24} />
+            <TrendingUp style={{ color: THEME.success }} size={iconSize} />
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-gray-800">{formatCurrency(totalIncome)}</p>
           {hasActiveFilters && (
@@ -156,7 +252,7 @@ const DashboardTab = ({
             <span className="text-gray-600 text-sm font-medium">
               Całkowite Wydatki {hasActiveFilters && <span className="text-xs">(Filtrowane)</span>}
             </span>
-            <TrendingDown style={{ color: THEME.danger }} size={24} />
+            <TrendingDown style={{ color: THEME.danger }} size={iconSize} />
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-gray-800">{formatCurrency(totalExpenses)}</p>
           {hasActiveFilters && (
@@ -171,7 +267,7 @@ const DashboardTab = ({
             <span className="text-gray-600 text-sm font-medium">
               Saldo Konta
             </span>
-            <Wallet style={{ color: THEME.primary }} size={24} />
+            <Wallet style={{ color: THEME.primary }} size={iconSize} />
           </div>
           <p className="text-2xl sm:text-3xl font-bold" style={{ color: totalAccountBalance >= 0 ? THEME.success : THEME.danger }}>
             {formatCurrency(totalAccountBalance)}
@@ -186,7 +282,7 @@ const DashboardTab = ({
             <span className="text-gray-700 text-sm font-medium">
               Całkowite Oszczędności
             </span>
-            <DollarSign style={{ color: THEME.success }} size={24} />
+            <DollarSign style={{ color: THEME.success }} size={iconSize} />
           </div>
           <p className="text-2xl sm:text-3xl font-bold" style={{ color: THEME.success }}>
             {formatCurrency(totalSavings)}
@@ -460,7 +556,7 @@ const DashboardTab = ({
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
               onClick={() => setShowCSVImport(true)}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium border-2 w-full sm:w-auto touch-manipulation"
               style={{ borderColor: THEME.primary, color: THEME.primary }}
               onMouseOver={(e) => {
                 e.currentTarget.style.backgroundColor = THEME.primary;
@@ -471,18 +567,18 @@ const DashboardTab = ({
                 e.currentTarget.style.color = THEME.primary;
               }}
             >
-              <Upload size={20} />
+              <Upload size={iconSize} />
               <span className="hidden sm:inline">Importuj CSV</span>
               <span className="sm:hidden">Import</span>
             </button>
             <button
               onClick={() => setShowAddTransaction(!showAddTransaction)}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium text-white w-full sm:w-auto touch-manipulation"
               style={{ backgroundColor: THEME.primary }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = THEME.primaryHover}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = THEME.primary}
             >
-              <PlusCircle size={20} />
+              <PlusCircle size={iconSize} />
               <span className="hidden sm:inline">Dodaj Transakcję</span>
               <span className="sm:hidden">Dodaj</span>
             </button>
@@ -587,59 +683,22 @@ const DashboardTab = ({
             </div>
           ) : (
             <>
-              {displayedTransactions.map((transaction) => (
-                <div
+              {displayedTransactions.map((transaction, index) => (
+                <SwipeableTransactionCard
                   key={transaction.id}
-                  className="relative bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors p-4"
-                >
-                  {/* Top Row: Icon, Amount, Delete */}
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0">
-                        <CategoryIconSelector
-                          transaction={transaction}
-                          categories={categories}
-                          onCategoryChange={onCategoryChange}
-                          onAddCategory={onAddCategory}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 text-base leading-tight">{transaction.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 flex-shrink-0">
-                      <span
-                        className="text-xl font-bold whitespace-nowrap"
-                        style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-                      >
-                        {formatCurrency(transaction.amount)}
-                      </span>
-                      <button
-                        onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                        className="transition-colors p-1.5 hover:bg-red-100 rounded-lg flex-shrink-0"
-                        style={{ color: THEME.danger }}
-                        onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
-                        onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Bottom Row: Date and Category Badge */}
-                  <div className="flex items-center gap-3 ml-12">
-                    <span className="flex items-center gap-1 text-xs text-gray-600">
-                      <Calendar size={12} />
-                      {transaction.date}
-                    </span>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
-                      backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
-                      color: transaction.amount > 0 ? THEME.success : THEME.danger
-                    }}>
-                      {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
-                    </span>
-                  </div>
-                </div>
+                  transaction={transaction}
+                  categories={categories}
+                  onCategoryChange={onCategoryChange}
+                  onAddCategory={onAddCategory}
+                  onEdit={handleEditTransaction}
+                  onDelete={handleDeleteTransaction}
+                  onConvertToTransfer={handleConvertTransaction}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedTransactionIds.has(transaction.id)}
+                  onSelect={handleSelectTransaction}
+                  onLongPress={handleLongPress}
+                  showHint={index === 0 && showSwipeHint}
+                />
               ))}
 
               {/* Show More Button */}
@@ -707,6 +766,28 @@ const DashboardTab = ({
           })}
         </div>
       </div>
+
+      {/* Mobile Selection Mode Toolbar (Floating) */}
+      {isMobile && isSelectionMode && (
+        <SelectionModeToolbar
+          selectedCount={selectedTransactionIds.size}
+          totalCount={displayedTransactions.length}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={handleDeselectAll}
+          onBulkEdit={handleBulkEdit}
+          onCancel={handleCancelSelection}
+        />
+      )}
+
+      {/* Transaction Edit Modal */}
+      <TransactionEditModal
+        isOpen={editingTransaction !== null}
+        onClose={() => setEditingTransaction(null)}
+        transaction={editingTransaction}
+        categories={categories}
+        accounts={accounts}
+        onSave={handleSaveEdit}
+      />
     </>
   );
 };

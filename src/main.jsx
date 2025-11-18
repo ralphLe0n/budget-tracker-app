@@ -4,6 +4,7 @@ import App from './App.jsx'
 import Auth from './Auth.jsx'
 import { supabase } from './supabaseClient'
 import './index.css'
+import './styles/mobile-fixes.css'
 
 const Root = () => {
   const [session, setSession] = useState(null)
