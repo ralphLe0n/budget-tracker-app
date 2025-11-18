@@ -596,12 +596,12 @@ const DashboardTab = ({
               {displayedTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="relative bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors p-4"
+                  className="relative bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors p-4 pb-3"
                 >
                   {/* Delete Button - Absolute positioned in top-right */}
                   <button
                     onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                    className="absolute top-3 right-3 transition-colors p-2 hover:bg-red-100 rounded-lg touch-manipulation"
+                    className="absolute top-2 right-2 md:top-3 md:right-3 transition-colors p-2 hover:bg-red-100 rounded-lg touch-manipulation z-10"
                     style={{ color: THEME.danger }}
                     onMouseOver={(e) => e.currentTarget.style.color = THEME.dangerHover}
                     onMouseOut={(e) => e.currentTarget.style.color = THEME.danger}
@@ -609,9 +609,9 @@ const DashboardTab = ({
                     <Trash2 size={iconSize} />
                   </button>
 
-                  {/* Row 1: Icon + Description */}
-                  <div className="flex items-start gap-3 mb-3 pr-12">
-                    <div className="flex-shrink-0">
+                  {/* Row 1: Icon + Description (with space for delete button) */}
+                  <div className="flex items-start gap-2 md:gap-3 mb-3 pr-14 md:pr-16">
+                    <div className="flex-shrink-0 pt-1">
                       <CategoryIconSelector
                         transaction={transaction}
                         categories={categories}
@@ -620,16 +620,16 @@ const DashboardTab = ({
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 text-base leading-tight break-words">
+                      <p className="font-semibold text-gray-800 text-sm md:text-base leading-tight break-words">
                         {transaction.description}
                       </p>
                     </div>
                   </div>
 
-                  {/* Row 2: Amount (large and prominent on mobile) */}
-                  <div className="mb-2 ml-12">
+                  {/* Row 2: Amount (large, prominent, full width on mobile) */}
+                  <div className="mb-2">
                     <span
-                      className="text-2xl md:text-xl font-bold"
+                      className="text-2xl md:text-xl font-bold block"
                       style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
                     >
                       {formatCurrency(transaction.amount)}
@@ -637,12 +637,12 @@ const DashboardTab = ({
                   </div>
 
                   {/* Row 3: Date and Category Badge */}
-                  <div className="flex items-center gap-3 ml-12 flex-wrap">
+                  <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                     <span className="flex items-center gap-1 text-xs text-gray-600">
                       <Calendar size={iconSizeSmall} />
-                      {transaction.date}
+                      <span>{transaction.date}</span>
                     </span>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
+                    <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style={{
                       backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
                       color: transaction.amount > 0 ? THEME.success : THEME.danger
                     }}>

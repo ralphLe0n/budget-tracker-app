@@ -687,14 +687,14 @@ const TransactionsTab = ({
                   {filteredTransactions.map((transaction) => (
                     <div
                       key={transaction.id}
-                      className={`relative rounded-xl transition-colors p-4 ${
+                      className={`relative rounded-xl transition-colors p-4 pb-3 ${
                         selectedTransactions.has(transaction.id)
                           ? 'bg-blue-50 border-2 border-blue-300'
                           : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
                       }`}
                     >
                       {/* Action Buttons - Absolute positioned in top-right */}
-                      <div className="absolute top-3 right-3 flex gap-1">
+                      <div className="absolute top-2 right-2 md:top-3 md:right-3 flex gap-1 z-10">
                         {transaction.category !== 'Transfer' && (
                           <button
                             onClick={() => {
@@ -719,7 +719,7 @@ const TransactionsTab = ({
                       </div>
 
                       {/* Row 1: Checkbox + Icon + Description */}
-                      <div className="flex items-start gap-3 mb-3 pr-24">
+                      <div className="flex items-start gap-2 md:gap-3 mb-3 pr-20 md:pr-24">
                         {/* Checkbox */}
                         <div className="flex-shrink-0 pt-1">
                           <input
@@ -731,7 +731,7 @@ const TransactionsTab = ({
                         </div>
 
                         {/* Icon */}
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 pt-1">
                           <CategoryIconSelector
                             transaction={transaction}
                             categories={categories}
@@ -775,7 +775,7 @@ const TransactionsTab = ({
                             </div>
                           ) : (
                             <div className="flex items-start gap-2 group">
-                              <p className="font-semibold text-gray-800 text-base leading-tight break-words flex-1">
+                              <p className="font-semibold text-gray-800 text-sm md:text-base leading-tight break-words flex-1">
                                 {transaction.description}
                               </p>
                               <button
@@ -790,10 +790,10 @@ const TransactionsTab = ({
                         </div>
                       </div>
 
-                      {/* Row 2: Amount (large and prominent on mobile) */}
-                      <div className="mb-2 ml-14">
+                      {/* Row 2: Amount (large, prominent, full width on mobile) */}
+                      <div className="mb-2">
                         <span
-                          className="text-2xl md:text-xl font-bold"
+                          className="text-2xl md:text-xl font-bold block"
                           style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
                         >
                           {formatCurrency(transaction.amount)}
@@ -801,12 +801,12 @@ const TransactionsTab = ({
                       </div>
 
                       {/* Row 3: Date and Type Badge */}
-                      <div className="flex items-center gap-3 ml-14 flex-wrap">
+                      <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                         <span className="flex items-center gap-1 text-xs text-gray-600">
                           <Calendar size={iconSizeSmall} />
-                          {transaction.date}
+                          <span>{transaction.date}</span>
                         </span>
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap" style={{
+                        <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style={{
                           backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
                           color: transaction.amount > 0 ? THEME.success : THEME.danger
                         }}>
