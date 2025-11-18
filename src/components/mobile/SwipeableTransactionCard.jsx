@@ -108,23 +108,33 @@ const SwipeableTransactionCard = ({
       }
     : {};
 
+  // Calculate dynamic widths for action buttons
+  const leftActionsWidth = transaction.category !== 'Transfer' ? 160 : 88; // Two buttons or one
+  const rightActionsWidth = 100;
+
   return (
     <div className="relative overflow-hidden">
       {/* Left Actions (Swipe Right → to reveal) */}
       {isMobile && !isSelectionMode && (
         <div
-          className="absolute left-0 top-0 bottom-0 flex items-center gap-2 pl-2 z-0"
+          className="absolute left-0 top-0 bottom-0 flex items-center gap-2 pl-2"
           style={{
-            transform: `translateX(${Math.min(Math.max(swipeOffset - 80, -80), 0)}px)`,
+            transform: `translateX(${Math.min(Math.max(swipeOffset - leftActionsWidth, -leftActionsWidth), 0)}px)`,
             transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
-            pointerEvents: swipeOffset > 40 ? 'auto' : 'none', // Only clickable when revealed
+            pointerEvents: swipeOffset > 50 ? 'auto' : 'none', // Only clickable when revealed
+            zIndex: 0,
           }}
         >
           {/* Edit Button */}
           <button
             onClick={handleEdit}
-            className="h-full px-4 rounded-lg flex items-center justify-center touch-manipulation active:scale-95"
-            style={{ backgroundColor: THEME.primary, minHeight: '60px' }}
+            className="px-4 rounded-lg flex items-center justify-center touch-manipulation active:scale-95"
+            style={{
+              backgroundColor: THEME.primary,
+              height: '100%',
+              minHeight: '60px',
+              minWidth: '60px'
+            }}
           >
             <Edit2 size={iconSize} color="white" />
           </button>
@@ -133,8 +143,13 @@ const SwipeableTransactionCard = ({
           {transaction.category !== 'Transfer' && (
             <button
               onClick={handleConvert}
-              className="h-full px-4 rounded-lg flex items-center justify-center touch-manipulation active:scale-95"
-              style={{ backgroundColor: THEME.warning, minHeight: '60px' }}
+              className="px-4 rounded-lg flex items-center justify-center touch-manipulation active:scale-95"
+              style={{
+                backgroundColor: THEME.warning,
+                height: '100%',
+                minHeight: '60px',
+                minWidth: '60px'
+              }}
             >
               <ArrowLeftRight size={iconSize} color="white" />
             </button>
@@ -145,18 +160,24 @@ const SwipeableTransactionCard = ({
       {/* Right Actions (Swipe Left ← to reveal) */}
       {isMobile && !isSelectionMode && (
         <div
-          className="absolute right-0 top-0 bottom-0 flex items-center pr-2 z-0"
+          className="absolute right-0 top-0 bottom-0 flex items-center pr-2"
           style={{
-            transform: `translateX(${Math.max(Math.min(swipeOffset + 80, 80), 0)}px)`,
+            transform: `translateX(${Math.max(Math.min(swipeOffset + rightActionsWidth, rightActionsWidth), 0)}px)`,
             transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
-            pointerEvents: swipeOffset < -40 ? 'auto' : 'none', // Only clickable when revealed
+            pointerEvents: swipeOffset < -50 ? 'auto' : 'none', // Only clickable when revealed
+            zIndex: 0,
           }}
         >
           {/* Delete Button */}
           <button
             onClick={handleDelete}
-            className="h-full px-6 rounded-lg flex items-center justify-center touch-manipulation active:scale-95"
-            style={{ backgroundColor: THEME.danger, minHeight: '60px' }}
+            className="px-6 rounded-lg flex items-center justify-center touch-manipulation active:scale-95"
+            style={{
+              backgroundColor: THEME.danger,
+              height: '100%',
+              minHeight: '60px',
+              minWidth: '80px'
+            }}
           >
             <Trash2 size={iconSize} color="white" />
           </button>
@@ -165,18 +186,20 @@ const SwipeableTransactionCard = ({
 
       {/* Main Card Content */}
       <div
-        className={`relative bg-gray-50 rounded-xl transition-colors p-4 pb-3 z-10 ${
+        className={`relative bg-gray-50 rounded-xl transition-colors p-4 pb-3 ${
           isSelected ? 'bg-blue-50 border-2 border-blue-300' : 'hover:bg-gray-100 border-2 border-transparent'
         } ${showHint ? 'animate-swipe-hint' : ''}`}
         style={{
           transform: isMobile && !isSelectionMode ? `translateX(${swipeOffset}px)` : 'none',
           transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
+          zIndex: 10,
+          position: 'relative',
         }}
         {...combinedTouchHandlers}
       >
         {/* Selection Mode Checkbox (Mobile Only) */}
         {isMobile && isSelectionMode && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20">
             <input
               type="checkbox"
               checked={isSelected}
@@ -188,7 +211,7 @@ const SwipeableTransactionCard = ({
 
         {/* Desktop Action Buttons (Visible on desktop only) */}
         {!isMobile && (
-          <div className="absolute top-2 right-2 md:top-3 md:right-3 flex gap-1 z-10">
+          <div className="absolute top-2 right-2 md:top-3 md:right-3 flex gap-1 z-20">
             <button
               onClick={handleEdit}
               className="transition-colors p-2 hover:bg-blue-100 rounded-lg touch-manipulation"
@@ -221,7 +244,7 @@ const SwipeableTransactionCard = ({
         {/* Row 1: Icon + Description */}
         <div
           className={`flex items-start gap-2 md:gap-3 mb-3 ${
-            isSelectionMode ? 'pl-10' : 'pr-14 md:pr-24'
+            isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'
           }`}
         >
           <div className="flex-shrink-0 pt-1">
@@ -240,7 +263,7 @@ const SwipeableTransactionCard = ({
         </div>
 
         {/* Row 2: Amount */}
-        <div className={`mb-2 ${isSelectionMode ? 'pl-10' : 'pr-14 md:pr-24'}`}>
+        <div className={`mb-2 ${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}>
           <span
             className="text-2xl md:text-xl font-bold block"
             style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
@@ -250,7 +273,7 @@ const SwipeableTransactionCard = ({
         </div>
 
         {/* Row 3: Date and Category Badge */}
-        <div className={`flex items-center gap-2 md:gap-3 flex-wrap ${isSelectionMode ? 'pl-10' : 'pr-14 md:pr-24'}`}>
+        <div className={`flex items-center gap-2 md:gap-3 flex-wrap ${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}>
           <span className="flex items-center gap-1 text-xs text-gray-600">
             <Calendar size={iconSizeSmall} />
             <span>{transaction.date}</span>
