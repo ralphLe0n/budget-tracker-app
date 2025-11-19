@@ -35,6 +35,10 @@ const SwipeableTransactionCard = ({
   const { isMobile, iconSize, iconSizeSmall } = useMobile();
   const [showEditModal, setShowEditModal] = useState(false);
 
+  // Calculate dynamic widths for action buttons
+  const leftActionsWidth = transaction.category !== 'Transfer' ? 160 : 88; // Two buttons or one
+  const rightActionsWidth = 100;
+
   // Swipe gesture (disabled in selection mode)
   const {
     swipeOffset,
@@ -43,7 +47,9 @@ const SwipeableTransactionCard = ({
     handlers: swipeHandlers,
     resetSwipe,
   } = useSwipeGesture({
-    threshold: 50,
+    threshold: 80,
+    leftSnapPosition: leftActionsWidth,
+    rightSnapPosition: rightActionsWidth,
     enabled: isMobile && !isSelectionMode,
   });
 
@@ -85,6 +91,7 @@ const SwipeableTransactionCard = ({
   const handleConvert = () => {
     resetSwipe();
     if (onConvertToTransfer) {
+      // onConvertToTransfer will show a modal to select destination account
       onConvertToTransfer(transaction.id);
     }
   };
@@ -108,10 +115,6 @@ const SwipeableTransactionCard = ({
       }
     : {};
 
-  // Calculate dynamic widths for action buttons
-  const leftActionsWidth = transaction.category !== 'Transfer' ? 160 : 88; // Two buttons or one
-  const rightActionsWidth = 100;
-
   return (
     <div className="relative overflow-hidden">
       {/* Left Actions (Swipe Right → to reveal) */}
@@ -121,7 +124,7 @@ const SwipeableTransactionCard = ({
           style={{
             transform: `translateX(${Math.min(Math.max(swipeOffset - leftActionsWidth, -leftActionsWidth), 0)}px)`,
             transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
-            pointerEvents: swipeOffset > 50 ? 'auto' : 'none', // Only clickable when revealed
+            pointerEvents: swipeOffset > 70 ? 'auto' : 'none', // Only clickable when revealed
             zIndex: 0,
           }}
         >
@@ -164,7 +167,7 @@ const SwipeableTransactionCard = ({
           style={{
             transform: `translateX(${Math.max(Math.min(swipeOffset + rightActionsWidth, rightActionsWidth), 0)}px)`,
             transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
-            pointerEvents: swipeOffset < -50 ? 'auto' : 'none', // Only clickable when revealed
+            pointerEvents: swipeOffset < -70 ? 'auto' : 'none', // Only clickable when revealed
             zIndex: 0,
           }}
         >

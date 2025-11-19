@@ -523,7 +523,11 @@ const BudgetApp = ({ session }) => {
       const toAccount = accounts.find(a => a.id === destinationAccountId);
 
       if (!fromAccount || !toAccount) {
-        throw new Error('Invalid account selection');
+        throw new Error('Invalid account selection. Please ensure both accounts exist.');
+      }
+
+      if (fromAccount.id === toAccount.id) {
+        throw new Error('Cannot transfer to the same account. Please select a different destination account.');
       }
 
       // Generate a unique transfer ID (UUID)

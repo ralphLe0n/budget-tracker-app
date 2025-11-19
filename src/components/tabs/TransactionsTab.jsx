@@ -1023,54 +1023,65 @@ const TransactionsTab = ({
       )}
 
       {/* Convert to Transfer Modal */}
-      {showConvertTransfer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">
-              Konwertuj na Przelew
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Spowoduje to utworzenie powiązanej transakcji na koncie docelowym i oznaczenie obu jako przelewy.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Konto Docelowe *
-                </label>
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      onConvertToTransfer(convertingTransactionId, e.target.value);
-                      setShowConvertTransfer(false);
-                      setConvertingTransactionId(null);
-                    }
+      {showConvertTransfer && (() => {
+        const convertingTransaction = filteredTransactions.find(t => t.id === convertingTransactionId);
+        const sourceAccountId = convertingTransaction?.account_id;
+        const availableAccounts = accounts.filter(account => account.id !== sourceAccountId);
+
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">
+                Konwertuj na Przelew
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Spowoduje to utworzenie powiązanej transakcji na koncie docelowym i oznaczenie obu jako przelewy.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Konto Docelowe *
+                  </label>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        onConvertToTransfer(convertingTransactionId, e.target.value);
+                        setShowConvertTransfer(false);
+                        setConvertingTransactionId(null);
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    defaultValue=""
+                  >
+                    <option value="">Wybierz konto...</option>
+                    {availableAccounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} ({account.type})
+                      </option>
+                    ))}
+                  </select>
+                  {availableAccounts.length === 0 && (
+                    <p className="text-sm text-red-600 mt-2">
+                      Brak dostępnych kont docelowych. Musisz mieć co najmniej dwa konta.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowConvertTransfer(false);
+                    setConvertingTransactionId(null);
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  defaultValue=""
+                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
                 >
-                  <option value="">Wybierz konto...</option>
-                  {accounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name} ({account.type})
-                    </option>
-                  ))}
-                </select>
+                  Anuluj
+                </button>
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowConvertTransfer(false);
-                  setConvertingTransactionId(null);
-                }}
-                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
-              >
-                Anuluj
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </>
   );
 };
