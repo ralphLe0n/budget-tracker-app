@@ -6,11 +6,13 @@ import { useState, useRef, useCallback } from 'react';
  * Returns swipe state and handlers for touch events
  *
  * @param {Object} options - Configuration options
- * @param {number} options.threshold - Minimum distance in px to register as swipe (default: 50)
+ * @param {number} options.threshold - Minimum distance in px to register as swipe (default: 80)
+ * @param {number} options.leftSnapPosition - Snap position for right swipe (default: 80)
+ * @param {number} options.rightSnapPosition - Snap position for left swipe (default: 80)
  * @param {boolean} options.enabled - Whether gestures are enabled (default: true)
  * @returns {Object} - Swipe state and event handlers
  */
-export const useSwipeGesture = ({ threshold = 50, enabled = true } = {}) => {
+export const useSwipeGesture = ({ threshold = 80, leftSnapPosition = 80, rightSnapPosition = 80, enabled = true } = {}) => {
   const [swipeOffset, setSwipeOffset] = useState(0); // Current swipe offset in pixels
   const [swipeDirection, setSwipeDirection] = useState(null); // 'left' or 'right'
   const touchStartX = useRef(0);
@@ -72,12 +74,12 @@ export const useSwipeGesture = ({ threshold = 50, enabled = true } = {}) => {
 
     // If swiped past threshold, snap to action position
     if (Math.abs(deltaX) > threshold && isSwiping.current) {
-      // Snap to 80px (action button width)
+      // Snap to custom positions based on direction
       if (deltaX > 0) {
-        setSwipeOffset(80); // Right swipe (actions on left)
+        setSwipeOffset(leftSnapPosition); // Right swipe (actions on left)
         setSwipeDirection('right');
       } else {
-        setSwipeOffset(-80); // Left swipe (actions on right)
+        setSwipeOffset(-rightSnapPosition); // Left swipe (actions on right)
         setSwipeDirection('left');
       }
     } else {
@@ -87,7 +89,7 @@ export const useSwipeGesture = ({ threshold = 50, enabled = true } = {}) => {
 
     isSwiping.current = false;
     hasMovedVertically.current = false;
-  }, [enabled, threshold]);
+  }, [enabled, threshold, leftSnapPosition, rightSnapPosition]);
 
   const resetSwipe = useCallback(() => {
     setSwipeOffset(0);
