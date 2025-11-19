@@ -123,7 +123,7 @@ const SwipeableTransactionCard = ({
           className="absolute left-0 top-0 bottom-0 flex items-center gap-2 pl-2"
           style={{
             transform: `translateX(${Math.min(Math.max(swipeOffset - leftActionsWidth, -leftActionsWidth), 0)}px)`,
-            transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
+            transition: isSwiped ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
             pointerEvents: swipeOffset > 70 ? 'auto' : 'none', // Only clickable when revealed
             zIndex: 0,
           }}
@@ -166,7 +166,7 @@ const SwipeableTransactionCard = ({
           className="absolute right-0 top-0 bottom-0 flex items-center pr-2"
           style={{
             transform: `translateX(${Math.max(Math.min(swipeOffset + rightActionsWidth, rightActionsWidth), 0)}px)`,
-            transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
+            transition: isSwiped ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
             pointerEvents: swipeOffset < -70 ? 'auto' : 'none', // Only clickable when revealed
             zIndex: 0,
           }}
@@ -194,7 +194,7 @@ const SwipeableTransactionCard = ({
         } ${showHint ? 'animate-swipe-hint' : ''}`}
         style={{
           transform: isMobile && !isSelectionMode ? `translateX(${swipeOffset}px)` : 'none',
-          transition: isSwiped ? 'none' : 'transform 0.3s ease-out',
+          transition: isSwiped ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
           zIndex: 10,
           position: 'relative',
         }}
