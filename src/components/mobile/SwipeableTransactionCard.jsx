@@ -189,14 +189,14 @@ const SwipeableTransactionCard = ({
         </div>
       )}
 
-      {/* Main Card Content */}
+      {/* Main Card Content - Scaled to 358px width (from 392px) */}
       <div
         className={`relative bg-gray-50 transition-colors ${
           isSelected ? 'bg-blue-50 border-2 border-blue-300' : 'hover:bg-gray-100 border-2 border-transparent'
         } ${showHint ? 'animate-swipe-hint' : ''}`}
         style={{
-          width: '392px',
-          height: '145px',
+          width: '358px',
+          height: '132px',
           borderRadius: '12px',
           marginBottom: '16px',
           boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1)',
@@ -251,42 +251,42 @@ const SwipeableTransactionCard = ({
           </div>
         )}
 
-        {/* Transaction Name - 18x16x268x105 */}
+        {/* Transaction Name - Scaled from 18x16x268x105 */}
         <div
           className="absolute font-semibold text-gray-800 truncate"
           style={{
-            left: '18px',
-            top: '16px',
-            right: '268px',
-            bottom: '105px',
+            left: '16px',
+            top: '15px',
+            right: '245px',
+            bottom: '96px',
             fontSize: '16px',
           }}
         >
           {transaction.description}
         </div>
 
-        {/* Date - 309x20x20x109 */}
+        {/* Date - Scaled from 309x20x20x109 */}
         <div
           className="absolute text-gray-600 text-right"
           style={{
-            left: '309px',
-            top: '20px',
-            right: '20px',
-            bottom: '109px',
+            left: '282px',
+            top: '18px',
+            right: '18px',
+            bottom: '100px',
             fontSize: '12px',
           }}
         >
           {transaction.date}
         </div>
 
-        {/* Commentary - 18x52x110x53 */}
+        {/* Commentary - Scaled from 18x52x110x53 */}
         <div
           className="absolute text-gray-600 overflow-hidden"
           style={{
-            left: '18px',
-            top: '52px',
-            right: '110px',
-            bottom: '53px',
+            left: '16px',
+            top: '47px',
+            right: '100px',
+            bottom: '48px',
             fontSize: '14px',
             lineHeight: '20px',
             display: '-webkit-box',
@@ -298,14 +298,14 @@ const SwipeableTransactionCard = ({
           {transaction.notes || ''}
         </div>
 
-        {/* Categories Card - 18x108x325x13 */}
+        {/* Categories Card - Scaled from 18x108x325x13 */}
         <div
           className="absolute"
           style={{
-            left: '18px',
-            top: '108px',
-            right: '325px',
-            bottom: '13px',
+            left: '16px',
+            top: '99px',
+            right: '297px',
+            bottom: '12px',
           }}
         >
           {transaction.category && (
@@ -317,14 +317,14 @@ const SwipeableTransactionCard = ({
           )}
         </div>
 
-        {/* Amount - 256x108x20x13 */}
+        {/* Amount - Scaled from 256x108x20x13 */}
         <div
           className="absolute font-bold text-right"
           style={{
-            left: '256px',
-            top: '108px',
-            right: '20px',
-            bottom: '13px',
+            left: '234px',
+            top: '99px',
+            right: '18px',
+            bottom: '12px',
             fontSize: '16px',
             color: transaction.amount > 0 ? THEME.success : THEME.danger,
           }}
