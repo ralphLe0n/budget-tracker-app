@@ -54,19 +54,6 @@
   --badge-gap: 8px;
   --badge-font-size: 14px;
   --badge-line-height: 16px;
-
-  /* COLORS */
-  --color-background: #F8F9FA;
-  --color-card-bg: #FFFFFF;
-  --color-title: #1E293B;
-  --color-date: #64748B;
-  --color-description: #475569;
-  --color-icon: #64748B;
-  --color-badge-bg: #7C93A8;
-  --color-badge-text: #FFFFFF;
-
-  /* SHADOWS */
-  --card-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 body {

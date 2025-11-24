@@ -191,15 +191,14 @@ const SwipeableTransactionCard = ({
 
       {/* Main Card Content */}
       <div
-        className={`relative transition-colors ${
+        className={`relative bg-gray-50 transition-colors ${
           isSelected ? 'bg-blue-50 border-2 border-blue-300' : 'hover:bg-gray-100 border-2 border-transparent'
         } ${showHint ? 'animate-swipe-hint' : ''}`}
         style={{
-          backgroundColor: isSelected ? undefined : 'var(--color-card-bg)',
           borderRadius: 'var(--card-border-radius)',
           padding: 'var(--card-padding)',
           marginBottom: 'var(--card-margin-bottom)',
-          boxShadow: 'var(--card-shadow)',
+          boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1)',
           transform: isMobile && !isSelectionMode ? `translateX(${swipeOffset}px)` : 'none',
           transition: isSwiped ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
           zIndex: 10,
@@ -273,11 +272,10 @@ const SwipeableTransactionCard = ({
               />
             </div>
             <h3
-              className="font-semibold truncate"
+              className="font-semibold truncate text-gray-800"
               style={{
                 fontSize: 'var(--title-font-size)',
                 lineHeight: 'var(--title-line-height)',
-                color: 'var(--color-title)',
                 maxWidth: isMobile ? '200px' : '300px',
               }}
             >
@@ -287,11 +285,10 @@ const SwipeableTransactionCard = ({
 
           {/* Right: Date */}
           <span
-            className="flex-shrink-0"
+            className="flex-shrink-0 text-gray-600"
             style={{
               fontSize: 'var(--date-font-size)',
               lineHeight: 'var(--date-line-height)',
-              color: 'var(--color-date)',
             }}
           >
             {transaction.date}
@@ -304,7 +301,6 @@ const SwipeableTransactionCard = ({
           style={{
             fontSize: 'var(--description-font-size)',
             lineHeight: 'var(--description-line-height)',
-            color: 'var(--color-description)',
             marginBottom: 'var(--description-margin-bottom)',
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -347,7 +343,7 @@ const SwipeableTransactionCard = ({
           {/* Category Badge */}
           {transaction.category && transaction.category !== 'Transfer' && (
             <span
-              className="flex items-center justify-center font-medium whitespace-nowrap"
+              className="flex items-center justify-center font-medium whitespace-nowrap bg-gray-300 text-gray-700"
               style={{
                 height: 'var(--badge-height)',
                 paddingLeft: 'var(--badge-padding-horizontal)',
@@ -357,8 +353,6 @@ const SwipeableTransactionCard = ({
                 borderRadius: 'var(--badge-border-radius)',
                 fontSize: 'var(--badge-font-size)',
                 lineHeight: 'var(--badge-line-height)',
-                backgroundColor: 'var(--color-badge-bg)',
-                color: 'var(--color-badge-text)',
               }}
             >
               {transaction.category}
