@@ -53,6 +53,9 @@ const DashboardTab = ({
   onUpdateTransaction,
   onConvertToTransfer,
   onBulkUpdate,
+  debts = [],
+  debtPayments = [],
+  onLinkTransactionToDebt
 }) => {
   const COLORS = THEME.chartColors;
 
@@ -62,6 +65,26 @@ const DashboardTab = ({
   // Show only last 5 transactions on dashboard (UX audit recommendation)
   const displayedTransactions = filteredTransactions.slice(0, 5);
   const hasMoreTransactions = filteredTransactions.length > 5;
+
+  // Create a map of transaction IDs to debt payment info
+  const transactionDebtLinks = useMemo(() => {
+    const links = {};
+    debtPayments.forEach(payment => {
+      if (payment.transaction_id) {
+        const debt = debts.find(d => d.id === payment.debt_id);
+        if (debt) {
+          links[payment.transaction_id] = {
+            debt_id: debt.id,
+            debt_name: debt.name,
+            amount_paid: payment.amount_paid,
+            principal_paid: payment.principal_paid,
+            interest_paid: payment.interest_paid
+          };
+        }
+      }
+    });
+    return links;
+  }, [debtPayments, debts]);
 
   // Prediction settings state
   const [showPredictionSettings, setShowPredictionSettings] = useState(false);
@@ -698,6 +721,7 @@ const DashboardTab = ({
                   onSelect={handleSelectTransaction}
                   onLongPress={handleLongPress}
                   showHint={index === 0 && showSwipeHint}
+                  debtPaymentLink={transactionDebtLinks[transaction.id]}
                 />
               ))}
 

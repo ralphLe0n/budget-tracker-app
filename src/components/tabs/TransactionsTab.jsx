@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle, Edit2, Check, X, ArrowLeftRight } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle, Edit2, Check, X, ArrowLeftRight, CreditCard } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
@@ -9,6 +9,7 @@ import { useMobile } from '../../hooks/useMobile';
 import SwipeableTransactionCard from '../mobile/SwipeableTransactionCard';
 import TransactionEditModal from '../mobile/TransactionEditModal';
 import SelectionModeToolbar from '../mobile/SelectionModeToolbar';
+import LinkDebtPaymentModal from '../modals/LinkDebtPaymentModal';
 
 const TransactionsTab = ({
   filteredTransactions,
@@ -43,7 +44,10 @@ const TransactionsTab = ({
   handleAddTransaction,
   onUpdateTransaction,
   onConvertToTransfer,
-  onBulkUpdate
+  onBulkUpdate,
+  debts = [],
+  debtPayments = [],
+  onLinkTransactionToDebt
 }) => {
   const COLORS = THEME.chartColors;
 
@@ -66,6 +70,30 @@ const TransactionsTab = ({
   const [selectedTransactionIds, setSelectedTransactionIds] = useState(new Set());
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [showSwipeHint, setShowSwipeHint] = useState(false);
+
+  // Debt payment linking state
+  const [showLinkDebtModal, setShowLinkDebtModal] = useState(false);
+  const [linkingTransaction, setLinkingTransaction] = useState(null);
+
+  // Create a map of transaction IDs to debt payment info
+  const transactionDebtLinks = useMemo(() => {
+    const links = {};
+    debtPayments.forEach(payment => {
+      if (payment.transaction_id) {
+        const debt = debts.find(d => d.id === payment.debt_id);
+        if (debt) {
+          links[payment.transaction_id] = {
+            debt_id: debt.id,
+            debt_name: debt.name,
+            amount_paid: payment.amount_paid,
+            principal_paid: payment.principal_paid,
+            interest_paid: payment.interest_paid
+          };
+        }
+      }
+    });
+    return links;
+  }, [debtPayments, debts]);
 
   // Show swipe hint on first visit (mobile only)
   useEffect(() => {
@@ -137,6 +165,19 @@ const TransactionsTab = ({
   const handleConvertTransaction = (transactionId) => {
     setConvertingTransactionId(transactionId);
     setShowConvertTransfer(true);
+  };
+
+  const handleLinkToDebt = (transaction) => {
+    setLinkingTransaction(transaction);
+    setShowLinkDebtModal(true);
+  };
+
+  const handleConfirmLinkToDebt = (debtId, paymentData) => {
+    if (linkingTransaction && onLinkTransactionToDebt) {
+      onLinkTransactionToDebt(linkingTransaction.id, debtId, paymentData);
+    }
+    setShowLinkDebtModal(false);
+    setLinkingTransaction(null);
   };
 
   const handleStartEditDescription = (transaction) => {
@@ -784,6 +825,7 @@ const TransactionsTab = ({
                         onSelect={handleSelectTransaction}
                         onLongPress={handleLongPress}
                         showHint={index === 0 && showSwipeHint}
+                        debtPaymentLink={transactionDebtLinks[transaction.id]}
                       />
                     ) : (
                       // Desktop: Use traditional card with checkboxes
@@ -808,6 +850,19 @@ const TransactionsTab = ({
                               title="Konwertuj na Przelew"
                             >
                               <ArrowLeftRight size={iconSize} />
+                            </button>
+                          )}
+                          {/* Link to Debt button - only for expenses not already linked */}
+                          {transaction.amount < 0 &&
+                           transaction.category !== 'Transfer' &&
+                           !transactionDebtLinks[transaction.id] && (
+                            <button
+                              onClick={() => handleLinkToDebt(transaction)}
+                              className="transition-colors p-2 hover:bg-purple-100 rounded-lg touch-manipulation"
+                              style={{ color: '#6366f1' }}
+                              title="Połącz z Długiem"
+                            >
+                              <CreditCard size={iconSize} />
                             </button>
                           )}
                           <button
@@ -914,6 +969,21 @@ const TransactionsTab = ({
                           }}>
                             {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
                           </span>
+                          {/* Debt Payment Indicator */}
+                          {transactionDebtLinks[transaction.id] && (
+                            <span
+                              className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap flex items-center gap-1"
+                              style={{
+                                backgroundColor: '#6366f120',
+                                color: '#6366f1',
+                                border: '1px solid #6366f1',
+                              }}
+                              title={`Połączone z: ${transactionDebtLinks[transaction.id].debt_name}`}
+                            >
+                              <CreditCard size={iconSizeSmall} />
+                              <span>{transactionDebtLinks[transaction.id].debt_name}</span>
+                            </span>
+                          )}
                         </div>
                       </div>
                     )
@@ -1082,6 +1152,19 @@ const TransactionsTab = ({
           </div>
         );
       })()}
+
+      {/* Link Debt Payment Modal */}
+      {showLinkDebtModal && linkingTransaction && (
+        <LinkDebtPaymentModal
+          transaction={linkingTransaction}
+          debts={debts}
+          onLink={handleConfirmLinkToDebt}
+          onClose={() => {
+            setShowLinkDebtModal(false);
+            setLinkingTransaction(null);
+          }}
+        />
+      )}
     </>
   );
 };

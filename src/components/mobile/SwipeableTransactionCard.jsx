@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, ArrowLeftRight, Trash2, Calendar } from 'lucide-react';
+import { Edit2, ArrowLeftRight, Trash2, Calendar, CreditCard } from 'lucide-react';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
 import { useMobile } from '../../hooks/useMobile';
@@ -31,6 +31,8 @@ const SwipeableTransactionCard = ({
   onLongPress,
   // Hint animation
   showHint = false,
+  // Debt payment link info
+  debtPaymentLink = null, // { debt_id, debt_name, amount_paid, principal_paid, interest_paid }
 }) => {
   const { isMobile, iconSize, iconSizeSmall } = useMobile();
   const [showEditModal, setShowEditModal] = useState(false);
@@ -290,6 +292,21 @@ const SwipeableTransactionCard = ({
           >
             {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
           </span>
+          {/* Debt Payment Indicator */}
+          {debtPaymentLink && (
+            <span
+              className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap flex items-center gap-1"
+              style={{
+                backgroundColor: '#6366f120',
+                color: '#6366f1',
+                border: '1px solid #6366f1',
+              }}
+              title={`Połączone z: ${debtPaymentLink.debt_name}`}
+            >
+              <CreditCard size={iconSizeSmall} />
+              <span>{debtPaymentLink.debt_name}</span>
+            </span>
+          )}
         </div>
       </div>
     </div>
