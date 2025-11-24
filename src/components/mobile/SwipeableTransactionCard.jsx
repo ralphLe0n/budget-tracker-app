@@ -195,15 +195,15 @@ const SwipeableTransactionCard = ({
           isSelected ? 'bg-blue-50 border-2 border-blue-300' : 'hover:bg-gray-100 border-2 border-transparent'
         } ${showHint ? 'animate-swipe-hint' : ''}`}
         style={{
-          borderRadius: 'var(--card-border-radius)',
-          padding: 'var(--card-padding)',
-          marginBottom: 'var(--card-margin-bottom)',
+          width: '392px',
+          height: '145px',
+          borderRadius: '12px',
+          marginBottom: '16px',
           boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1)',
           transform: isMobile && !isSelectionMode ? `translateX(${swipeOffset}px)` : 'none',
           transition: isSwiped ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
           zIndex: 10,
           position: 'relative',
-          maxWidth: isMobile ? 'var(--card-width)' : undefined,
         }}
         {...combinedTouchHandlers}
       >
@@ -251,137 +251,85 @@ const SwipeableTransactionCard = ({
           </div>
         )}
 
-        {/* Card Header: Icon + Title + Date */}
+        {/* Transaction Name - 18x16x268x105 */}
         <div
-          className={`flex items-center justify-between ${
-            isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'
-          }`}
+          className="absolute font-semibold text-gray-800 truncate"
           style={{
-            height: 'var(--title-line-height)',
-            marginBottom: 'var(--header-margin-bottom)',
+            left: '18px',
+            top: '16px',
+            right: '268px',
+            bottom: '105px',
+            fontSize: '16px',
           }}
         >
-          {/* Left: Icon + Title */}
-          <div className="flex items-center" style={{ gap: 'var(--icon-title-gap)' }}>
-            <div className="flex-shrink-0" style={{ width: 'var(--icon-size)', height: 'var(--icon-size)' }}>
-              <CategoryIconSelector
-                transaction={transaction}
-                categories={categories}
-                onCategoryChange={onCategoryChange}
-                onAddCategory={onAddCategory}
-              />
-            </div>
-            <h3
-              className="font-semibold truncate text-gray-800"
-              style={{
-                fontSize: 'var(--title-font-size)',
-                lineHeight: 'var(--title-line-height)',
-                maxWidth: isMobile ? '200px' : '300px',
-              }}
-            >
-              {transaction.description}
-            </h3>
-          </div>
-
-          {/* Right: Date */}
-          <span
-            className="flex-shrink-0 text-gray-600"
-            style={{
-              fontSize: 'var(--date-font-size)',
-              lineHeight: 'var(--date-line-height)',
-            }}
-          >
-            {transaction.date}
-          </span>
+          {transaction.description}
         </div>
 
-        {/* Description: Amount as description */}
+        {/* Date - 309x20x20x109 */}
         <div
-          className={`${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}
+          className="absolute text-gray-600 text-right"
           style={{
-            fontSize: 'var(--description-font-size)',
-            lineHeight: 'var(--description-line-height)',
-            marginBottom: 'var(--description-margin-bottom)',
+            left: '309px',
+            top: '20px',
+            right: '20px',
+            bottom: '109px',
+            fontSize: '12px',
+          }}
+        >
+          {transaction.date}
+        </div>
+
+        {/* Commentary - 18x52x110x53 */}
+        <div
+          className="absolute text-gray-600 overflow-hidden"
+          style={{
+            left: '18px',
+            top: '52px',
+            right: '110px',
+            bottom: '53px',
+            fontSize: '14px',
+            lineHeight: '20px',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
           }}
         >
-          <span
-            className="font-bold"
-            style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-          >
-            {formatCurrency(transaction.amount)}
-          </span>
+          {/* Commentary text - could be additional transaction info */}
+          {transaction.notes || ''}
         </div>
 
-        {/* Badge Container */}
+        {/* Categories Card - 18x108x325x13 */}
         <div
-          className={`flex items-center flex-wrap ${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}
-          style={{ gap: 'var(--badge-gap)' }}
+          className="absolute"
+          style={{
+            left: '18px',
+            top: '108px',
+            right: '325px',
+            bottom: '13px',
+          }}
         >
-          {/* Income/Expense Badge */}
-          <span
-            className="flex items-center justify-center font-medium whitespace-nowrap"
-            style={{
-              height: 'var(--badge-height)',
-              paddingLeft: 'var(--badge-padding-horizontal)',
-              paddingRight: 'var(--badge-padding-horizontal)',
-              paddingTop: 'var(--badge-padding-vertical)',
-              paddingBottom: 'var(--badge-padding-vertical)',
-              borderRadius: 'var(--badge-border-radius)',
-              fontSize: 'var(--badge-font-size)',
-              lineHeight: 'var(--badge-line-height)',
-              backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
-              color: transaction.amount > 0 ? THEME.success : THEME.danger,
-            }}
-          >
-            {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
-          </span>
-
-          {/* Category Badge */}
-          {transaction.category && transaction.category !== 'Transfer' && (
+          {transaction.category && (
             <span
-              className="flex items-center justify-center font-medium whitespace-nowrap bg-gray-300 text-gray-700"
-              style={{
-                height: 'var(--badge-height)',
-                paddingLeft: 'var(--badge-padding-horizontal)',
-                paddingRight: 'var(--badge-padding-horizontal)',
-                paddingTop: 'var(--badge-padding-vertical)',
-                paddingBottom: 'var(--badge-padding-vertical)',
-                borderRadius: 'var(--badge-border-radius)',
-                fontSize: 'var(--badge-font-size)',
-                lineHeight: 'var(--badge-line-height)',
-              }}
+              className="inline-block font-medium whitespace-nowrap bg-gray-300 text-gray-700 px-3 py-1 rounded-full text-xs"
             >
               {transaction.category}
             </span>
           )}
+        </div>
 
-          {/* Debt Payment Indicator */}
-          {debtPaymentLink && (
-            <span
-              className="flex items-center justify-center font-medium whitespace-nowrap gap-1"
-              style={{
-                height: 'var(--badge-height)',
-                paddingLeft: 'var(--badge-padding-horizontal)',
-                paddingRight: 'var(--badge-padding-horizontal)',
-                paddingTop: 'var(--badge-padding-vertical)',
-                paddingBottom: 'var(--badge-padding-vertical)',
-                borderRadius: 'var(--badge-border-radius)',
-                fontSize: 'var(--badge-font-size)',
-                lineHeight: 'var(--badge-line-height)',
-                backgroundColor: '#6366f120',
-                color: '#6366f1',
-                border: '1px solid #6366f1',
-              }}
-              title={`Połączone z: ${debtPaymentLink.debt_name}`}
-            >
-              <CreditCard size={12} />
-              <span>{debtPaymentLink.debt_name}</span>
-            </span>
-          )}
+        {/* Amount - 256x108x20x13 */}
+        <div
+          className="absolute font-bold text-right"
+          style={{
+            left: '256px',
+            top: '108px',
+            right: '20px',
+            bottom: '13px',
+            fontSize: '16px',
+            color: transaction.amount > 0 ? THEME.success : THEME.danger,
+          }}
+        >
+          {formatCurrency(transaction.amount)}
         </div>
       </div>
     </div>
