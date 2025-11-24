@@ -689,6 +689,48 @@ const BudgetApp = ({ session }) => {
 
     try {
       setIsLoading(true);
+
+      // Check if transaction is linked to a debt payment
+      const debtPaymentLink = await dataService.checkTransactionDebtLink(id);
+
+      if (debtPaymentLink) {
+        // Confirm deletion with warning about debt payment
+        const confirmMessage = `Ta transakcja jest połączona z długiem "${debtPaymentLink.debts.name}".\n\nUsunięcie tej transakcji również usunie wpłatę z długu i cofnie saldo długu.\n\nCzy na pewno chcesz kontynuować?`;
+
+        if (!window.confirm(confirmMessage)) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Delete debt payment and reverse debt balance
+        await dataService.deleteDebtPayment(debtPaymentLink.id);
+        setDebtPayments(debtPayments.filter(p => p.id !== debtPaymentLink.id));
+
+        // Update debt: reverse the payment
+        const debt = debts.find(d => d.id === debtPaymentLink.debt_id);
+        if (debt) {
+          const newBalance = debt.current_balance + debtPaymentLink.principal_paid;
+          const newPaidInstallments = Math.max(0, debt.paid_installments - 1);
+
+          // Calculate previous payment date
+          const calculatePreviousPaymentDate = (startDate, paidInstallments) => {
+            const date = new Date(startDate);
+            date.setMonth(date.getMonth() + paidInstallments);
+            return date.toISOString().split('T')[0];
+          };
+
+          const debtUpdate = {
+            current_balance: newBalance,
+            paid_installments: newPaidInstallments,
+            next_payment_date: calculatePreviousPaymentDate(debt.start_date, newPaidInstallments),
+            is_active: true // Reactivate if it was paid off
+          };
+
+          const updatedDebt = await dataService.updateDebt(debt.id, debtUpdate);
+          setDebts(debts.map(d => d.id === debt.id ? updatedDebt : d));
+        }
+      }
+
       // Delete from Supabase
       const { error } = await supabase
         .from('transactions')
@@ -1521,12 +1563,47 @@ const BudgetApp = ({ session }) => {
     }
   };
 
-  const handleRecordPayment = async (payment, debtId, debtUpdate) => {
+  const handleRecordPayment = async (payment, debtId, debtUpdate, transactionInfo = null) => {
     try {
       setIsLoading(true);
 
-      // Add payment record
-      const paymentData = await dataService.addDebtPayment(payment, session.user.id);
+      let transactionId = null;
+
+      // Optionally create transaction if requested
+      if (transactionInfo && transactionInfo.createTransaction) {
+        const transactionData = {
+          date: payment.payment_date,
+          description: transactionInfo.description,
+          amount: -payment.amount_paid, // Negative for expense
+          category: transactionInfo.category,
+          account_id: transactionInfo.account_id,
+          comment: payment.note || ''
+        };
+
+        // Add transaction
+        const newTransaction = await dataService.addTransaction(transactionData, session.user.id);
+        transactionId = newTransaction.id;
+
+        // Add to local state
+        setTransactions([newTransaction, ...transactions]);
+
+        // Update account balance
+        const account = accounts.find(a => a.id === transactionInfo.account_id);
+        if (account) {
+          const newBalance = account.balance + transactionData.amount;
+          await dataService.updateAccountBalance(account.id, newBalance);
+          setAccounts(accounts.map(a =>
+            a.id === account.id ? { ...a, balance: newBalance } : a
+          ));
+        }
+      }
+
+      // Add payment record with optional transaction link
+      const paymentWithTransaction = {
+        ...payment,
+        transaction_id: transactionId
+      };
+      const paymentData = await dataService.addDebtPayment(paymentWithTransaction, session.user.id);
       setDebtPayments([...debtPayments, paymentData]);
 
       // Update debt
@@ -1549,6 +1626,62 @@ const BudgetApp = ({ session }) => {
     } catch (error) {
       console.error('Error updating debt:', error);
       alert('Failed to update debt: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLinkTransactionToDebt = async (transactionId, debtId, paymentData) => {
+    try {
+      setIsLoading(true);
+
+      // Get the debt
+      const debt = debts.find(d => d.id === debtId);
+      if (!debt) {
+        alert('Debt not found');
+        return;
+      }
+
+      // Create debt payment record with transaction link
+      const payment = {
+        debt_id: debtId,
+        payment_date: paymentData.payment_date,
+        amount_paid: paymentData.amount_paid,
+        principal_paid: paymentData.principal_paid,
+        interest_paid: paymentData.interest_paid,
+        transaction_id: transactionId,
+        note: paymentData.note
+      };
+
+      const paymentRecord = await dataService.addDebtPayment(payment, session.user.id);
+      setDebtPayments([...debtPayments, paymentRecord]);
+
+      // Update debt
+      const newBalance = Math.max(0, debt.current_balance - paymentData.principal_paid);
+      const newPaidInstallments = debt.paid_installments + 1;
+      const isFullyPaid = newBalance <= 0.01;
+
+      // Calculate next payment date
+      const calculateNextPaymentDate = (startDate, paidInstallments) => {
+        const date = new Date(startDate);
+        date.setMonth(date.getMonth() + paidInstallments + 1);
+        return date.toISOString().split('T')[0];
+      };
+
+      const debtUpdate = {
+        current_balance: newBalance,
+        paid_installments: newPaidInstallments,
+        next_payment_date: isFullyPaid ? debt.next_payment_date : calculateNextPaymentDate(debt.start_date, newPaidInstallments),
+        is_active: !isFullyPaid
+      };
+
+      const updatedDebt = await dataService.updateDebt(debtId, debtUpdate);
+      setDebts(debts.map(d => d.id === debtId ? updatedDebt : d));
+
+      alert('Transakcja została pomyślnie połączona z długiem!');
+    } catch (error) {
+      console.error('Error linking transaction to debt:', error);
+      alert('Failed to link transaction to debt: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -1771,6 +1904,9 @@ const BudgetApp = ({ session }) => {
             onUpdateTransaction={handleUpdateTransaction}
             onConvertToTransfer={handleConvertToTransfer}
             onBulkUpdate={handleBulkUpdate}
+            debts={debts}
+            debtPayments={debtPayments}
+            onLinkTransactionToDebt={handleLinkTransactionToDebt}
           />
         )}
 
@@ -1809,6 +1945,9 @@ const BudgetApp = ({ session }) => {
             onUpdateTransaction={handleUpdateTransaction}
             onConvertToTransfer={handleConvertToTransfer}
             onBulkUpdate={handleBulkUpdate}
+            debts={debts}
+            debtPayments={debtPayments}
+            onLinkTransactionToDebt={handleLinkTransactionToDebt}
           />
         )}
 

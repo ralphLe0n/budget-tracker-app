@@ -36,7 +36,9 @@ const DebtsTab = ({
   const [paymentForm, setPaymentForm] = useState({
     payment_date: new Date().toISOString().split('T')[0],
     amount_paid: '',
-    note: ''
+    note: '',
+    createTransaction: true, // Default to creating transaction
+    account_id: ''
   });
 
   // Calculate installment amount using Polish amortization (annuity method)
@@ -229,6 +231,12 @@ const DebtsTab = ({
       return;
     }
 
+    // Validate account selection if creating transaction
+    if (paymentForm.createTransaction && !paymentForm.account_id) {
+      alert('Proszę wybrać konto, z którego dokonano wpłaty');
+      return;
+    }
+
     const debt = debts.find(d => d.id === selectedDebtForPayment);
     if (!debt) return;
 
@@ -256,13 +264,23 @@ const DebtsTab = ({
       is_active: !isFullyPaid
     };
 
-    await onRecordPayment(payment, debt.id, debtUpdate);
+    // Pass transaction creation info to parent
+    const transactionInfo = paymentForm.createTransaction ? {
+      createTransaction: true,
+      account_id: paymentForm.account_id,
+      description: `Wpłata: ${debt.name}`,
+      category: 'Debt Payment'
+    } : null;
+
+    await onRecordPayment(payment, debt.id, debtUpdate, transactionInfo);
 
     // Reset payment form
     setPaymentForm({
       payment_date: new Date().toISOString().split('T')[0],
       amount_paid: '',
-      note: ''
+      note: '',
+      createTransaction: true,
+      account_id: ''
     });
     setShowPaymentModal(false);
     setSelectedDebtForPayment(null);
@@ -271,11 +289,16 @@ const DebtsTab = ({
   const openPaymentModal = (debtId) => {
     const debt = debts.find(d => d.id === debtId);
     if (debt) {
+      // Set default account: debt's linked account or first available account
+      const defaultAccountId = debt.account_id || (accounts.length > 0 ? accounts[0].id : '');
+
       setSelectedDebtForPayment(debtId);
       setPaymentForm({
         payment_date: new Date().toISOString().split('T')[0],
         amount_paid: debt.installment_amount.toFixed(2),
-        note: ''
+        note: '',
+        createTransaction: true,
+        account_id: defaultAccountId
       });
       setShowPaymentModal(true);
     }
@@ -770,6 +793,51 @@ const DebtsTab = ({
                         </div>
                       </div>
                     )}
+
+                    {/* Transaction Creation Checkbox */}
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={paymentForm.createTransaction}
+                          onChange={(e) => setPaymentForm({ ...paymentForm, createTransaction: e.target.checked })}
+                          className="mr-3 w-4 h-4 text-blue-600 rounded focus:ring-2"
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          Zapisz jako transakcję w koncie
+                        </span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-2 ml-7">
+                        Utworzy transakcję i zaktualizuje saldo wybranego konta
+                      </p>
+
+                      {/* Account Selector - only visible if creating transaction */}
+                      {paymentForm.createTransaction && (
+                        <div className="mt-3 ml-7">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Wybierz Konto *
+                          </label>
+                          <select
+                            value={paymentForm.account_id}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, account_id: e.target.value })}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                          >
+                            <option value="">Wybierz konto...</option>
+                            {accounts.map((account) => (
+                              <option key={account.id} value={account.id}>
+                                {account.name} ({formatCurrency(account.balance)})
+                              </option>
+                            ))}
+                          </select>
+                          {paymentForm.createTransaction && accounts.length > 0 && paymentForm.account_id && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              💡 To utworzy transakcję -{formatCurrency(amountPaid)} w koncie{' '}
+                              {accounts.find(a => a.id === paymentForm.account_id)?.name}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Notatka (opcjonalnie)</label>

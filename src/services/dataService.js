@@ -513,6 +513,44 @@ export const deleteDebtPayment = async (id) => {
   if (error) throw error;
 };
 
+// Check if a transaction is linked to a debt payment
+export const checkTransactionDebtLink = async (transactionId) => {
+  const { data, error } = await supabase
+    .from('debt_payments')
+    .select('*, debts!inner(name)')
+    .eq('transaction_id', transactionId)
+    .single();
+
+  if (error) {
+    // No link found or other error
+    if (error.code === 'PGRST116') {
+      return null; // No link found
+    }
+    throw error;
+  }
+
+  return data;
+};
+
+// Link an existing transaction to a debt payment
+export const linkTransactionToDebtPayment = async (transactionId, debtId, paymentData, userId) => {
+  // Create debt payment record with transaction link
+  const payment = {
+    ...paymentData,
+    transaction_id: transactionId,
+    debt_id: debtId,
+    user_id: userId
+  };
+
+  const { data, error } = await supabase
+    .from('debt_payments')
+    .insert([payment])
+    .select();
+
+  if (error) throw error;
+  return data[0];
+};
+
 // ============================================================================
 // Savings Goals operations
 // ============================================================================
