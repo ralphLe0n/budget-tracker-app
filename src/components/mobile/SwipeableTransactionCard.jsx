@@ -191,14 +191,20 @@ const SwipeableTransactionCard = ({
 
       {/* Main Card Content */}
       <div
-        className={`relative bg-gray-50 rounded-xl transition-colors p-4 pb-3 ${
+        className={`relative transition-colors ${
           isSelected ? 'bg-blue-50 border-2 border-blue-300' : 'hover:bg-gray-100 border-2 border-transparent'
         } ${showHint ? 'animate-swipe-hint' : ''}`}
         style={{
+          backgroundColor: isSelected ? undefined : 'var(--color-card-bg)',
+          borderRadius: 'var(--card-border-radius)',
+          padding: 'var(--card-padding)',
+          marginBottom: 'var(--card-margin-bottom)',
+          boxShadow: 'var(--card-shadow)',
           transform: isMobile && !isSelectionMode ? `translateX(${swipeOffset}px)` : 'none',
           transition: isSwiped ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
           zIndex: 10,
           position: 'relative',
+          maxWidth: isMobile ? 'var(--card-width)' : undefined,
         }}
         {...combinedTouchHandlers}
       >
@@ -246,64 +252,139 @@ const SwipeableTransactionCard = ({
           </div>
         )}
 
-        {/* Row 1: Icon + Description */}
+        {/* Card Header: Icon + Title + Date */}
         <div
-          className={`flex items-start gap-2 md:gap-3 mb-3 ${
+          className={`flex items-center justify-between ${
             isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'
           }`}
+          style={{
+            height: 'var(--title-line-height)',
+            marginBottom: 'var(--header-margin-bottom)',
+          }}
         >
-          <div className="flex-shrink-0 pt-1">
-            <CategoryIconSelector
-              transaction={transaction}
-              categories={categories}
-              onCategoryChange={onCategoryChange}
-              onAddCategory={onAddCategory}
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-800 text-sm md:text-base leading-tight break-words">
+          {/* Left: Icon + Title */}
+          <div className="flex items-center" style={{ gap: 'var(--icon-title-gap)' }}>
+            <div className="flex-shrink-0" style={{ width: 'var(--icon-size)', height: 'var(--icon-size)' }}>
+              <CategoryIconSelector
+                transaction={transaction}
+                categories={categories}
+                onCategoryChange={onCategoryChange}
+                onAddCategory={onAddCategory}
+              />
+            </div>
+            <h3
+              className="font-semibold truncate"
+              style={{
+                fontSize: 'var(--title-font-size)',
+                lineHeight: 'var(--title-line-height)',
+                color: 'var(--color-title)',
+                maxWidth: isMobile ? '200px' : '300px',
+              }}
+            >
               {transaction.description}
-            </p>
+            </h3>
           </div>
+
+          {/* Right: Date */}
+          <span
+            className="flex-shrink-0"
+            style={{
+              fontSize: 'var(--date-font-size)',
+              lineHeight: 'var(--date-line-height)',
+              color: 'var(--color-date)',
+            }}
+          >
+            {transaction.date}
+          </span>
         </div>
 
-        {/* Row 2: Amount */}
-        <div className={`mb-2 ${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}>
+        {/* Description: Amount as description */}
+        <div
+          className={`${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}
+          style={{
+            fontSize: 'var(--description-font-size)',
+            lineHeight: 'var(--description-line-height)',
+            color: 'var(--color-description)',
+            marginBottom: 'var(--description-margin-bottom)',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
           <span
-            className="text-2xl md:text-xl font-bold block"
+            className="font-bold"
             style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
           >
             {formatCurrency(transaction.amount)}
           </span>
         </div>
 
-        {/* Row 3: Date and Category Badge */}
-        <div className={`flex items-center gap-2 md:gap-3 flex-wrap ${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}>
-          <span className="flex items-center gap-1 text-xs text-gray-600">
-            <Calendar size={iconSizeSmall} />
-            <span>{transaction.date}</span>
-          </span>
+        {/* Badge Container */}
+        <div
+          className={`flex items-center flex-wrap ${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}
+          style={{ gap: 'var(--badge-gap)' }}
+        >
+          {/* Income/Expense Badge */}
           <span
-            className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap"
+            className="flex items-center justify-center font-medium whitespace-nowrap"
             style={{
+              height: 'var(--badge-height)',
+              paddingLeft: 'var(--badge-padding-horizontal)',
+              paddingRight: 'var(--badge-padding-horizontal)',
+              paddingTop: 'var(--badge-padding-vertical)',
+              paddingBottom: 'var(--badge-padding-vertical)',
+              borderRadius: 'var(--badge-border-radius)',
+              fontSize: 'var(--badge-font-size)',
+              lineHeight: 'var(--badge-line-height)',
               backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
               color: transaction.amount > 0 ? THEME.success : THEME.danger,
             }}
           >
             {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
           </span>
+
+          {/* Category Badge */}
+          {transaction.category && transaction.category !== 'Transfer' && (
+            <span
+              className="flex items-center justify-center font-medium whitespace-nowrap"
+              style={{
+                height: 'var(--badge-height)',
+                paddingLeft: 'var(--badge-padding-horizontal)',
+                paddingRight: 'var(--badge-padding-horizontal)',
+                paddingTop: 'var(--badge-padding-vertical)',
+                paddingBottom: 'var(--badge-padding-vertical)',
+                borderRadius: 'var(--badge-border-radius)',
+                fontSize: 'var(--badge-font-size)',
+                lineHeight: 'var(--badge-line-height)',
+                backgroundColor: 'var(--color-badge-bg)',
+                color: 'var(--color-badge-text)',
+              }}
+            >
+              {transaction.category}
+            </span>
+          )}
+
           {/* Debt Payment Indicator */}
           {debtPaymentLink && (
             <span
-              className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap flex items-center gap-1"
+              className="flex items-center justify-center font-medium whitespace-nowrap gap-1"
               style={{
+                height: 'var(--badge-height)',
+                paddingLeft: 'var(--badge-padding-horizontal)',
+                paddingRight: 'var(--badge-padding-horizontal)',
+                paddingTop: 'var(--badge-padding-vertical)',
+                paddingBottom: 'var(--badge-padding-vertical)',
+                borderRadius: 'var(--badge-border-radius)',
+                fontSize: 'var(--badge-font-size)',
+                lineHeight: 'var(--badge-line-height)',
                 backgroundColor: '#6366f120',
                 color: '#6366f1',
                 border: '1px solid #6366f1',
               }}
               title={`Połączone z: ${debtPaymentLink.debt_name}`}
             >
-              <CreditCard size={iconSizeSmall} />
+              <CreditCard size={12} />
               <span>{debtPaymentLink.debt_name}</span>
             </span>
           )}

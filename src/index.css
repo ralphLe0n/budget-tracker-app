@@ -15,6 +15,58 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* iPhone 14 Transaction Card Specifications */
+  --screen-width: 390px;
+  --screen-height: 844px;
+  --safe-area-top: 59px;
+  --safe-area-bottom: 34px;
+
+  /* SPACING */
+  --container-padding-horizontal: 16px;
+  --container-padding-vertical: 16px;
+  --card-margin-bottom: 16px;
+  --card-padding: 16px;
+
+  /* CARD DIMENSIONS */
+  --card-width: 358px;
+  --card-border-radius: 12px;
+
+  /* HEADER MEASUREMENTS */
+  --icon-size: 24px;
+  --icon-title-gap: 12px;
+  --header-margin-bottom: 12px;
+
+  /* TEXT MEASUREMENTS */
+  --title-font-size: 18px;
+  --title-line-height: 24px;
+  --date-font-size: 14px;
+  --date-line-height: 24px;
+  --description-font-size: 14px;
+  --description-line-height: 20px;
+  --description-margin-bottom: 12px;
+
+  /* BADGE MEASUREMENTS */
+  --badge-height: 32px;
+  --badge-padding-horizontal: 16px;
+  --badge-padding-vertical: 8px;
+  --badge-border-radius: 16px;
+  --badge-gap: 8px;
+  --badge-font-size: 14px;
+  --badge-line-height: 16px;
+
+  /* COLORS */
+  --color-background: #F8F9FA;
+  --color-card-bg: #FFFFFF;
+  --color-title: #1E293B;
+  --color-date: #64748B;
+  --color-description: #475569;
+  --color-icon: #64748B;
+  --color-badge-bg: #7C93A8;
+  --color-badge-text: #FFFFFF;
+
+  /* SHADOWS */
+  --card-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 body {
