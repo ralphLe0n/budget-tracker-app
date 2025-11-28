@@ -831,15 +831,15 @@ const TransactionsTab = ({
                       // Desktop: Use traditional card with checkboxes
                       <div
                         key={transaction.id}
-                        className={`group relative rounded-xl transition-all p-4 ${
+                        className={`group relative rounded-xl transition-all p-5 ${
                           selectedTransactions.has(transaction.id)
                             ? 'bg-blue-50 border-2 border-blue-300 shadow-sm'
                             : 'bg-white hover:bg-gray-50 border border-gray-200 hover:shadow-md'
                         }`}
                       >
-                        {/* Action Buttons - Right side, show on hover */}
+                        {/* Action Buttons - Right side, aligned with date, show on hover */}
                         {editingDescriptionId !== transaction.id && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute right-3 bottom-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => toggleSelectTransaction(transaction.id)}
                               className="p-2 hover:bg-green-100 rounded-lg transition-colors"
