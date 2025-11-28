@@ -962,7 +962,7 @@ const TransactionsTab = ({
 
                         {/* Secondary Info: Date + Badges */}
                         {editingDescriptionId !== transaction.id && (
-                          <div className="flex items-center gap-2 ml-[72px]">
+                          <div className="flex items-center gap-2 ml-[76px]">
                             <span className="text-xs text-gray-500">
                               Created: {transaction.date}
                             </span>
