@@ -60,16 +60,16 @@ const CategoryIconSelector = ({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="relative w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-all hover:scale-110 hover:shadow-lg"
+        className="relative w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-all hover:scale-110 hover:shadow-md"
         style={{ backgroundColor: categoryColor + '20' }}
         title={`Category: ${transaction.category} - Click to change`}
       >
         {/* Category Icon */}
-        <CategoryIcon style={{ color: categoryColor }} size={20} />
+        <CategoryIcon style={{ color: categoryColor }} size={16} />
 
         {/* Type Indicator Dot */}
         <div
-          className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white"
+          className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white"
           style={{ backgroundColor: isIncome ? THEME.success : THEME.danger }}
           title={isIncome ? 'Income' : 'Expense'}
         />
