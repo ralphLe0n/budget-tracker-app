@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { TrendingUp, TrendingDown, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle, Edit2, Check, X, ArrowLeftRight, CreditCard, CheckSquare } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
@@ -79,6 +79,9 @@ const TransactionsTab = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20); // Show 20 transactions per page
 
+  // Ref for scrolling to transactions list
+  const transactionsListRef = useRef(null);
+
   // Create a map of transaction IDs to debt payment info
   const transactionDebtLinks = useMemo(() => {
     const links = {};
@@ -111,6 +114,13 @@ const TransactionsTab = ({
   useEffect(() => {
     setCurrentPage(1);
   }, [filterStartDate, filterEndDate, selectedCategories, filterDescription]);
+
+  // Scroll to top of transactions list when page changes
+  useEffect(() => {
+    if (transactionsListRef.current && currentPage > 1) {
+      transactionsListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [currentPage]);
 
   // Show swipe hint on first visit (mobile only)
   useEffect(() => {
@@ -624,7 +634,7 @@ const TransactionsTab = ({
       </div>
 
       {/* Transactions List */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
+      <div ref={transactionsListRef} className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
         <button
           onClick={() => setTransactionsExpanded(!transactionsExpanded)}
           className="w-full flex justify-between items-center mb-4"
