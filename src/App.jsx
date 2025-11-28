@@ -1837,7 +1837,7 @@ const BudgetApp = ({ session }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Left Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -1848,7 +1848,7 @@ const BudgetApp = ({ session }) => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-y-auto">
+      <div className="md:ml-64 min-h-screen flex flex-col">
         {/* Mobile Header with Hamburger Menu */}
         <div className="md:hidden bg-white shadow-md p-4 flex items-center justify-between sticky top-0 z-30">
           <button
