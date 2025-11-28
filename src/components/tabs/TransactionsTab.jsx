@@ -233,23 +233,23 @@ const TransactionsTab = ({
   return (
     <>
       {/* Page Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transakcje i Analityka</h1>
-        <p className="text-sm sm:text-base text-gray-600 mt-2">Kompleksowy widok Twoich danych finansowych</p>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Transakcje i Analityka</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">Kompleksowy widok Twoich danych finansowych</p>
       </div>
 
       {/* Charts Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 mb-4 sm:mb-6">
         <button
           onClick={() => setChartsExpanded(!chartsExpanded)}
-          className="w-full flex justify-between items-center mb-4"
+          className="w-full flex justify-between items-center mb-3"
         >
-          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
+          <h2 className="text-base sm:text-xl font-semibold text-gray-800">
             <span className="hidden sm:inline">Wykresy i Trendy</span>
             <span className="sm:hidden">Wykresy</span>
-            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
+            {hasActiveFilters && <span className="text-xs text-gray-500 ml-2">(Filtrowane)</span>}
           </h2>
-          {chartsExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+          {chartsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
 
         {chartsExpanded && (
@@ -362,17 +362,17 @@ const TransactionsTab = ({
       </div>
 
       {/* Budget vs Actual Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 mb-4 sm:mb-6">
         <button
           onClick={() => setBudgetExpanded(!budgetExpanded)}
-          className="w-full flex justify-between items-center mb-4"
+          className="w-full flex justify-between items-center mb-3"
         >
-          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
+          <h2 className="text-base sm:text-xl font-semibold text-gray-800">
             <span className="hidden sm:inline">Budżet vs Rzeczywiste</span>
             <span className="sm:hidden">Budżet</span>
-            {hasActiveFilters && <span className="text-xs sm:text-sm text-gray-500 ml-2">(Filtrowane)</span>}
+            {hasActiveFilters && <span className="text-xs text-gray-500 ml-2">(Filtrowane)</span>}
           </h2>
-          {budgetExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+          {budgetExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
 
         {budgetExpanded && (
@@ -414,14 +414,14 @@ const TransactionsTab = ({
       </div>
 
       {/* Filters Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="flex-1 flex justify-between items-center w-full"
           >
-            <h3 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Filter size={18} className="sm:w-5 sm:h-5" />
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Filter size={16} className="sm:w-5 sm:h-5" />
               Filtry
               {hasActiveFilters && (
                 <span className="ml-2 px-2 py-0.5 rounded-full text-xs text-white" style={{ backgroundColor: THEME.primary }}>
@@ -429,7 +429,7 @@ const TransactionsTab = ({
                 </span>
               )}
             </h3>
-            {showFilters ? <ChevronUp size={20} className="sm:w-6 sm:h-6" /> : <ChevronDown size={20} className="sm:w-6 sm:h-6" />}
+            {showFilters ? <ChevronUp size={18} className="sm:w-5 sm:h-5" /> : <ChevronDown size={18} className="sm:w-5 sm:h-5" />}
           </button>
           {hasActiveFilters && (
             <button
@@ -598,19 +598,19 @@ const TransactionsTab = ({
       </div>
 
       {/* Transactions List */}
-      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
         <button
           onClick={() => setTransactionsExpanded(!transactionsExpanded)}
           className="w-full flex justify-between items-center mb-4"
         >
-          <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
+          <h2 className="text-base sm:text-xl font-semibold text-gray-800">
             <span className="hidden sm:inline">Wszystkie Transakcje</span>
             <span className="sm:hidden">Transakcje</span>
             <span className="ml-2 sm:ml-3 text-xs sm:text-sm text-gray-500 font-normal">
               ({filteredTransactions.length})
             </span>
           </h2>
-          {transactionsExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+          {transactionsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
 
         {transactionsExpanded && (
@@ -807,7 +807,7 @@ const TransactionsTab = ({
                 )}
 
                 {/* Transaction Cards */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {filteredTransactions.map((transaction, index) => (
                     isMobile ? (
                       // Mobile: Use SwipeableTransactionCard with gestures
@@ -831,64 +831,76 @@ const TransactionsTab = ({
                       // Desktop: Use traditional card with checkboxes
                       <div
                         key={transaction.id}
-                        className={`relative rounded-xl transition-colors p-4 pb-3 ${
+                        className={`group relative rounded-xl transition-all p-4 ${
                           selectedTransactions.has(transaction.id)
-                            ? 'bg-blue-50 border-2 border-blue-300'
-                            : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                            ? 'bg-blue-50 border-2 border-blue-300 shadow-sm'
+                            : 'bg-white hover:bg-gray-50 border border-gray-200 hover:shadow-md'
                         }`}
                       >
-                        {/* Desktop Action Buttons */}
-                        <div className="absolute top-2 right-2 md:top-3 md:right-3 flex gap-1 z-10">
-                          {transaction.category !== 'Transfer' && (
-                            <button
-                              onClick={() => {
-                                setConvertingTransactionId(transaction.id);
-                                setShowConvertTransfer(true);
-                              }}
-                              className="transition-colors p-2 hover:bg-blue-100 rounded-lg touch-manipulation"
-                              style={{ color: THEME.primary }}
-                              title="Konwertuj na Przelew"
-                            >
-                              <ArrowLeftRight size={iconSize} />
-                            </button>
+                        {/* Desktop Action Buttons - Show on hover */}
+                        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          {editingDescriptionId !== transaction.id && (
+                            <>
+                              <button
+                                onClick={() => handleStartEditDescription(transaction)}
+                                className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                                style={{ color: THEME.primary }}
+                                title="Edytuj opis"
+                              >
+                                <Edit2 size={iconSize} />
+                              </button>
+                              {transaction.category !== 'Transfer' && (
+                                <button
+                                  onClick={() => {
+                                    setConvertingTransactionId(transaction.id);
+                                    setShowConvertTransfer(true);
+                                  }}
+                                  className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                                  style={{ color: THEME.primary }}
+                                  title="Konwertuj na Przelew"
+                                >
+                                  <ArrowLeftRight size={iconSize} />
+                                </button>
+                              )}
+                              {/* Link to Debt button - only for expenses not already linked */}
+                              {transaction.amount < 0 &&
+                               transaction.category !== 'Transfer' &&
+                               !transactionDebtLinks[transaction.id] && (
+                                <button
+                                  onClick={() => handleLinkToDebt(transaction)}
+                                  className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+                                  style={{ color: '#6366f1' }}
+                                  title="Połącz z Długiem"
+                                >
+                                  <CreditCard size={iconSize} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                                className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                                style={{ color: THEME.danger }}
+                                title="Usuń transakcję"
+                              >
+                                <Trash2 size={iconSize} />
+                              </button>
+                            </>
                           )}
-                          {/* Link to Debt button - only for expenses not already linked */}
-                          {transaction.amount < 0 &&
-                           transaction.category !== 'Transfer' &&
-                           !transactionDebtLinks[transaction.id] && (
-                            <button
-                              onClick={() => handleLinkToDebt(transaction)}
-                              className="transition-colors p-2 hover:bg-purple-100 rounded-lg touch-manipulation"
-                              style={{ color: '#6366f1' }}
-                              title="Połącz z Długiem"
-                            >
-                              <CreditCard size={iconSize} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                            className="transition-colors p-2 hover:bg-red-100 rounded-lg touch-manipulation"
-                            style={{ color: THEME.danger }}
-                            title="Usuń transakcję"
-                          >
-                            <Trash2 size={iconSize} />
-                          </button>
                         </div>
 
-                        {/* Row 1: Checkbox + Icon + Description */}
-                        <div className="flex items-start gap-2 md:gap-3 mb-3 pr-20 md:pr-24">
+                        {/* Main Content: Checkbox + Icon + Description + Amount */}
+                        <div className="flex items-center gap-3 mb-2">
                           {/* Checkbox */}
-                          <div className="flex-shrink-0 pt-1">
+                          <div className="flex-shrink-0">
                             <input
                               type="checkbox"
                               checked={selectedTransactions.has(transaction.id)}
                               onChange={() => toggleSelectTransaction(transaction.id)}
-                              className="cursor-pointer w-5 h-5 touch-manipulation"
+                              className="cursor-pointer w-4 h-4 rounded border-gray-300"
                             />
                           </div>
 
                           {/* Icon */}
-                          <div className="flex-shrink-0 pt-1">
+                          <div className="flex-shrink-0">
                             <CategoryIconSelector
                               transaction={transaction}
                               categories={categories}
@@ -900,91 +912,81 @@ const TransactionsTab = ({
                           {/* Description with inline editing */}
                           <div className="flex-1 min-w-0">
                             {editingDescriptionId === transaction.id ? (
-                              <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2">
                                 <input
                                   type="text"
                                   value={editingDescription}
                                   onChange={(e) => setEditingDescription(e.target.value)}
-                                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:border-transparent text-base"
-                                  style={{ fontSize: '16px' }}
+                                  className="flex-1 px-3 py-1.5 border-2 rounded-lg focus:ring-2 focus:border-transparent text-base"
+                                  style={{ borderColor: THEME.primary }}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') handleSaveDescription(transaction.id);
                                     if (e.key === 'Escape') handleCancelEditDescription();
                                   }}
                                   autoFocus
                                 />
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleSaveDescription(transaction.id)}
-                                    className="flex-1 p-2 bg-green-100 hover:bg-green-200 rounded-lg touch-manipulation"
-                                    title="Zapisz"
-                                  >
-                                    <Check size={iconSize} style={{ color: THEME.success }} className="mx-auto" />
-                                  </button>
-                                  <button
-                                    onClick={handleCancelEditDescription}
-                                    className="flex-1 p-2 bg-red-100 hover:bg-red-200 rounded-lg touch-manipulation"
-                                    title="Anuluj"
-                                  >
-                                    <X size={iconSize} style={{ color: THEME.danger }} className="mx-auto" />
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-start gap-2 group">
-                                <p className="font-semibold text-gray-800 text-sm md:text-base leading-tight break-words flex-1">
-                                  {transaction.description}
-                                </p>
                                 <button
-                                  onClick={() => handleStartEditDescription(transaction)}
-                                  className="md:opacity-0 group-hover:opacity-100 p-1.5 hover:bg-gray-200 rounded transition-opacity flex-shrink-0 touch-manipulation"
-                                  title="Edytuj opis"
+                                  onClick={() => handleSaveDescription(transaction.id)}
+                                  className="p-2 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
+                                  title="Zapisz"
                                 >
-                                  <Edit2 size={iconSizeSmall} className="text-gray-500" />
+                                  <Check size={iconSize} style={{ color: THEME.success }} />
+                                </button>
+                                <button
+                                  onClick={handleCancelEditDescription}
+                                  className="p-2 bg-red-100 hover:bg-red-200 rounded-lg transition-colors"
+                                  title="Anuluj"
+                                >
+                                  <X size={iconSize} style={{ color: THEME.danger }} />
                                 </button>
                               </div>
+                            ) : (
+                              <p className="font-semibold text-gray-800 text-base leading-tight break-words">
+                                {transaction.description}
+                              </p>
                             )}
                           </div>
-                        </div>
 
-                        {/* Row 2: Amount */}
-                        <div className="mb-2 pr-20 md:pr-24">
-                          <span
-                            className="text-2xl md:text-xl font-bold block"
-                            style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-                          >
-                            {formatCurrency(transaction.amount)}
-                          </span>
-                        </div>
-
-                        {/* Row 3: Date and Type Badge */}
-                        <div className="flex items-center gap-2 md:gap-3 flex-wrap pr-20 md:pr-24">
-                          <span className="flex items-center gap-1 text-xs text-gray-600">
-                            <Calendar size={iconSizeSmall} />
-                            <span>{transaction.date}</span>
-                          </span>
-                          <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style={{
-                            backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
-                            color: transaction.amount > 0 ? THEME.success : THEME.danger
-                          }}>
-                            {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
-                          </span>
-                          {/* Debt Payment Indicator */}
-                          {transactionDebtLinks[transaction.id] && (
-                            <span
-                              className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap flex items-center gap-1"
-                              style={{
-                                backgroundColor: '#6366f120',
-                                color: '#6366f1',
-                                border: '1px solid #6366f1',
-                              }}
-                              title={`Połączone z: ${transactionDebtLinks[transaction.id].debt_name}`}
-                            >
-                              <CreditCard size={iconSizeSmall} />
-                              <span>{transactionDebtLinks[transaction.id].debt_name}</span>
-                            </span>
+                          {/* Amount */}
+                          {editingDescriptionId !== transaction.id && (
+                            <div className="flex-shrink-0">
+                              <span
+                                className="text-xl font-bold whitespace-nowrap"
+                                style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+                              >
+                                {formatCurrency(transaction.amount)}
+                              </span>
+                            </div>
                           )}
                         </div>
+
+                        {/* Secondary Info: Date + Badges */}
+                        {editingDescriptionId !== transaction.id && (
+                          <div className="flex items-center gap-2 ml-11">
+                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                              <Calendar size={iconSizeSmall} />
+                              <span>{transaction.date}</span>
+                            </span>
+                            {/* Debt Payment Indicator */}
+                            {transactionDebtLinks[transaction.id] && (
+                              <>
+                                <span className="text-gray-300">•</span>
+                                <span
+                                  className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1"
+                                  style={{
+                                    backgroundColor: '#6366f120',
+                                    color: '#6366f1',
+                                    border: '1px solid #6366f140',
+                                  }}
+                                  title={`Połączone z: ${transactionDebtLinks[transaction.id].debt_name}`}
+                                >
+                                  <CreditCard size={iconSizeSmall} />
+                                  <span>{transactionDebtLinks[transaction.id].debt_name}</span>
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   ))}

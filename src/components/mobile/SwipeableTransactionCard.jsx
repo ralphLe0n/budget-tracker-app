@@ -191,8 +191,8 @@ const SwipeableTransactionCard = ({
 
       {/* Main Card Content */}
       <div
-        className={`relative bg-gray-50 rounded-xl transition-colors p-4 pb-3 ${
-          isSelected ? 'bg-blue-50 border-2 border-blue-300' : 'hover:bg-gray-100 border-2 border-transparent'
+        className={`relative rounded-xl transition-all p-4 ${
+          isSelected ? 'bg-blue-50 border-2 border-blue-300 shadow-sm' : 'bg-white border border-gray-200 active:bg-gray-50'
         } ${showHint ? 'animate-swipe-hint' : ''}`}
         style={{
           transform: isMobile && !isSelectionMode ? `translateX(${swipeOffset}px)` : 'none',
@@ -246,66 +246,60 @@ const SwipeableTransactionCard = ({
           </div>
         )}
 
-        {/* Row 1: Icon + Description */}
+        {/* Main Content Row: Description + Amount */}
         <div
-          className={`flex items-start gap-2 md:gap-3 mb-3 ${
+          className={`flex items-center justify-between gap-3 mb-2 ${
             isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'
           }`}
         >
-          <div className="flex-shrink-0 pt-1">
-            <CategoryIconSelector
-              transaction={transaction}
-              categories={categories}
-              onCategoryChange={onCategoryChange}
-              onAddCategory={onAddCategory}
-            />
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="flex-shrink-0">
+              <CategoryIconSelector
+                transaction={transaction}
+                categories={categories}
+                onCategoryChange={onCategoryChange}
+                onAddCategory={onAddCategory}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-800 text-base leading-tight break-words">
+                {transaction.description}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-800 text-sm md:text-base leading-tight break-words">
-              {transaction.description}
-            </p>
+          <div className="flex-shrink-0">
+            <span
+              className="text-lg md:text-xl font-bold whitespace-nowrap"
+              style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
+            >
+              {formatCurrency(transaction.amount)}
+            </span>
           </div>
         </div>
 
-        {/* Row 2: Amount */}
-        <div className={`mb-2 ${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}>
-          <span
-            className="text-2xl md:text-xl font-bold block"
-            style={{ color: transaction.amount > 0 ? THEME.success : THEME.danger }}
-          >
-            {formatCurrency(transaction.amount)}
-          </span>
-        </div>
-
-        {/* Row 3: Date and Category Badge */}
-        <div className={`flex items-center gap-2 md:gap-3 flex-wrap ${isSelectionMode ? 'pl-10' : isMobile ? '' : 'pr-24'}`}>
-          <span className="flex items-center gap-1 text-xs text-gray-600">
+        {/* Secondary Info Row: Date + Badges */}
+        <div className={`flex items-center gap-2 flex-wrap ${isSelectionMode ? 'pl-10 ml-9' : isMobile ? 'ml-9' : 'pr-24 ml-9'}`}>
+          <span className="flex items-center gap-1 text-xs text-gray-500">
             <Calendar size={iconSizeSmall} />
             <span>{transaction.date}</span>
           </span>
-          <span
-            className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap"
-            style={{
-              backgroundColor: transaction.amount > 0 ? THEME.successLight : THEME.dangerLight,
-              color: transaction.amount > 0 ? THEME.success : THEME.danger,
-            }}
-          >
-            {transaction.amount > 0 ? 'Przychód' : 'Wydatek'}
-          </span>
           {/* Debt Payment Indicator */}
           {debtPaymentLink && (
-            <span
-              className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap flex items-center gap-1"
-              style={{
-                backgroundColor: '#6366f120',
-                color: '#6366f1',
-                border: '1px solid #6366f1',
-              }}
-              title={`Połączone z: ${debtPaymentLink.debt_name}`}
-            >
-              <CreditCard size={iconSizeSmall} />
-              <span>{debtPaymentLink.debt_name}</span>
-            </span>
+            <>
+              <span className="text-gray-300">•</span>
+              <span
+                className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1"
+                style={{
+                  backgroundColor: '#6366f120',
+                  color: '#6366f1',
+                  border: '1px solid #6366f140',
+                }}
+                title={`Połączone z: ${debtPaymentLink.debt_name}`}
+              >
+                <CreditCard size={iconSizeSmall} />
+                <span>{debtPaymentLink.debt_name}</span>
+              </span>
+            </>
           )}
         </div>
       </div>
