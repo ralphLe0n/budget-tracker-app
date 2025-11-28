@@ -75,6 +75,10 @@ const TransactionsTab = ({
   const [showLinkDebtModal, setShowLinkDebtModal] = useState(false);
   const [linkingTransaction, setLinkingTransaction] = useState(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20); // Show 20 transactions per page
+
   // Create a map of transaction IDs to debt payment info
   const transactionDebtLinks = useMemo(() => {
     const links = {};
@@ -94,6 +98,19 @@ const TransactionsTab = ({
     });
     return links;
   }, [debtPayments, debts]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTransactions = useMemo(() => {
+    return filteredTransactions.slice(startIndex, endIndex);
+  }, [filteredTransactions, startIndex, endIndex]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStartDate, filterEndDate, selectedCategories, filterDescription]);
 
   // Show swipe hint on first visit (mobile only)
   useEffect(() => {
