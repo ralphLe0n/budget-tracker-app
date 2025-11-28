@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, TrendingDown, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle, Edit2, Check, X, ArrowLeftRight, CreditCard } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle, Edit2, Check, X, ArrowLeftRight, CreditCard, CheckSquare } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
@@ -791,8 +791,8 @@ const TransactionsTab = ({
               </div>
             ) : (
               <>
-                {/* Select All Button - Only show on desktop or when not in mobile selection mode */}
-                {!isMobile && (
+                {/* Select All Button - Only show on desktop when in selection mode */}
+                {!isMobile && selectedTransactions.size > 0 && (
                   <div className="mb-4 flex items-center gap-2 px-2">
                     <input
                       type="checkbox"
@@ -842,6 +842,14 @@ const TransactionsTab = ({
                           {editingDescriptionId !== transaction.id && (
                             <>
                               <button
+                                onClick={() => toggleSelectTransaction(transaction.id)}
+                                className="p-2 hover:bg-green-100 rounded-lg transition-colors"
+                                style={{ color: selectedTransactions.has(transaction.id) ? THEME.success : THEME.primary }}
+                                title="Zaznacz do edycji"
+                              >
+                                <CheckSquare size={iconSize} />
+                              </button>
+                              <button
                                 onClick={() => handleStartEditDescription(transaction)}
                                 className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
                                 style={{ color: THEME.primary }}
@@ -889,15 +897,17 @@ const TransactionsTab = ({
 
                         {/* Main Content: Checkbox + Icon + Description + Amount */}
                         <div className="flex items-center gap-3 mb-2">
-                          {/* Checkbox */}
-                          <div className="flex-shrink-0">
-                            <input
-                              type="checkbox"
-                              checked={selectedTransactions.has(transaction.id)}
-                              onChange={() => toggleSelectTransaction(transaction.id)}
-                              className="cursor-pointer w-4 h-4 rounded border-gray-300"
-                            />
-                          </div>
+                          {/* Checkbox - Only show when in selection mode */}
+                          {selectedTransactions.size > 0 && (
+                            <div className="flex-shrink-0">
+                              <input
+                                type="checkbox"
+                                checked={selectedTransactions.has(transaction.id)}
+                                onChange={() => toggleSelectTransaction(transaction.id)}
+                                className="cursor-pointer w-4 h-4 rounded border-gray-300"
+                              />
+                            </div>
+                          )}
 
                           {/* Icon */}
                           <div className="flex-shrink-0">
@@ -962,7 +972,7 @@ const TransactionsTab = ({
 
                         {/* Secondary Info: Date + Badges */}
                         {editingDescriptionId !== transaction.id && (
-                          <div className="flex items-center gap-2 ml-[76px]">
+                          <div className={`flex items-center gap-2 ${selectedTransactions.size > 0 ? 'ml-[76px]' : 'ml-12'}`}>
                             <span className="text-xs text-gray-500">
                               Created: {transaction.date}
                             </span>
