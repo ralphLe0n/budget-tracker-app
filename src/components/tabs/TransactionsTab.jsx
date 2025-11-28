@@ -226,10 +226,19 @@ const TransactionsTab = ({
   };
 
   const toggleSelectAll = () => {
-    if (selectedTransactions.size === filteredTransactions.length) {
-      setSelectedTransactions(new Set());
+    // Check if all transactions on current page are selected
+    const allCurrentPageSelected = paginatedTransactions.every(t => selectedTransactions.has(t.id));
+
+    if (allCurrentPageSelected) {
+      // Deselect all from current page
+      const newSelected = new Set(selectedTransactions);
+      paginatedTransactions.forEach(t => newSelected.delete(t.id));
+      setSelectedTransactions(newSelected);
     } else {
-      setSelectedTransactions(new Set(filteredTransactions.map(t => t.id)));
+      // Select all on current page
+      const newSelected = new Set(selectedTransactions);
+      paginatedTransactions.forEach(t => newSelected.add(t.id));
+      setSelectedTransactions(newSelected);
     }
   };
 
@@ -813,19 +822,19 @@ const TransactionsTab = ({
                   <div className="mb-4 flex items-center gap-2 px-2">
                     <input
                       type="checkbox"
-                      checked={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0}
+                      checked={paginatedTransactions.length > 0 && paginatedTransactions.every(t => selectedTransactions.has(t.id))}
                       onChange={toggleSelectAll}
                       className="cursor-pointer w-4 h-4"
                     />
                     <span className="text-sm text-gray-600 font-medium">
-                      Zaznacz wszystkie
+                      Zaznacz wszystkie na stronie ({paginatedTransactions.length})
                     </span>
                   </div>
                 )}
 
                 {/* Transaction Cards */}
                 <div className="space-y-4">
-                  {filteredTransactions.map((transaction, index) => (
+                  {paginatedTransactions.map((transaction, index) => (
                     isMobile ? (
                       // Mobile: Use SwipeableTransactionCard with gestures
                       <SwipeableTransactionCard
@@ -1015,6 +1024,79 @@ const TransactionsTab = ({
                     )
                   ))}
                 </div>
+
+                {/* Pagination Controls */}
+                {filteredTransactions.length > 0 && totalPages > 1 && (
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
+                    {/* Page Info */}
+                    <div className="text-sm text-gray-600">
+                      Showing {startIndex + 1} to {Math.min(endIndex, filteredTransactions.length)} of {filteredTransactions.length} transactions
+                    </div>
+
+                    {/* Page Navigation */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{
+                          backgroundColor: currentPage === 1 ? '#f3f4f6' : THEME.primaryLight,
+                          color: currentPage === 1 ? '#9ca3af' : THEME.primary,
+                          border: `2px solid ${currentPage === 1 ? '#e5e7eb' : THEME.primary}`
+                        }}
+                      >
+                        Previous
+                      </button>
+
+                      {/* Page Numbers */}
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter(page => {
+                            // Show first page, last page, current page, and pages around current
+                            return page === 1 ||
+                                   page === totalPages ||
+                                   (page >= currentPage - 1 && page <= currentPage + 1);
+                          })
+                          .map((page, index, array) => (
+                            <React.Fragment key={page}>
+                              {/* Show ellipsis if there's a gap */}
+                              {index > 0 && array[index - 1] !== page - 1 && (
+                                <span className="px-2 text-gray-400">...</span>
+                              )}
+                              <button
+                                onClick={() => setCurrentPage(page)}
+                                className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                                  currentPage === page
+                                    ? 'shadow-md'
+                                    : 'hover:bg-gray-100'
+                                }`}
+                                style={{
+                                  backgroundColor: currentPage === page ? THEME.primary : 'transparent',
+                                  color: currentPage === page ? 'white' : '#374151'
+                                }}
+                              >
+                                {page}
+                              </button>
+                            </React.Fragment>
+                          ))
+                        }
+                      </div>
+
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{
+                          backgroundColor: currentPage === totalPages ? '#f3f4f6' : THEME.primaryLight,
+                          color: currentPage === totalPages ? '#9ca3af' : THEME.primary,
+                          border: `2px solid ${currentPage === totalPages ? '#e5e7eb' : THEME.primary}`
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </>
