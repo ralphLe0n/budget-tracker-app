@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, TrendingDown, Calendar, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle, Edit2, Check, X, ArrowLeftRight, CreditCard } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trash2, Filter, ChevronDown, ChevronUp, Upload, PlusCircle, Edit2, Check, X, ArrowLeftRight, CreditCard } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
@@ -963,9 +963,8 @@ const TransactionsTab = ({
                         {/* Secondary Info: Date + Badges */}
                         {editingDescriptionId !== transaction.id && (
                           <div className="flex items-center gap-2 ml-11">
-                            <span className="flex items-center gap-1 text-xs text-gray-500">
-                              <Calendar size={iconSizeSmall} />
-                              <span>{transaction.date}</span>
+                            <span className="text-xs text-gray-500">
+                              Created: {transaction.date}
                             </span>
                             {/* Debt Payment Indicator */}
                             {transactionDebtLinks[transaction.id] && (

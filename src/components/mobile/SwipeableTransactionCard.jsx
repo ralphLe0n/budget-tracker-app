@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, ArrowLeftRight, Trash2, Calendar, CreditCard } from 'lucide-react';
+import { Edit2, ArrowLeftRight, Trash2, CreditCard } from 'lucide-react';
 import { THEME } from '../../config/theme';
 import { formatCurrency } from '../../utils/formatters';
 import { useMobile } from '../../hooks/useMobile';
@@ -279,9 +279,8 @@ const SwipeableTransactionCard = ({
 
         {/* Secondary Info Row: Date + Badges */}
         <div className={`flex items-center gap-2 flex-wrap ${isSelectionMode ? 'pl-10 ml-9' : isMobile ? 'ml-9' : 'pr-24 ml-9'}`}>
-          <span className="flex items-center gap-1 text-xs text-gray-500">
-            <Calendar size={iconSizeSmall} />
-            <span>{transaction.date}</span>
+          <span className="text-xs text-gray-500">
+            Created: {transaction.date}
           </span>
           {/* Debt Payment Indicator */}
           {debtPaymentLink && (
