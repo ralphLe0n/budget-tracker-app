@@ -837,6 +837,61 @@ const TransactionsTab = ({
                             : 'bg-white hover:bg-gray-50 border border-gray-200 hover:shadow-md'
                         }`}
                       >
+                        {/* Action Buttons - Right side, show on hover */}
+                        {editingDescriptionId !== transaction.id && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => toggleSelectTransaction(transaction.id)}
+                              className="p-2 hover:bg-green-100 rounded-lg transition-colors"
+                              style={{ color: selectedTransactions.has(transaction.id) ? THEME.success : THEME.primary }}
+                              title="Zaznacz do edycji"
+                            >
+                              <CheckSquare size={iconSizeSmall} />
+                            </button>
+                            <button
+                              onClick={() => handleStartEditDescription(transaction)}
+                              className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                              style={{ color: THEME.primary }}
+                              title="Edytuj opis"
+                            >
+                              <Edit2 size={iconSizeSmall} />
+                            </button>
+                            {transaction.category !== 'Transfer' && (
+                              <button
+                                onClick={() => {
+                                  setConvertingTransactionId(transaction.id);
+                                  setShowConvertTransfer(true);
+                                }}
+                                className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                                style={{ color: THEME.primary }}
+                                title="Konwertuj na Przelew"
+                              >
+                                <ArrowLeftRight size={iconSizeSmall} />
+                              </button>
+                            )}
+                            {/* Link to Debt button - only for expenses not already linked */}
+                            {transaction.amount < 0 &&
+                             transaction.category !== 'Transfer' &&
+                             !transactionDebtLinks[transaction.id] && (
+                              <button
+                                onClick={() => handleLinkToDebt(transaction)}
+                                className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+                                style={{ color: '#6366f1' }}
+                                title="Połącz z Długiem"
+                              >
+                                <CreditCard size={iconSizeSmall} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
+                              className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                              style={{ color: THEME.danger }}
+                              title="Usuń transakcję"
+                            >
+                              <Trash2 size={iconSizeSmall} />
+                            </button>
+                          </div>
+                        )}
 
                         {/* Main Content: Checkbox + Icon + Description + Amount */}
                         <div className="flex items-center gap-3 mb-2">
@@ -937,62 +992,6 @@ const TransactionsTab = ({
                                 </span>
                               </>
                             )}
-                          </div>
-                        )}
-
-                        {/* Action Buttons - Show on hover below content */}
-                        {editingDescriptionId !== transaction.id && (
-                          <div className={`flex items-center gap-1 mt-3 pt-3 border-t border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity ${selectedTransactions.size > 0 ? 'ml-[76px]' : 'ml-12'}`}>
-                            <button
-                              onClick={() => toggleSelectTransaction(transaction.id)}
-                              className="p-2 hover:bg-green-100 rounded-lg transition-colors"
-                              style={{ color: selectedTransactions.has(transaction.id) ? THEME.success : THEME.primary }}
-                              title="Zaznacz do edycji"
-                            >
-                              <CheckSquare size={iconSizeSmall} />
-                            </button>
-                            <button
-                              onClick={() => handleStartEditDescription(transaction)}
-                              className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
-                              style={{ color: THEME.primary }}
-                              title="Edytuj opis"
-                            >
-                              <Edit2 size={iconSizeSmall} />
-                            </button>
-                            {transaction.category !== 'Transfer' && (
-                              <button
-                                onClick={() => {
-                                  setConvertingTransactionId(transaction.id);
-                                  setShowConvertTransfer(true);
-                                }}
-                                className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
-                                style={{ color: THEME.primary }}
-                                title="Konwertuj na Przelew"
-                              >
-                                <ArrowLeftRight size={iconSizeSmall} />
-                              </button>
-                            )}
-                            {/* Link to Debt button - only for expenses not already linked */}
-                            {transaction.amount < 0 &&
-                             transaction.category !== 'Transfer' &&
-                             !transactionDebtLinks[transaction.id] && (
-                              <button
-                                onClick={() => handleLinkToDebt(transaction)}
-                                className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
-                                style={{ color: '#6366f1' }}
-                                title="Połącz z Długiem"
-                              >
-                                <CreditCard size={iconSizeSmall} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setDeleteConfirm({ show: true, type: 'transaction', id: transaction.id, name: transaction.description })}
-                              className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                              style={{ color: THEME.danger }}
-                              title="Usuń transakcję"
-                            >
-                              <Trash2 size={iconSizeSmall} />
-                            </button>
                           </div>
                         )}
                       </div>
